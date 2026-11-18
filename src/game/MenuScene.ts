@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { MAX_LEVEL, levelForXp, xpForLevel } from '../core/progression';
 import { SKATERS } from '../core/skaters';
 import { World, setupCamera } from './backdrop';
+import { showFullscreenButton } from './fullscreen';
 import { InputController } from './input';
 import { loading } from './loading';
 import { loadSave, writeSave, type Save } from './storage';
@@ -16,6 +17,8 @@ export class MenuScene extends Phaser.Scene {
 
   create(): void {
     setupCamera(this);
+    showFullscreenButton(true);
+    this.events.once('shutdown', () => showFullscreenButton(false));
     this.save = loadSave();
     this.bg = new World(this);
     this.add.rectangle(0, 0, AW, AH, PAL.ink, 0.45).setOrigin(0);

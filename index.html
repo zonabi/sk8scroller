@@ -4,6 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#1a1026" />
+<link rel="manifest" href="/manifest.webmanifest" />
 <link rel="icon" href="data:," />
 <title>SK8SCROLLER</title>
 <style>
@@ -47,6 +51,20 @@
   @keyframes slap { to { transform: rotate(-4deg) scale(1); opacity: 1; } }
   @keyframes drip { to { transform: scaleY(1); } }
   @keyframes spin { to { transform: rotate(360deg); } }
+  /* full-screen button: a paint-marker sticker in the corner, menu only */
+  #fs { position: fixed; z-index: 4; right: calc(10px + env(safe-area-inset-right)); bottom: calc(10px + env(safe-area-inset-bottom)); width: 46px; height: 46px; padding: 0;
+    display: none; align-items: center; justify-content: center; border: 3px solid #1a1026; border-radius: 12px; background: #ffd23f; color: #1a1026;
+    box-shadow: 3px 4px 0 #1a1026; transform: rotate(-4deg); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #fs:active { transform: rotate(-4deg) translate(2px, 3px); box-shadow: 1px 1px 0 #1a1026; }
+  body.in-menu #fs { display: flex; }
+  #fs svg { width: 26px; height: 26px; }
+  #fs .exit, #fs.on .enter { display: none; }
+  #fs.on .exit { display: block; }
+  #fs.on { background: #00d9ff; }
+  #fs-toast { position: fixed; z-index: 4; right: calc(66px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); max-width: 62vw; padding: 8px 14px;
+    background: #f6e7a1; color: #1a1026; font: 400 14px/1.25 "Permanent Marker", system-ui, sans-serif; transform: rotate(1deg) scale(.9); transform-origin: right bottom;
+    box-shadow: 2px 3px 0 rgba(0,0,0,.4); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+  #fs-toast.show { opacity: 1; transform: rotate(1deg) scale(1); }
   #fps { position: fixed; left: 4px; bottom: 4px; color: #3dff8f; font: 12px monospace; z-index: 6; pointer-events: none; }
   @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
 </style>
@@ -73,6 +91,11 @@
     document.getElementById('tip').textContent = 'tip: ' + tips[Math.floor(Math.random() * tips.length)];
   })();
 </script>
+<button id="fs" aria-label="Full screen">
+  <svg class="enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+  <svg class="exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>
+</button>
+<div id="fs-toast">iPhone: tap Share, then “Add to Home Screen” — it opens full screen from there.</div>
 <div id="fps"></div>
 <div id="rotate">ROTATE YOUR PHONE<br/>↻ landscape</div>
 <script type="module" src="/src/game/main.ts"></script>

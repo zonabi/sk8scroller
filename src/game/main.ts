@@ -3,6 +3,7 @@ import '@fontsource/permanent-marker';
 import '@fontsource/rubik-spray-paint';
 import Phaser from 'phaser';
 import { BootScene } from './BootScene';
+import { initFullscreen } from './fullscreen';
 import { GameScene } from './GameScene';
 import { loading } from './loading';
 import { MenuScene } from './MenuScene';
@@ -12,6 +13,7 @@ import { AH, AW, FONT, PAL, Z } from './view';
 // Fonts must be ready before any text or wall graffiti is rasterised.
 await Promise.all([FONT.piece, FONT.marker, FONT.spray].map(f => document.fonts.load(`32px ${f}`, 'SK8 scroller 0123')));
 
+initFullscreen();
 loading.fontsReady();
 loading.stage('shaking the cans', 0.15);
 

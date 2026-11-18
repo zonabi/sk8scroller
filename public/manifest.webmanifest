@@ -1,0 +1,9 @@
+{
+  "name": "SK8SCROLLER",
+  "short_name": "SK8SCROLLER",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1a1026",
+  "theme_color": "#1a1026"
+}

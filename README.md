@@ -12,7 +12,8 @@ npm install
 npm run dev        # prints a Local and a Network URL
 ```
 
-Open the Network URL on your phone (same Wi-Fi) and rotate to landscape.
+Open the Network URL on your phone (same Wi-Fi) and rotate to landscape. The corner button on the menu goes full screen
+(Android, iPad, desktop). iPhone Safari has no full-screen API: use Share → Add to Home Screen and launch it from there.
 Tilt control needs HTTPS on iOS Safari, so over plain Wi-Fi use touch; tilt works once wrapped with Capacitor.
 
 ## Controls
