@@ -56,6 +56,8 @@ Rules that came out of a real incident (v0.2 shipped at <10 fps and a 10 s load)
 - **World art goes through `World.add()`** (`backdrop.ts`). The world is drawn at 640×360 and upscaled once; only UI is drawn at full canvas resolution. Don't put full-screen layers on the scene directly.
 - **Nothing is generated mid-run that could be generated up front.** Warm textures in `create()` (see `warmSkater`, `warm`).
 - **No per-frame allocations in `update`/`draw`** (no `new Set`, array spreads, closures, template strings that feed textures).
+- Boot work goes in `textureSteps()` (one step per frame, drives the loading bar). The loading screen itself is plain HTML/CSS in `index.html` and may only animate `transform`/`opacity`.
+- No full-screen flashes, ever (photosensitivity, and it reads as a glitch).
 - No MSAA (`antialiasGL: false`), no full-screen filters/shaders without measuring first.
 - `?fps` on the URL shows live fps, frame ms, zoom level and boot time — ask the human for these numbers from a real device; headless Chrome renders in software, so its frame *pacing* means nothing, only its CPU numbers do.
 

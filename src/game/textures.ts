@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Feature } from '../core/level';
 import { Rng } from '../core/rng';
 import { INK, Pix, mix } from './art/pixel';
-import { FRAME, GY, OX, POSES, POSE_NAMES, drawSkater, type PoseName } from './art/skater';
+import { FRAME, GY, OX, POSES, POSE_NAMES, SPIN_FRAMES, drawSkater, drawSpin, type PoseName } from './art/skater';
 import { skaterById } from '../core/skaters';
 import { featureSprite, shadow, sky, skyline, street, wall, wheelIcon } from './art/world';
 import { AH, AW, FONT, GROUND, STREET_TOP } from './view';
@@ -50,16 +50,23 @@ function piece(p: Pix, x0: number, y0: number, word: string, font: string, size:
   for (let i = 0; i < m.w / 3; i++) p.set(x0 + r.int(-6, m.w + 6), y0 + r.int(-4, m.h + 4), r.next() < 0.5 ? c1 : c2);
 }
 
-/** Generates every texture. Real sprite sheets can replace these later by using the same keys. */
-export function makeTextures(scene: Phaser.Scene): void {
-  if (scene.textures.exists('sky')) return;
-  pixTex(scene, 'sky', sky(AW, GROUND));
-  pixTex(scene, 'city-far', skyline(AW, 150, 11, false));
-  pixTex(scene, 'city-mid', skyline(AW, 190, 29, true));
-  pixTex(scene, 'street', street(256, AH - STREET_TOP));
-  pixTex(scene, 'wheel', wheelIcon());
-  pixTex(scene, 'shadow', shadow());
+/**
+ * Boot work, split into labelled steps so the loading screen can show real progress
+ * (one step per frame). Each step is safe to run twice.
+ */
+export function textureSteps(scene: Phaser.Scene): [label: string, run: () => void][] {
+  const has = (k: string) => scene.textures.exists(k);
+  return [
+    ['mixing the sky', () => { if (!has('sky')) pixTex(scene, 'sky', sky(AW, GROUND)); }],
+    ['raising the skyline', () => { if (!has('city-far')) { pixTex(scene, 'city-far', skyline(AW, 150, 11, false)); pixTex(scene, 'city-mid', skyline(AW, 190, 29, true)); } }],
+    ['pouring concrete', () => { if (!has('street')) { pixTex(scene, 'street', street(256, AH - STREET_TOP)); pixTex(scene, 'wheel', wheelIcon()); pixTex(scene, 'shadow', shadow()); } }],
+    ['tagging the wall', () => { if (!has('wall')) pixTex(scene, 'wall', graffitiWall()); }],
+  ];
+}
+/** Runs any boot steps that haven't run yet. */
+export function makeTextures(scene: Phaser.Scene): void { for (const [, run] of textureSteps(scene)) run(); }
 
+function graffitiWall(): Pix {
   const { pix, segs } = wall(WALL_W, WALL_H), r = new Rng(77);
   const words = ['SOUL', 'GRIND', 'ROLL', 'FLOW', 'BLADE', 'MAKIO', 'SK8', 'ROYALE', 'STEEZ', 'LOCK IN'];
   const cans: [number, number][] = [[0xff3d6e, 0xffd23f], [0x00d9ff, 0x7b2ff7], [0x3dff8f, 0x00a0c8], [0xffd23f, 0xff7b00], [0xf5f5f5, 0x00d9ff], [0xff7b00, 0xc2255c]];
@@ -73,17 +80,24 @@ export function makeTextures(scene: Phaser.Scene): void {
   }
   // knock the wall back so the play layer pops
   pix.each((_x, y, c) => c === -1 ? -1 : mix(c, 0x1e1238, 0.3 + (y / WALL_H) * 0.12));
-  pixTex(scene, 'wall', pix);
+  return pix;
 }
 
-/** Texture key for one skater pose, drawn the first time it is asked for. */
-export function skaterTex(scene: Phaser.Scene, id: string, pose: PoseName): string {
-  const key = `sk-${id}-${pose}`;
-  if (!scene.textures.exists(key)) pixTex(scene, key, drawSkater(skaterById(id), POSES[pose]));
+export type SkaterFrame = PoseName | `spin${number}`;
+/** Texture key for one skater frame, drawn the first time it is asked for. */
+export function skaterTex(scene: Phaser.Scene, id: string, frame: SkaterFrame): string {
+  const key = `sk-${id}-${frame}`;
+  if (!scene.textures.exists(key)) {
+    const sk = skaterById(id);
+    pixTex(scene, key, frame.startsWith('spin') ? drawSpin(sk, (Number(frame.slice(4)) * 360) / SPIN_FRAMES) : drawSkater(sk, POSES[frame as PoseName]));
+  }
   return key;
 }
-/** Draw every pose of one skater up front so nothing is generated mid-run. */
-export function warmSkater(scene: Phaser.Scene, id: string): void { for (const n of POSE_NAMES) skaterTex(scene, id, n); }
+/** Draw every frame of one skater up front so nothing is generated mid-run. */
+export function warmSkater(scene: Phaser.Scene, id: string): void {
+  for (const n of POSE_NAMES) skaterTex(scene, id, n);
+  for (let i = 0; i < SPIN_FRAMES; i++) skaterTex(scene, id, `spin${i}`);
+}
 
 const featCache = new Map<number, { ox: number; oy: number }>();
 /** Lazily builds the sprite for one level feature. Returns its texture key and anchor. */

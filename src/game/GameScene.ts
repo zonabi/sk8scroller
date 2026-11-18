@@ -6,11 +6,11 @@ import { levelForXp, unlocksAt, xpFromRun } from '../core/progression';
 import { Sim, comboValue, type SimEvent } from '../core/sim';
 import { skaterById, type SkaterDef } from '../core/skaters';
 import { TRICKS, TRICK_LIST } from '../core/tricks';
-import type { PoseName } from './art/skater';
+import { SPIN_FRAMES, type PoseName } from './art/skater';
 import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
 import { loadSave, writeSave } from './storage';
-import { SPRITE, dropFeatureTexture, featureTexture, skaterTex, warmSkater } from './textures';
+import { SPRITE, dropFeatureTexture, featureTexture, skaterTex, warmSkater, type SkaterFrame } from './textures';
 import { Graf, Num, graf, num, uiPerf, warm, type GrafStyle } from './ui';
 import { AH, AW, GROUND, K, PAL, PLAYER_X, Z, Z_KEY } from './view';
 
@@ -114,7 +114,10 @@ export class GameScene extends Phaser.Scene {
       case 'grindStart': case 'switchUp': this.popup(TRICKS[e.trickId].name, 'grind'); break;
       case 'airTrickStart': this.airTrickTotal = TRICKS[e.trickId].duration; break;
       case 'airTrickDone': this.popup(TRICKS[e.trickId].name, 'air'); break;
-      case 'bank': this.popup(`+${e.points}`, 'bank'); this.cameras.main.flash(90, 255, 230, 120); break;
+      case 'bank': this.popup(`+${e.points}`, 'bank');
+        // no full-screen flash (it read as a glitch and is unkind to photosensitive players): pop the score instead
+        this.scoreText.setScale(1.35); this.tweens.add({ targets: this.scoreText, scale: 1, duration: 220, ease: 'Back.easeOut' });
+        break;
       case 'land': this.landT = 0.12; this.burst(6, 0xd8d8e8, 3); break;
       case 'bail':
         this.popup(BAIL_TEXT[e.reason], 'bail');
@@ -146,13 +149,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ---- drawing --------------------------------------------------------------
-  private pose(): PoseName {
+  private pose(): SkaterFrame {
     const s = this.sim.s;
     if (s.mode === 'grind') return s.grindTrick as PoseName;
     if (s.mode === 'bail') return s.bailTimer > CFG.bailTime * 0.45 ? 'bail0' : 'bail1';
     if (s.mode === 'over') return 'bail1';
     if (s.mode === 'air') {
-      if (s.airTrick) return (['mute', 'safety', 'rocket', 'liukang'] as const).find(n => n === s.airTrick!.id) ?? 'jump';
+      if (s.airTrick) {
+        const id = s.airTrick.id;
+        if (id.startsWith('spin')) {
+          // turnaround frames: the body actually rotates through side → back → side → front
+          const p = 1 - s.airTrick.timeLeft / (this.airTrickTotal || 1), turns = Number(id.slice(4)) / 360;
+          return `spin${Math.floor(p * turns * SPIN_FRAMES + 0.5) % SPIN_FRAMES}`;
+        }
+        return (['mute', 'safety', 'rocket', 'liukang'] as const).find(n => n === id) ?? 'jump';
+      }
       return s.vy > 40 ? 'jump' : 'fall';
     }
     if (this.landT > 0) return 'land';
@@ -177,16 +188,15 @@ export class GameScene extends Phaser.Scene {
 
     // player
     const feetY = Math.floor(GROUND - s.y * K);
-    let rot = 0, sx = 1;
+    let rot = 0;
     if (s.airTrick) {
       const tr = TRICKS[s.airTrick.id], p = 1 - s.airTrick.timeLeft / (this.airTrickTotal || tr.duration);
-      if (tr.id.startsWith('spin')) sx = Math.cos(p * Math.PI * (Number(tr.id.slice(4)) / 180));
-      else if (tr.id === 'backflip' || tr.id === 'misty') rot = -p * Math.PI * 2;
+      if (tr.id === 'backflip' || tr.id === 'misty') rot = -p * Math.PI * 2;
     } else if (s.mode === 'grind') rot = s.balance * 0.3;
     else if (s.mode === 'air') rot = Phaser.Math.Clamp(-s.vy / 2600, -0.12, 0.16);
     const flip = !!s.airTrick && rot !== 0;
     // lean pivots at the feet; flips pivot at the body centre
-    this.player.setTexture(skaterTex(this, this.skater.id, this.pose())).setRotation(rot).setScale(sx, 1)
+    this.player.setTexture(skaterTex(this, this.skater.id, this.pose())).setRotation(rot)
       .setPosition(PLAYER_X + (flip ? 0 : Math.sin(rot) * BODY), feetY - (flip ? BODY : Math.cos(rot) * BODY));
     this.player.setAlpha(s.invuln > 0 && s.mode !== 'bail' && Math.floor(s.t * 14) % 2 ? 0.4 : 1);
     const floor = s.mode === 'grind' ? feetY : GROUND - Math.floor(this.sim.level.groundY(s.x) * K);

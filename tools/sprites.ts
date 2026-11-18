@@ -2,7 +2,7 @@
 import zlib from 'node:zlib';
 import fs from 'node:fs';
 import { SKATERS } from '../src/core/skaters';
-import { FRAME, POSES, POSE_NAMES, drawSkater } from '../src/game/art/skater';
+import { FRAME, POSES, POSE_NAMES, SPIN_FRAMES, drawSkater, drawSpin } from '../src/game/art/skater';
 import { Pix } from '../src/game/art/pixel';
 
 export function writePng(file: string, pix: Pix, scale = 1, bg = 0x6a6a7e): void {
@@ -24,9 +24,12 @@ if (process.argv[1]?.includes('sprites')) {
   const out = process.argv[2] ?? 'shots/sprites.png', scale = Number(process.argv[3] ?? 3), cols = 8;
   const only = process.argv[4];
   const list = SKATERS.filter(s => !only || s.id === only);
-  const rowsPer = Math.ceil(POSE_NAMES.length / cols);
+  const rowsPer = Math.ceil(POSE_NAMES.length / cols) + 1;   // last row of each block = spin turnaround
   const sheet = new Pix(cols * FRAME, rowsPer * FRAME * list.length);
-  list.forEach((sk, si) => POSE_NAMES.forEach((n, i) => sheet.blit(drawSkater(sk, POSES[n]), (i % cols) * FRAME, (si * rowsPer + Math.floor(i / cols)) * FRAME)));
+  list.forEach((sk, si) => {
+    POSE_NAMES.forEach((n, i) => sheet.blit(drawSkater(sk, POSES[n]), (i % cols) * FRAME, (si * rowsPer + Math.floor(i / cols)) * FRAME));
+    for (let i = 0; i < SPIN_FRAMES; i++) sheet.blit(drawSpin(sk, (i * 360) / SPIN_FRAMES), i * FRAME, (si * rowsPer + rowsPer - 1) * FRAME);
+  });
   fs.mkdirSync(out.split('/').slice(0, -1).join('/') || '.', { recursive: true });
   writePng(out, sheet, scale);
   console.log(`${out}: ${POSE_NAMES.join(' ')}`);

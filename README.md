@@ -29,7 +29,7 @@ Tilt control needs HTTPS on iOS Safari, so over plain Wi-Fi use touch; tilt work
 Land with a trick unfinished and you bail. Combos bank ~1s after you touch down; three bails ends the run.
 Score becomes XP, levels unlock tricks.
 
-Debug URLs: `?seed=7` fixes the level, `?bot` lets the bot play, `?fps` shows fps / frame ms / boot time, `?z=2` forces a lower render zoom.
+Debug URLs: `?seed=7` fixes the level, `?bot` lets the bot play, `?fps` shows fps / frame ms / boot time, `?z=2` forces a lower render zoom, `?hold` freezes on the loading screen.
 
 ## Commands
 

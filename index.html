@@ -12,15 +12,67 @@
   #game { width: 100vw; height: 100dvh; }
   #rotate { display: none; position: fixed; inset: 0; background: #0b0714; color: #ffd23f;
     font: bold 20px monospace; align-items: center; justify-content: center; text-align: center; z-index: 9; }
-  #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #1a1026;
-    color: #ffd23f; font: 900 22px/1 system-ui, sans-serif; letter-spacing: .3em; z-index: 5; }
+  /* Loading screen: pure HTML/CSS so it is on screen before any JS runs. Animations are transform/opacity
+     only, so they keep moving on the compositor while the main thread is busy generating art. */
+  #loading { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6vh;
+    overflow: hidden; color: #f5f5f5; transition: opacity .35s; --p: .05;
+    background:
+      radial-gradient(ellipse at 50% 45%, transparent 30%, rgba(10,6,18,.85) 100%),
+      repeating-linear-gradient(0deg, transparent 0 26px, #241430 26px 29px),
+      repeating-linear-gradient(90deg, #4a2740 0 62px, #241430 62px 65px),
+      #4a2740; }
+  #loading.done { opacity: 0; pointer-events: none; }
+  #loading .piece { position: relative; font: 400 min(15vw, 24vh)/1 "Sedgwick Ave Display", system-ui, sans-serif; letter-spacing: .01em;
+    transform: rotate(-4deg) scale(.6); opacity: 0; white-space: nowrap; }
+  #loading.fonts .piece { animation: slap .28s cubic-bezier(.2,1.6,.4,1) forwards; }
+  #loading .piece span { display: block; }
+  #loading .piece .sh, #loading .piece .ol { position: absolute; inset: 0; }
+  #loading .piece .sh { color: #00d9ff; -webkit-text-stroke: .16em #00d9ff; transform: translate(.07em, .07em); }
+  #loading .piece .ol { color: #1a1026; -webkit-text-stroke: .16em #1a1026; }
+  #loading .piece .fl { position: relative; background: linear-gradient(#ffd23f 25%, #ff3d6e 80%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #loading .drip { position: absolute; top: 78%; width: .035em; border-radius: 1em; background: #ff3d6e; transform-origin: top; transform: scaleY(0); }
+  #loading.fonts .drip { animation: drip 1.6s ease-out forwards; }
+  #loading .drip::after { content: ""; position: absolute; left: -45%; bottom: -.03em; width: 190%; aspect-ratio: 1; border-radius: 50%; background: inherit; }
+  #loading .can { position: relative; width: min(60vw, 520px); height: 22px; border-radius: 12px; background: #1a1026; box-shadow: 0 0 0 4px #1a1026, 5px 6px 0 4px rgba(0,0,0,.35); overflow: hidden; }
+  #loading .can i { position: absolute; inset: 0; border-radius: 12px; background: linear-gradient(90deg, #3dff8f, #00d9ff 45%, #ffd23f 75%, #ff3d6e); transform-origin: left; transform: scaleX(var(--p)); transition: transform .25s ease-out; }
+  #loading .can b { position: absolute; inset: 0; background: radial-gradient(circle, rgba(255,255,255,.55) 1px, transparent 1.6px) 0 0/9px 7px; mix-blend-mode: overlay; }
+  #loading .row { display: flex; align-items: center; gap: 14px; font: 400 min(4.2vw, 22px)/1 "Permanent Marker", system-ui, sans-serif; opacity: 0; transform: rotate(-1.5deg); text-shadow: 2px 2px 0 #1a1026, -2px 2px 0 #1a1026, 2px -2px 0 #1a1026, -2px -2px 0 #1a1026; }
+  #loading.fonts .row { opacity: 1; }
+  #loading .wheel { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle, #1a1026 0 18%, #8a94ae 19% 36%, #ffd23f 37% 100%); box-shadow: 0 0 0 3px #1a1026;
+    position: relative; animation: spin .5s linear infinite; }
+  #loading .wheel::after { content: ""; position: absolute; left: 44%; top: 6%; width: 12%; height: 22%; background: #fff6c8; border-radius: 2px; }
+  #loading .tape { position: absolute; bottom: 7vh; padding: 7px 18px; background: #f6e7a1; color: #1a1026; transform: rotate(1.5deg); box-shadow: 2px 3px 0 rgba(0,0,0,.35);
+    font: 400 min(3.4vw, 16px)/1.2 "Permanent Marker", system-ui, sans-serif; opacity: 0; }
+  #loading.fonts .tape { opacity: 1; }
+  @keyframes slap { to { transform: rotate(-4deg) scale(1); opacity: 1; } }
+  @keyframes drip { to { transform: scaleY(1); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
   #fps { position: fixed; left: 4px; bottom: 4px; color: #3dff8f; font: 12px monospace; z-index: 6; pointer-events: none; }
   @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
 </style>
 </head>
 <body>
 <div id="game"></div>
-<div id="loading">LOADING…</div>
+<div id="loading">
+  <div class="piece">
+    <span class="sh">SK8SCROLLER</span><span class="ol">SK8SCROLLER</span><span class="fl">SK8SCROLLER</span>
+    <div class="drip" style="left:9%;height:.42em;animation-delay:.3s"></div>
+    <div class="drip" style="left:27%;height:.2em;animation-delay:.55s"></div>
+    <div class="drip" style="left:48%;height:.55em;animation-delay:.4s"></div>
+    <div class="drip" style="left:71%;height:.3em;animation-delay:.7s"></div>
+    <div class="drip" style="left:88%;height:.46em;animation-delay:.5s"></div>
+  </div>
+  <div class="can"><i></i><b></b></div>
+  <div class="row"><div class="wheel"></div><span class="stage">shaking the cans…</span></div>
+  <div class="tape" id="tip"></div>
+</div>
+<script>
+  // a different tip each load
+  (function () {
+    var tips = ['swipe mid-grind to switch up — every stance is another multiplier', 'land before the trick finishes or you slam', 'hold jump for full height, tap for a hop', 'kickers send you higher: room for two tricks', 'the combo banks about a second after you land'];
+    document.getElementById('tip').textContent = 'tip: ' + tips[Math.floor(Math.random() * tips.length)];
+  })();
+</script>
 <div id="fps"></div>
 <div id="rotate">ROTATE YOUR PHONE<br/>↻ landscape</div>
 <script type="module" src="/src/game/main.ts"></script>

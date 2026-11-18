@@ -3,6 +3,7 @@ import { MAX_LEVEL, levelForXp, xpForLevel } from '../core/progression';
 import { SKATERS } from '../core/skaters';
 import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
+import { loading } from './loading';
 import { loadSave, writeSave, type Save } from './storage';
 import { SPRITE, skaterTex } from './textures';
 import { drips, graf, uiPerf } from './ui';
@@ -97,7 +98,6 @@ export class MenuScene extends Phaser.Scene {
   update(t: number): void {
     this.bg.scroll(t * 0.03);
     this.bg.flush();
-    const l = document.getElementById('loading');
-    if (l) { l.remove(); uiPerf.bootMs = performance.now(); console.info(`[sk8] ready in ${uiPerf.bootMs.toFixed(0)} ms`); }
+    if (loading.done()) { uiPerf.bootMs = performance.now(); console.info(`[sk8] ready in ${uiPerf.bootMs.toFixed(0)} ms`); }
   }
 }

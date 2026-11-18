@@ -2,6 +2,12 @@
 
 Newest first. Keep entries to a few lines: what, why, what would change our mind.
 
+## 2026-11-18 — Spins are sprite turnarounds; no full-screen flashes
+Spins used to squash the side-view sprite horizontally, which read as a paper cut-out flipping. `drawSpin` now poses a
+tucked skater in 3D and renders 8 yaw frames (side, back, side, front and the in-betweens). The white flash on combo
+bank is gone for good: it looked like a rendering glitch and full-screen flashes are a photosensitivity risk. Use
+local feedback (score pop, call-outs, shake) instead.
+
 ## 2026-11-18 — Performance pass after v0.2 ran at <10 fps with a 10 s load
 Causes found by profiling: (1) HUD text was Phaser `Text` in a spray font whose glyphs take ~10× longer to stroke,
 re-rasterised ~20×/s as the score ticked; (2) five full-screen layers were drawn at canvas resolution (up to 2560×1440)

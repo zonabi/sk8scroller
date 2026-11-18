@@ -68,9 +68,10 @@ function ik(ax: number, ay: number, bx: number, by: number, l1: number, l2: numb
 }
 
 /** Aggressive skate: chunky boot, cuff, soul plate, flat frame, four small wheels. */
-function skate(p: Pix, sx: number, sy: number, pitch: number, view: 'side' | 'front', boot: Ramp, wheel: number): [number, number] {
+function skate(p: Pix, sx: number, sy: number, pitch: number, view: 'side' | 'front', boot: Ramp, wheel: number, xs = 1): [number, number] {
   const c = Math.cos(rad(pitch)), s = Math.sin(rad(pitch));
-  const T = (lx: number, ly: number): [number, number] => [sx + lx * c - ly * s, sy - (lx * s + ly * c)];
+  // xs squashes/flips the skate along its length: used by the turnaround frames
+  const T = (lx: number, ly: number): [number, number] => [sx + lx * xs * c - ly * s, sy - (lx * xs * s + ly * c)];
   const P = (pts: number[][], col: number) => p.poly(pts.map(q => T(q[0], q[1])), col);
   const frame = 0x4a4a5c, plate = mix(boot[0], INK, 0.35);
   if (view === 'front') {
@@ -178,5 +179,96 @@ export function drawSkater(sk: SkaterDef, pose: Pose): Pix {
   p.part(q => head(q, Math.round(hcx), Math.round(hcy), sk));
   leg(pose.footF, false);
   arm(pose.handF, false);
+  return p;
+}
+
+/** Number of turnaround frames for spins (360° / SPIN_FRAMES per frame). */
+export const SPIN_FRAMES = 8;
+
+/**
+ * Turnaround frame for spins: a tucked skater posed in 3D, rotated about the vertical axis and
+ * drawn back-to-front. yaw 0 = facing right, 90 = back to camera, 180 = facing left, 270 = facing camera.
+ * This is what makes a 360 read as a body turning rather than a flat sprite flipping.
+ */
+export function drawSpin(sk: SkaterDef, yawDeg: number): Pix {
+  const p = new Pix(FRAME, FRAME), C = sk.colors, cy = Math.cos(rad(yawDeg)), sy = Math.sin(rad(yawDeg));
+  const top = ramp(C.top), pants = ramp(C.pants), skin = skinRamp(C.skin), boot = ramp(C.skate), hair = ramp(C.hair);
+  type V = [number, number, number];
+  /** model (x fwd, y up, z toward camera) → [screen x, screen y, depth] */
+  const R = (v: V): V => [OX + v[0] * cy + v[2] * sy, GY - v[1], -v[0] * sy + v[2] * cy];
+  const side = Math.abs(cy), front = Math.abs(sy);
+  const parts: { z: number; draw: () => void }[] = [];
+  const shade = <T extends Ramp>(r: T, z: number): Ramp => (z < -1.5 ? dim(r) : r);
+
+  const hip = R([0, 27, 0]), sh = R([2, 39, 0]), hd = R([3, 48, 0]);
+  parts.push({ z: 0, draw: () => p.part(q => {
+    q.capsule(hip[0], hip[1], sh[0], sh[1], 4.6 + front * 1.2, 5.6 + front * 1.6, top);
+    for (let t = -8; t <= 8; t += 0.5) { const y = hip[1] + (sh[1] - hip[1]) * 0.62; if (q.get((sh[0] + t) | 0, y | 0) !== -1) q.set(sh[0] + t, y, C.hair); }
+  }) });
+
+  for (const s of [1, -1]) {
+    const hj = R([0, 27, 3 * s]), kn = R([s > 0 ? 7 : 5, s > 0 ? 20 : 21, 5.5 * s]), ft = R([s > 0 ? 4 : -2, s > 0 ? 8 : 10, 4.5 * s]);
+    const zl = (kn[2] + ft[2]) / 2;
+    parts.push({ z: zl + (s > 0 ? 0.01 : 0), draw: () => {
+      let ankle: [number, number] = [0, 0];
+      const far = zl < -1.5;
+      p.part(q => {
+        ankle = side > 0.5
+          ? skate(q, ft[0], ft[1], cy > 0 ? 10 : -10, 'side', far ? dim(boot) : boot, far ? mix(C.wheel, INK, 0.3) : C.wheel, Math.sign(cy) * Math.max(0.62, side))
+          : skate(q, ft[0], ft[1], 0, 'front', far ? dim(boot) : boot, far ? mix(C.wheel, INK, 0.3) : C.wheel);
+      });
+      p.part(q => {
+        const pr = shade(pants, zl), sr = shade(skin, zl);
+        if (sk.look.legs === 'shorts') { q.capsule(kn[0], kn[1], ankle[0], ankle[1], 2.3, 2.1, sr); q.capsule(ankle[0], ankle[1] - 1, ankle[0], ankle[1] + 0.5, 2.6, 2.6, 0xf5f5f5); q.capsule(hj[0], hj[1], kn[0] + (hj[0] - kn[0]) * 0.12, kn[1] + (hj[1] - kn[1]) * 0.12, 4, 3.6, pr); }
+        else { q.capsule(hj[0], hj[1], kn[0], kn[1], 3.9, 3.3, pr); q.capsule(kn[0], kn[1], ankle[0], ankle[1], 3.2, 4, pr); }
+      });
+    } });
+    const sj = R([2, 38, 5.8 * s]), el = R([1, 31, 8.5 * s]), ha = R([7, 32, 6 * s]);
+    const za = (el[2] + ha[2]) / 2;
+    parts.push({ z: za + (s > 0 ? 0.02 : 0), draw: () => p.part(q => {
+      const tr = shade(top, za), sr = shade(skin, za);
+      q.capsule(el[0], el[1], ha[0], ha[1], 2.2, 2, sk.look.sleeves === 'long' ? tr : sr);
+      q.capsule(sj[0], sj[1], el[0], el[1], 2.8, 2.4, tr);
+      q.disc(ha[0], ha[1], 2.5, 2.5, sr);
+    }) });
+  }
+
+  parts.push({ z: 0.5, draw: () => p.part(q => {
+    const hx = Math.round(hd[0]), hy = Math.round(hd[1]), look = sk.look.head;
+    const faceZ = -sy;                      // +1 facing camera, -1 facing away
+    const pt = (x: number, y: number, z: number): V => [hx + x * cy + z * sy, hy - y, -x * sy + z * cy];
+    if (look === 'puffs') for (const s of [-1, 1]) { const u = pt(-3, 7, 5 * s); q.disc(u[0], u[1], 4.4, 4.4, shade(hair, u[2])); }
+    if (look === 'mohawk') for (let i = 0; i < 5; i++) {
+      const u = pt(4 - i * 2.8, 5.5 - Math.abs(i - 1.5) * 0.9, 0);
+      q.poly([[u[0] - 1.8, u[1] + 1.5], [u[0] + 1.8, u[1] + 1.5], [u[0] - 0.8 * cy, u[1] - 5.5]], i % 2 ? hair[1] : hair[2]);
+    }
+    q.disc(hx, hy, 6.6, 7, skin);
+    // back of the head: hair or headwear wraps round
+    if (faceZ < -0.3 && look === 'puffs') for (let y = -7; y <= 2; y++) for (let x = -7; x <= 7; x++) { const nx = x / 6.6, ny = y / 7; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, x * -0.55 + y * -0.83 > 3 ? hair[2] : y > 0 ? hair[0] : hair[1]); }
+    // face features, each placed by projecting its position on the head
+    for (const s of [1, -1]) {
+      const e = pt(5.6, 1, 2.6 * s);
+      if (e[2] > 0.8) { const ex = Math.round(e[0]) - 1, ey = Math.round(e[1]) - 1; q.rect(ex, ey, 2, 2, 0xffffff); q.set(ex + (cy > 0.3 ? 1 : cy < -0.3 ? 0 : s > 0 ? 0 : 1), ey, INK); q.set(ex + (cy > 0.3 ? 1 : cy < -0.3 ? 0 : s > 0 ? 0 : 1), ey + 1, INK); q.rect(ex - 1, ey - 1, 4, 1, INK); }
+    }
+    const nose = pt(6.8, -1, 0), mouth = pt(5.6, -4, 0);
+    if (side > 0.4) { q.set(nose[0], nose[1], skin[1]); q.set(nose[0] + Math.sign(cy), nose[1], skin[2]); }
+    else if (faceZ > 0) q.rect(hx, hy + 1, 1, 2, skin[0]);
+    if (mouth[2] > -1.5 || side > 0.6) q.rect(Math.round(mouth[0]) - 1, mouth[1], 3, 1, mix(skin[0], INK, 0.5));
+    if (side > 0.5) { const ear = pt(-2, -1, 0); q.rect(Math.round(ear[0]) - 1, ear[1], 2, 3, skin[0]); }
+    // headwear
+    if (look === 'beanie') {
+      for (let y = -8; y <= -2; y++) for (let x = -7; x <= 7; x++) { const nx = x / 7, ny = (y + 1) / 7.6; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, y >= -3 ? hair[0] : nx * -0.55 + ny * -0.83 > 0.5 ? hair[2] : hair[1]); }
+      q.rect(hx - 6, hy - 3, 13, 1, hair[2]); q.disc(hx - cy, hy - 9.5, 2, 2, hair);
+    } else if (look === 'cap') {
+      for (let y = -8; y <= -3; y++) for (let x = -7; x <= 6; x++) { const nx = x / 7, ny = y / 7.6; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, nx * -0.55 + ny * -0.83 > 0.55 ? hair[2] : hair[1]); }
+      const b = pt(-11, 1.5, 0);                                                    // brim, worn backwards
+      if (side > 0.4) q.poly([[hx - 6 * cy, hy - 4], [b[0], hy - 2], [b[0], hy - 0.5], [hx - 6 * cy, hy - 2]], hair[0]);
+      else if (faceZ < 0) q.rect(hx - 5, hy - 3, 10, 3, hair[0]);
+    } else if (look === 'puffs' && faceZ > -0.3) {
+      for (let x = -6; x <= 6; x++) for (let y = -7; y <= -5; y++) { const nx = x / 6.6, ny = y / 7; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, hair[1]); }
+    }
+  }) });
+
+  parts.sort((a, b) => a.z - b.z).forEach(pt => pt.draw());
   return p;
 }

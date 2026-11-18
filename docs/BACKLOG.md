@@ -27,7 +27,7 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - [ ] **T-08 Sprite pipeline.** Load atlases from `public/assets/`, keep texture keys, fall back to generated placeholders when a file is missing. Animation state chosen from sim state in one function.
 - [x] **T-09 Graffiti lettering + HUD pass.** Done 2026-11-18 (`ui.ts`).
 - [x] **T-10 Environment sprites.** Done 2026-11-18 (`art/world.ts`). Follow-ups: more wall/obstacle variety, a foreground layer.
-- [ ] **T-10b Animation depth.** In-between frames: push cycle to 6–8 frames, take-off and landing frames, spin frames instead of the x-squash, per-trick grab-in/out.
+- [ ] **T-10b Animation depth.** In-between frames: push cycle to 6–8 frames, take-off and landing frames, per-trick grab-in/out. (Spins already use an 8-frame turnaround, `drawSpin`.) Next candidate: give flips and Misty the same 3D treatment.
 
 ## M3 — On the phone
 
