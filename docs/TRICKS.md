@@ -1,0 +1,76 @@
+# Trick vocabulary
+
+Research notes for aggressive inline. ✅ = in the game (`src/core/tricks.ts` is the source of truth for values).
+Descriptions are short paraphrases for design use — **have a skater sanity-check them before they become in-game text.**
+
+Skate anatomy that the names depend on: the **soul plate** (flat sole edge of the boot), the **h-block / groove**
+(the gap in the frame between the middle wheels), and the **backslide groove/plate** on the inner sole.
+
+## Grinds
+
+### Fundamentals
+| | Trick | Stance |
+|---|---|---|
+| ✅ | Frontside | Both skates across the rail on the h-block, chest facing it. The default lock-in. |
+| | Backside | Same, with your back to the obstacle. |
+| ✅ | Soul | Back foot on its soul plate along the rail, front foot across on the h-block. |
+| ✅ | Makio | One-foot soul grind; the free foot is lifted and often grabbed. |
+| ✅ | Mizou | Soul-family: soul foot plus the other foot turned inward on the frame. |
+| | Acid | Soul-family: the frame foot turned outward instead. |
+| ✅ | Royale | Frontside variation with the back foot tipped onto its edge. |
+| | Sidewalk | One-foot relative of the mizou. |
+
+### Intermediate / advanced
+| | Trick | Notes |
+|---|---|---|
+| ✅ | Top Soul | "Topside": the soul foot leans over to grind on its top/inside edge. |
+| ✅ | Backslide | Like a royale but only the back skate grinds; front foot usually grabbed. |
+| ✅ | Fishbrain | Topside makio. |
+| ✅ | Unity | Legs crossed, both skates on their outer edges. |
+| | Torque / Full Torque | Backslide-foot grinds combined with a frame foot. |
+| | Soyale | Soul + royale hybrid, done alley-oop. |
+| | Fahrvergnügen, Savannah, Pornstar (P-Star), Sweatstance, Kind Grind, Top Acid, X-Grind, Cab Driver, Fishbone | Further stance families to mine for unlocks. |
+
+### Modifiers (multiply any grind — ideal for a deep unlock tree)
+- **Alley-oop** — entering turned the other way so you grind facing backwards.
+- **Truespin** — spinning onto the grind toward your blind side.
+- **Topside / Negative** — which edge of the soul foot is on the rail.
+- **Fakie / Switch** — riding in backwards / on your off side.
+- **Spin in / out** — 270 on, 360 out; **rewind** = spinning out against the way you came in.
+- **Switch-up** — changing stance mid-grind (✅ implemented as the swipe during a grind).
+- **Grabbed** — holding the free foot (rocket makio, fishbone…).
+
+## Air
+| | Trick | Notes |
+|---|---|---|
+| ✅ | Mute Grab | Cross-body grab of the skate. |
+| ✅ | Safety Grab | Same-side hand to the outside of the skate. |
+| ✅ | Rocket Air | Legs straight out in front, grabbing the toes. |
+| ✅ | Liu Kang | One leg kicked straight out, the other tucked and grabbed. |
+| | Stale, Japan, Parallel | More grabs. |
+| ✅ | 180 / 360 / 540 | Spins. 720, 900, 1080 to add. |
+| ✅ | Backflip | |
+| ✅ | Misty Flip | Off-axis front-flipping 540. |
+| | Frontflip, Flatspin, Bio 540/720, Brainless, McTwist, Fakie 720, Zero Spin | Flips and corked spins for late unlocks and specials. |
+
+## Ground and transition (future mechanics)
+- **Manuals** — toe roll / heel roll on one or two wheels. Combo glue (BACKLOG T-03).
+- **Cess slide / powerslide** — sideways slides on flat; could be the "brake" or a combo extender.
+- **Stalls** — pausing on coping or a ledge (soul stall, royale stall, backslide stall). Needs quarter pipes.
+- **Wallride**, **gap** (clearing a named distance), **disaster** (jumping a gap onto the grind), **stair bash**.
+
+## Slot design
+Each swipe direction is a slot, separately for air and grind. Today the best unlocked trick fills the slot:
+
+| Slot | Grind ladder | Air ladder |
+|---|---|---|
+| (lock-in) | Frontside | — |
+| ↑ | Soul → Top Soul | Mute → Rocket |
+| ↓ | Makio → Fishbrain | Safety → Liu Kang |
+| ← | Royale → Backslide | 180 → 360 → 540 |
+| → | Mizou → Unity | Backflip → Misty |
+
+## Sources
+- toxboe.net trick dictionary and trick pages — https://toxboe.net/tricks
+- SkaMiDan aggressive inline trick lists (grinds; airs, grabs & spins; manuals & slides; lips & stalls) — https://www.skamidan.com/en/blogs/aggressive-inline-skating-tutorials-and-learning/trick-lists-of-aggressive-inline-skating-disciplines-know-how-and-tricks-rollerblading-stunts-stunt-skating-flips-grinds-spins-airs-manuals-lips-stalls
+- "The Rule of Soul Plate" learning progressions — https://skatebasic.netlify.app
