@@ -5,18 +5,26 @@ import type { Feature } from '../core/level';
 import { levelForXp, unlocksAt, xpFromRun } from '../core/progression';
 import { Sim, comboValue, type SimEvent } from '../core/sim';
 import { skaterById, type SkaterDef } from '../core/skaters';
-import { TRICKS } from '../core/tricks';
+import { TRICKS, TRICK_LIST } from '../core/tricks';
 import type { PoseName } from './art/skater';
-import { addBackdrop, setupCamera, type Backdrop } from './backdrop';
+import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
 import { loadSave, writeSave } from './storage';
-import { SPRITE, dropFeatureTexture, featureTexture } from './textures';
-import { Graf, graf } from './ui';
-import { AH, AW, GROUND, K, PAL, PLAYER_X } from './view';
+import { SPRITE, dropFeatureTexture, featureTexture, skaterTex, warmSkater } from './textures';
+import { Graf, Num, graf, num, uiPerf, warm, type GrafStyle } from './ui';
+import { AH, AW, GROUND, K, PAL, PLAYER_X, Z, Z_KEY } from './view';
 
 interface Spark { x: number; y: number; vx: number; vy: number; life: number; color: number; size: number }
 const BODY = 28; // art px from feet to the sprite's rotation centre
 const ROLL: PoseName[] = ['roll0', 'roll0', 'roll1', 'roll2', 'roll3', 'roll0', 'roll0', 'roll0'];
+/** Call-out styles. Fixed set so every trick name can be drawn before the run starts. */
+const CALL: Record<'grind' | 'air' | 'bank' | 'bail', GrafStyle> = {
+  grind: { font: 'piece', size: 20, fill: [PAL.cyan, PAL.white], block: PAL.ink, outlineWidth: 4.8 },
+  air: { font: 'piece', size: 20, fill: [PAL.green, PAL.yellow], block: PAL.ink, outlineWidth: 4.8 },
+  bank: { font: 'piece', size: 26, fill: [PAL.yellow, PAL.orange], block: PAL.ink, outlineWidth: 6, ephemeral: true },
+  bail: { font: 'piece', size: 28, fill: [PAL.pink, PAL.magenta], block: PAL.ink, outlineWidth: 6.5 },
+};
+const BAIL_TEXT = { balance: 'LOST IT!', sketchy: 'SKETCHY!', obstacle: 'SLAM!' } as const;
 const HYPE = [PAL.white, PAL.white, PAL.cyan, PAL.green, PAL.yellow, PAL.orange, PAL.pink];
 
 /** Thin presentation layer: feeds input to the Sim, draws its state, reacts to its events. No rules here. */
@@ -26,14 +34,19 @@ export class GameScene extends Phaser.Scene {
   private ctl!: InputController;
   private bot = false;
   private acc = 0;
-  private bg!: Backdrop;
+  private bg!: World;
+  private fx!: Phaser.GameObjects.Graphics;
   private gfx!: Phaser.GameObjects.Graphics;
   private player!: Phaser.GameObjects.Image;
   private shadow!: Phaser.GameObjects.Image;
-  private feats = new Map<number, { f: Feature; img: Phaser.GameObjects.Image }>();
-  private scoreText!: Graf;
+  private feats = new Map<number, { f: Feature; img: Phaser.GameObjects.Image; ox: number; oy: number; seen: number }>();
+  private frame = 0;
+  private frameMs = 16.7;
+  private slowMs = 0; private runMs = 0;
+  private fpsEl: HTMLElement | null = null;
+  private scoreText!: Num;
   private comboNames!: Graf;
-  private comboTotal!: Graf;
+  private comboTotal!: Num;
   private lives: Phaser.GameObjects.Image[] = [];
   private sparks: Spark[] = [];
   private airTrickTotal = 0;
@@ -53,17 +66,24 @@ export class GameScene extends Phaser.Scene {
     this.sim = new Sim({ seed, skater: this.skater, playerLevel: levelForXp(save.xp) });
     this.acc = 0; this.sparks = []; this.finished = false; this.lives = []; this.feats = new Map(); this.landT = 0; this.lastCombo = 0;
 
-    this.bg = addBackdrop(this);
-    this.shadow = this.add.image(PLAYER_X, GROUND, 'shadow').setAlpha(0.45).setDepth(15);
-    this.player = this.add.image(PLAYER_X, GROUND, `sk-${this.skater.id}-roll0`)
-      .setOrigin(SPRITE.ox / SPRITE.frame, (SPRITE.gy + 1 - BODY) / SPRITE.frame).setDepth(20);
-    this.gfx = this.add.graphics().setDepth(30);
+    this.bg = new World(this);
+    this.shadow = this.bg.add(this.add.image(PLAYER_X, GROUND, 'shadow').setAlpha(0.45).setDepth(15));
+    warmSkater(this, this.skater.id);
+    this.player = this.bg.add(this.add.image(PLAYER_X, GROUND, skaterTex(this, this.skater.id, 'roll0'))
+      .setOrigin(SPRITE.ox / SPRITE.frame, (SPRITE.gy + 1 - BODY) / SPRITE.frame).setDepth(20));
+    this.fx = this.bg.add(this.add.graphics().setDepth(30));   // pixel sparks: part of the world
+    this.gfx = this.add.graphics().setDepth(50);                // balance meter: sharp UI
 
     graf(this, 12, 5, 'score', { size: 9, fill: PAL.white, angle: -4 });
-    this.scoreText = graf(this, 10, 14, '0', { font: 'spray', size: 26, fill: [PAL.yellow, PAL.orange], block: PAL.magenta, outlineWidth: 6 });
+    this.scoreText = num(this, 12, 34, { font: 'spray', size: 26, fill: [PAL.yellow, PAL.orange], block: PAL.magenta, outlineWidth: 6 }, 0, '0123456789');
     for (let i = 0; i < CFG.lives; i++) this.lives.push(this.add.image(AW - 18 - i * 20, 20, 'wheel').setDepth(100));
-    this.comboNames = graf(this, AW / 2, AH - 48, '', { size: 11, fill: PAL.white, align: 'center' }).setOrigin(0.5, 1);
-    this.comboTotal = graf(this, AW / 2, AH - 26, '', { font: 'spray', size: 24, fill: PAL.white, block: PAL.ink, angle: -2, outlineWidth: 6 }).setOrigin(0.5);
+    this.comboNames = graf(this, AW / 2, AH - 44, '', { size: 11, fill: PAL.white, align: 'center', ephemeral: true }).setOrigin(0.5, 1);
+    this.comboTotal = num(this, AW / 2, AH - 24, { font: 'spray', size: 24, fill: PAL.white, block: PAL.ink, angle: -2, outlineWidth: 6 }, 0.5, '0123456789x');
+    this.frame = 0; this.slowMs = 0; this.runMs = 0;
+    this.fpsEl = q.has('fps') ? document.getElementById('fps') : null;
+
+    for (const t of TRICK_LIST) warm(this, t.name.toUpperCase(), CALL[t.type]);
+    for (const t of Object.values(BAIL_TEXT)) warm(this, t, CALL.bail);
 
     this.ctl = new InputController(this, () => this.sim.s.mode, save.tilt);
     this.input.keyboard?.on('keydown-ESC', () => this.scene.start('menu'));
@@ -71,6 +91,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_t: number, deltaMs: number): void {
+    this.frame++;
+    // frame pacing stats: drives the ?fps readout and the auto quality step-down
+    this.frameMs += (deltaMs - this.frameMs) * 0.05;
+    if (!document.hidden && deltaMs < 250 && this.sim.s.mode !== 'over') { this.runMs += deltaMs; if (deltaMs > 22) this.slowMs += deltaMs; }
+    if (this.fpsEl && this.frame % 20 === 0) this.fpsEl.textContent = `${(1000 / this.frameMs).toFixed(0)} fps · ${this.frameMs.toFixed(1)} ms · Z${Z} · boot ${uiPerf.bootMs.toFixed(0)} ms`;
     this.acc += Math.min(deltaMs, 100) / 1000;
     while (this.acc >= CFG.dt) {
       this.acc -= CFG.dt;
@@ -86,13 +111,13 @@ export class GameScene extends Phaser.Scene {
   private onEvent(e: SimEvent): void {
     const s = this.sim.s;
     switch (e.type) {
-      case 'grindStart': case 'switchUp': this.popup(TRICKS[e.trickId].name, [PAL.cyan, PAL.white]); break;
+      case 'grindStart': case 'switchUp': this.popup(TRICKS[e.trickId].name, 'grind'); break;
       case 'airTrickStart': this.airTrickTotal = TRICKS[e.trickId].duration; break;
-      case 'airTrickDone': this.popup(TRICKS[e.trickId].name, [PAL.green, PAL.yellow]); break;
-      case 'bank': this.popup(`+${e.points}`, [PAL.yellow, PAL.orange], 26); this.cameras.main.flash(90, 255, 230, 120); break;
+      case 'airTrickDone': this.popup(TRICKS[e.trickId].name, 'air'); break;
+      case 'bank': this.popup(`+${e.points}`, 'bank'); this.cameras.main.flash(90, 255, 230, 120); break;
       case 'land': this.landT = 0.12; this.burst(6, 0xd8d8e8, 3); break;
       case 'bail':
-        this.popup(e.reason === 'balance' ? 'LOST IT!' : e.reason === 'sketchy' ? 'SKETCHY!' : 'SLAM!', [PAL.pink, PAL.magenta], 28);
+        this.popup(BAIL_TEXT[e.reason], 'bail');
         this.cameras.main.shake(200, 0.01); this.burst(14, PAL.pink, 3);
         break;
       case 'over': this.finish(); break;
@@ -101,8 +126,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** A trick call-out: slaps in like a sticker, then fades. */
-  private popup(text: string, fill: [number, number], size = 20): void {
-    const t = graf(this, PLAYER_X + 34, this.player.y - 40 - (this.popN++ % 3) * 24, text.toUpperCase(), { font: 'piece', size, fill, block: PAL.ink, angle: Phaser.Math.Between(-9, 5), outlineWidth: size * 0.24 }).setOrigin(0, 0.5);
+  private popup(text: string, kind: keyof typeof CALL): void {
+    const t = graf(this, PLAYER_X + 40, 176 - (this.popN++ % 4) * 30, text.toUpperCase(), CALL[kind]).setOrigin(0, 0.5);
+    t.angle = Phaser.Math.Between(-9, 5);
     t.setScale(1.7);
     this.tweens.add({ targets: t, scale: 1, duration: 130, ease: 'Back.easeOut' });
     this.tweens.add({ targets: t, y: t.y - 22, alpha: 0, delay: 520, duration: 380, onComplete: () => t.destroy() });
@@ -138,17 +164,16 @@ export class GameScene extends Phaser.Scene {
     this.bg.scroll(camW * K);
 
     // level features: one sprite each, created as they scroll in and released behind us
-    const live = new Set<number>();
     for (const f of this.sim.level.features) {
       const x = Math.floor((f.x - camW) * K);
-      if (x > AW + 20 || x + f.w * K < -40) continue;
-      live.add(f.id);
+      if (x > AW + 20) break;                       // features are sorted by x
+      if (x + f.w * K < -40) continue;
       let e = this.feats.get(f.id);
-      if (!e) { const t = featureTexture(this, f); e = { f, img: this.add.image(0, 0, t.key).setOrigin(0).setDepth(10).setData('a', t) }; this.feats.set(f.id, e); }
-      const a = e.img.getData('a') as { ox: number; oy: number };
-      e.img.setPosition(x - a.ox, GROUND - a.oy + 1);
+      if (!e) { const t = featureTexture(this, f); e = { f, img: this.bg.add(this.add.image(0, 0, t.key).setOrigin(0).setDepth(10)), ox: t.ox, oy: t.oy, seen: 0 }; this.feats.set(f.id, e); }
+      e.seen = this.frame;
+      e.img.setPosition(x - e.ox, GROUND - e.oy + 1);
     }
-    for (const [id, e] of this.feats) if (!live.has(id)) { e.img.destroy(); dropFeatureTexture(this, e.f); this.feats.delete(id); }
+    if (this.frame % 30 === 0) for (const [id, e] of this.feats) if (e.seen < this.frame) { this.bg.remove(e.img); dropFeatureTexture(this, e.f); this.feats.delete(id); }
 
     // player
     const feetY = Math.floor(GROUND - s.y * K);
@@ -161,23 +186,30 @@ export class GameScene extends Phaser.Scene {
     else if (s.mode === 'air') rot = Phaser.Math.Clamp(-s.vy / 2600, -0.12, 0.16);
     const flip = !!s.airTrick && rot !== 0;
     // lean pivots at the feet; flips pivot at the body centre
-    this.player.setTexture(`sk-${this.skater.id}-${this.pose()}`).setRotation(rot).setScale(sx, 1)
+    this.player.setTexture(skaterTex(this, this.skater.id, this.pose())).setRotation(rot).setScale(sx, 1)
       .setPosition(PLAYER_X + (flip ? 0 : Math.sin(rot) * BODY), feetY - (flip ? BODY : Math.cos(rot) * BODY));
     this.player.setAlpha(s.invuln > 0 && s.mode !== 'bail' && Math.floor(s.t * 14) % 2 ? 0.4 : 1);
     const floor = s.mode === 'grind' ? feetY : GROUND - Math.floor(this.sim.level.groundY(s.x) * K);
     this.shadow.setPosition(PLAYER_X, floor + 2).setScale(Phaser.Math.Clamp(1 - (floor - feetY) / 160, 0.4, 1), 1).setVisible(s.mode !== 'grind');
 
-    g.clear();
-    for (const p of this.sparks) { g.fillStyle(p.color, 1); g.fillRect(Math.floor(p.x), Math.floor(p.y), p.size, p.size); }
+    g.clear(); this.fx.clear();
+    for (const p of this.sparks) { this.fx.fillStyle(p.color, 1); this.fx.fillRect(Math.floor(p.x), Math.floor(p.y), p.size, p.size); }
     if (s.mode === 'grind') this.drawBalance(g, feetY - 78, s.balance);
+
+    this.bg.flush();
 
     this.scoreText.setText(String(this.sim.totalScore));
     const n = s.combo.length;
     if (n) {
-      this.comboNames.setText((n > 4 ? '… + ' : '') + s.combo.slice(-4).map(c => c.name).join(' + '));
-      this.comboTotal.setText(`${comboValue(s.combo)} x${n}`, n !== this.lastCombo ? HYPE[Math.min(n, HYPE.length - 1)] : undefined);
-      if (n !== this.lastCombo) { this.comboTotal.setScale(1.5); this.tweens.add({ targets: this.comboTotal, scale: 1 + Math.min(n, 8) * 0.03, duration: 160, ease: 'Back.easeOut' }); }
-    } else { this.comboNames.setText(''); this.comboTotal.setText(''); }
+      this.comboTotal.setVisible(true).setText(`${comboValue(s.combo)} x${n}`);
+      if (n !== this.lastCombo) {
+        // names only change when a trick is added — never restamp text per frame
+        this.comboNames.setText((n > 4 ? '… + ' : '') + s.combo.slice(-4).map(c => c.name).join(' + '));
+        this.comboTotal.setScale(1.5);
+        this.tweens.add({ targets: this.comboTotal, scale: 1 + Math.min(n, 8) * 0.03, duration: 160, ease: 'Back.easeOut' });
+      }
+      this.comboTotal.setTint(HYPE[Math.min(n, HYPE.length - 1)]);
+    } else if (this.lastCombo) { this.comboNames.setText(''); this.comboTotal.setVisible(false); }
     this.lastCombo = n;
   }
 
@@ -202,15 +234,17 @@ export class GameScene extends Phaser.Scene {
     save.xp += gained; save.best = Math.max(save.best, this.bot ? 0 : total);
     writeSave(save);
     const after = levelForXp(save.xp);
+    // couldn't hold 60fps for a good part of a real run → render one zoom step lower from the next launch
+    if (!this.bot && this.runMs > 8000 && this.slowMs / this.runMs > 0.3 && Z > 2) localStorage.setItem(Z_KEY, String(Z - 1));
 
     this.add.rectangle(0, 0, AW, AH, PAL.ink, 0.72).setOrigin(0).setDepth(90);
     graf(this, AW / 2, 62, 'SLAMMED', { font: 'piece', size: 60, fill: [PAL.pink, PAL.orange], block: PAL.cyan, angle: -4, outlineWidth: 10 }).setOrigin(0.5);
-    graf(this, AW / 2, 128, `${total}`, { font: 'spray', size: 38, fill: [PAL.yellow, PAL.orange], block: PAL.magenta }).setOrigin(0.5);
-    graf(this, AW / 2, 176, `best combo ${this.sim.s.bestCombo}   ·   ${this.sim.distance} m   ·   +${gained} xp`, { size: 12 }).setOrigin(0.5);
+    num(this, AW / 2, 128, { font: 'spray', size: 26, fill: [PAL.yellow, PAL.orange], block: PAL.magenta, outlineWidth: 6 }, 0.5, '0123456789').setText(`${total}`).setScale(1.45);
+    graf(this, AW / 2, 176, `best combo ${this.sim.s.bestCombo}   ·   ${this.sim.distance} m   ·   +${gained} xp`, { size: 12, ephemeral: true }).setOrigin(0.5);
     if (after > before) {
       const names: string[] = [];
       for (let l = before + 1; l <= after; l++) names.push(...unlocksAt(l).map(t => t.name));
-      graf(this, AW / 2, 208, `LEVEL ${after}!` + (names.length ? `  new: ${names.join(', ')}` : ''), { font: 'piece', size: 20, fill: [PAL.green, PAL.cyan], angle: 2 }).setOrigin(0.5);
+      graf(this, AW / 2, 208, `LEVEL ${after}!` + (names.length ? `  new: ${names.join(', ')}` : ''), { font: 'piece', size: 20, fill: [PAL.green, PAL.cyan], angle: 2, ephemeral: true }).setOrigin(0.5);
     }
     this.time.delayedCall(500, () => {
       graf(this, AW / 2 - 90, 266, 'AGAIN!', { font: 'spray', size: 34, fill: [PAL.green, PAL.cyan], block: PAL.plum, angle: -3 }).setOrigin(0.5).button(() => this.scene.restart());

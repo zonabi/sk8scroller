@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import type { Feature } from '../core/level';
 import { Rng } from '../core/rng';
-import { SKATERS } from '../core/skaters';
 import { INK, Pix, mix } from './art/pixel';
-import { FRAME, GY, OX, POSES, POSE_NAMES, drawSkater } from './art/skater';
+import { FRAME, GY, OX, POSES, POSE_NAMES, drawSkater, type PoseName } from './art/skater';
+import { skaterById } from '../core/skaters';
 import { featureSprite, shadow, sky, skyline, street, wall, wheelIcon } from './art/world';
 import { AH, AW, FONT, GROUND, STREET_TOP } from './view';
 
@@ -53,7 +53,6 @@ function piece(p: Pix, x0: number, y0: number, word: string, font: string, size:
 /** Generates every texture. Real sprite sheets can replace these later by using the same keys. */
 export function makeTextures(scene: Phaser.Scene): void {
   if (scene.textures.exists('sky')) return;
-  for (const sk of SKATERS) for (const n of POSE_NAMES) pixTex(scene, `sk-${sk.id}-${n}`, drawSkater(sk, POSES[n]));
   pixTex(scene, 'sky', sky(AW, GROUND));
   pixTex(scene, 'city-far', skyline(AW, 150, 11, false));
   pixTex(scene, 'city-mid', skyline(AW, 190, 29, true));
@@ -66,7 +65,7 @@ export function makeTextures(scene: Phaser.Scene): void {
   const cans: [number, number][] = [[0xff3d6e, 0xffd23f], [0x00d9ff, 0x7b2ff7], [0x3dff8f, 0x00a0c8], [0xffd23f, 0xff7b00], [0xf5f5f5, 0x00d9ff], [0xff7b00, 0xc2255c]];
   let wi = 0;
   for (const s of segs) {
-    if (s.kind === 'fence') continue;
+    if (s.kind === 'fence' || s.x + 250 > WALL_W) continue;   // keep pieces off the tile seam
     const [c1, c2] = cans[wi % cans.length], big = s.kind !== 'shutter';
     piece(pix, s.x + r.int(14, 30), r.int(12, 22), words[wi % words.length], big ? FONT.spray : FONT.piece, big ? 46 : 36, c1, c2, r);
     if (big && s.w > 260) piece(pix, s.x + s.w - r.int(80, 100), r.int(40, 56), words[(wi + 5) % words.length].toLowerCase(), FONT.marker, 16, 0xf5f5f5, 0xf5f5f5, r);
@@ -76,6 +75,15 @@ export function makeTextures(scene: Phaser.Scene): void {
   pix.each((_x, y, c) => c === -1 ? -1 : mix(c, 0x1e1238, 0.3 + (y / WALL_H) * 0.12));
   pixTex(scene, 'wall', pix);
 }
+
+/** Texture key for one skater pose, drawn the first time it is asked for. */
+export function skaterTex(scene: Phaser.Scene, id: string, pose: PoseName): string {
+  const key = `sk-${id}-${pose}`;
+  if (!scene.textures.exists(key)) pixTex(scene, key, drawSkater(skaterById(id), POSES[pose]));
+  return key;
+}
+/** Draw every pose of one skater up front so nothing is generated mid-run. */
+export function warmSkater(scene: Phaser.Scene, id: string): void { for (const n of POSE_NAMES) skaterTex(scene, id, n); }
 
 const featCache = new Map<number, { ox: number; oy: number }>();
 /** Lazily builds the sprite for one level feature. Returns its texture key and anchor. */

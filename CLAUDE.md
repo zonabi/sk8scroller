@@ -11,6 +11,7 @@ Mobile-first side-scrolling inline skating game. TypeScript + Phaser 4 + Vite. W
 
 - `npm run check` — typecheck + vitest + bot fairness sim. Must pass before you say a task is done.
 - `npm run shots` — builds and writes screenshots to `shots/`. Look at them after any visual change. Fails on browser console errors.
+- `npm run perf` — builds, bot-plays in headless Chrome, prints load time, CPU ms per frame and how many text textures were drawn mid-run. Fails if the budget is blown. **Run it after any change under `src/game/`.**
 - `npm run sprites` — dumps every skater pose to `shots/sprites.png`. Look at it after touching `src/game/art/`.
 - `npm run dev` — dev server. `?seed=N` fixes the level, `?bot` autoplays.
 
@@ -44,10 +45,24 @@ Why: core can be tested and bot-played in milliseconds with no browser. That is 
 | HUD, layout | `src/game/` scenes — palette is `PAL` in `view.ts`, stay inside it |
 | Controls | `src/game/input.ts` (must keep producing the core `Input` shape) |
 
+## Performance — the game has to feel buttery
+
+Target: locked 60 fps on a mid-range phone. Treat a perf regression like a failing test.
+
+Budgets (checked by `npm run perf`): JS under 3 ms per frame; no text drawn during steady gameplay.
+
+Rules that came out of a real incident (v0.2 shipped at <10 fps and a 10 s load):
+- **No Phaser `Text`, ever.** Use `graf()` for fixed strings (drawn once, cached) and `num()` for anything that changes per frame (pre-drawn glyph sprites). `Rubik Spray Paint` is ~10× slower to draw than the other fonts — only via `num()` or cached `graf()`.
+- **World art goes through `World.add()`** (`backdrop.ts`). The world is drawn at 640×360 and upscaled once; only UI is drawn at full canvas resolution. Don't put full-screen layers on the scene directly.
+- **Nothing is generated mid-run that could be generated up front.** Warm textures in `create()` (see `warmSkater`, `warm`).
+- **No per-frame allocations in `update`/`draw`** (no `new Set`, array spreads, closures, template strings that feed textures).
+- No MSAA (`antialiasGL: false`), no full-screen filters/shaders without measuring first.
+- `?fps` on the URL shows live fps, frame ms, zoom level and boot time — ask the human for these numbers from a real device; headless Chrome renders in software, so its frame *pacing* means nothing, only its CPU numbers do.
+
 ## Definition of done
 
 1. `npm run check` passes. New rules have a test. If the bot's median distance drops, you made the game unfair — fix it or justify it in the PR.
-2. Visual change → ran `npm run shots` and looked at the images.
+2. Anything under `src/game/` → `npm run perf` passes. Visual change → ran `npm run shots` and looked at the images.
 3. Touch and keyboard both still work (every action needs both).
 4. Docs updated: tick the card in `docs/BACKLOG.md`; if you made a non-obvious choice, add 2–3 lines to `docs/DECISIONS.md`.
 5. One task = one branch = one focused commit series. Don't refactor outside the task.
@@ -58,7 +73,7 @@ Why: core can be tested and bot-played in milliseconds with no browser. That is 
 - Core world units → art pixels is `K` (4/3). Core uses y-up (height above street); `game/` converts.
 - Art style is 16-bit console (Genesis/SNES): 3-tone hue-shifted ramps, light from upper left, ink outline per body part, ordered dithering for gradients. Use the helpers in `art/pixel.ts`; no flat unshaded rectangles.
 - UI style is street art: graffiti lettering with fat outlines, colour fades, block shadows, slight tilt; stickers and tape for panels.
-- Keep `maxTextures: 1` in `main.ts` and don't put `Graf` text in nested containers — both work around Phaser 4 text-rendering glitches (see DECISIONS).
+- Keep `maxTextures: 1` in `main.ts` (works around a Phaser 4 batching glitch, see DECISIONS).
 - All randomness through `core/rng.ts`. Same seed + same inputs must give the same run (there is a test).
 - All art is generated in code at boot (`game/art/` → `game/textures.ts`). Hand-drawn sheets can replace it later under `public/assets/` using the same texture keys.
 - Original characters only. No real skater names, brands, or copyrighted music/art.

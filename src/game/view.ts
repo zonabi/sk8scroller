@@ -7,11 +7,16 @@
  */
 export const AW = 640;
 export const AH = 360;
+export const Z_KEY = 'sk8scroller.zcap';
 /** Integer zoom picked once at boot from the device's real pixel size. */
 export const Z = (() => {
+  const forced = Number(new URLSearchParams(location.search).get('z'));
+  if (forced >= 1 && forced <= 4) return Math.floor(forced);
+  // the game lowers this itself if a device can't hold 60fps at full sharpness (see GameScene.finish)
+  const cap = Number(localStorage.getItem(Z_KEY)) || 4;
   const dpr = window.devicePixelRatio || 1;
   const long = Math.max(window.innerWidth, window.innerHeight) * dpr, short = Math.min(window.innerWidth, window.innerHeight) * dpr;
-  return Math.max(2, Math.min(4, Math.floor(Math.min(long / AW, short / AH) + 0.15)));
+  return Math.max(2, Math.min(4, cap, Math.floor(Math.min(long / AW, short / AH) + 0.15)));
 })();
 /** World units (core) → art pixels. Must match K in art/world.ts. */
 export const K = 4 / 3;
@@ -37,4 +42,6 @@ export const FONT = {
   marker: '"Permanent Marker"',
   /** Stencil-spray capitals: buttons and wall pieces. */
   spray: '"Rubik Spray Paint"',
+  /** Plain sans, only for printed things like the name-tag header. */
+  plain: '"Arial Black", Arial, sans-serif',
 } as const;

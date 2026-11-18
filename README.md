@@ -29,7 +29,7 @@ Tilt control needs HTTPS on iOS Safari, so over plain Wi-Fi use touch; tilt work
 Land with a trick unfinished and you bail. Combos bank ~1s after you touch down; three bails ends the run.
 Score becomes XP, levels unlock tricks.
 
-Debug URLs: `?seed=7` fixes the level, `?bot` lets the bot play.
+Debug URLs: `?seed=7` fixes the level, `?bot` lets the bot play, `?fps` shows fps / frame ms / boot time, `?z=2` forces a lower render zoom.
 
 ## Commands
 
@@ -37,6 +37,7 @@ Debug URLs: `?seed=7` fixes the level, `?bot` lets the bot play.
 |---|---|
 | `npm run dev` | dev server with hot reload |
 | `npm run check` | typecheck + unit tests + bot fairness sim — **run before every commit** |
+| `npm run perf` | load time, CPU per frame, text budget — fails if over |
 | `npm run sprites` | skater pose contact sheet → `shots/sprites.png` |
 | `npm run shots` | build, then headless screenshots into `shots/` (needs Chrome) |
 | `npm run build` | production build in `dist/` |

@@ -1,22 +1,22 @@
 import Phaser from 'phaser';
 import { MAX_LEVEL, levelForXp, xpForLevel } from '../core/progression';
 import { SKATERS } from '../core/skaters';
-import { addBackdrop, setupCamera, type Backdrop } from './backdrop';
+import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
 import { loadSave, writeSave, type Save } from './storage';
-import { SPRITE } from './textures';
-import { drips, graf } from './ui';
+import { SPRITE, skaterTex } from './textures';
+import { drips, graf, uiPerf } from './ui';
 import { AH, AW, PAL } from './view';
 
 export class MenuScene extends Phaser.Scene {
   private save!: Save;
-  private bg!: Backdrop;
+  private bg!: World;
   constructor() { super('menu'); }
 
   create(): void {
     setupCamera(this);
     this.save = loadSave();
-    this.bg = addBackdrop(this);
+    this.bg = new World(this);
     this.add.rectangle(0, 0, AW, AH, PAL.ink, 0.45).setOrigin(0);
 
     // the piece
@@ -48,12 +48,12 @@ export class MenuScene extends Phaser.Scene {
       g.fillStyle(0xd62839, 1).fillRoundedRect(-w / 2, -h / 2, w, 30, { tl: 7, tr: 7, bl: 0, br: 0 });
       g.fillStyle(0xd62839, 1).fillRoundedRect(-w / 2, h / 2 - 9, w, 9, { tl: 0, tr: 0, bl: 7, br: 7 });
       g.lineStyle(1.5, PAL.ink, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 7);
-      const hello = this.add.text(0, -h / 2 + 3, 'HELLO', { fontFamily: 'Arial Black, Arial, sans-serif', fontStyle: 'bold', fontSize: '13px', color: '#fff' }).setOrigin(0.5, 0).setResolution(4);
-      const my = this.add.text(0, -h / 2 + 18, 'my name is', { fontFamily: 'Arial, sans-serif', fontSize: '7px', color: '#fff' }).setOrigin(0.5, 0).setResolution(4);
+      const hello = graf(this, 0, -h / 2 + 1, 'HELLO', { font: 'plain', size: 13, outlineWidth: 0 }).setOrigin(0.5, 0);
+      const my = graf(this, 0, -h / 2 + 15, 'my name is', { font: 'plain', size: 6, outlineWidth: 0 }).setOrigin(0.5, 0);
       const name = graf(this, -w / 2 + 8, -h / 2 + 30, sk.name, { font: 'marker', size: 21, fill: PAL.ink, outlineWidth: 0, angle: -4 });
-      const spr = this.add.image(34, 50, `sk-${sk.id}-roll0`).setOrigin(SPRITE.ox / SPRITE.frame, (SPRITE.gy + 1) / SPRITE.frame);
+      const spr = this.add.image(34, 50, skaterTex(this, sk.id, 'roll0')).setOrigin(SPRITE.ox / SPRITE.frame, (SPRITE.gy + 1) / SPRITE.frame);
       const blurb = graf(this, -w / 2 + 8, -h / 2 + 62, sk.blurb.replace(', ', ',\n'), { size: 8, fill: 0x3a3a52, outlineWidth: 0 });
-      c.add([g, hello, my, ...name.parts, ...blurb.parts, spr]);
+      c.add([g, ...hello.parts, ...my.parts, ...name.parts, ...blurb.parts, spr]);
       ([['spd', sk.speed, PAL.pink], ['air', sk.air, 0x0090c8], ['bal', sk.balance, 0x18a860]] as const).forEach(([lab, v, col], j) => {
         const y = 22 + j * 11;
         c.add(graf(this, -w / 2 + 8, y - 6, lab, { size: 7, fill: PAL.ink, outlineWidth: 0 }).parts);
@@ -94,5 +94,10 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  update(t: number): void { this.bg.scroll(t * 0.03); }
+  update(t: number): void {
+    this.bg.scroll(t * 0.03);
+    this.bg.flush();
+    const l = document.getElementById('loading');
+    if (l) { l.remove(); uiPerf.bootMs = performance.now(); console.info(`[sk8] ready in ${uiPerf.bootMs.toFixed(0)} ms`); }
+  }
 }
