@@ -1,65 +1,98 @@
 import Phaser from 'phaser';
 import { MAX_LEVEL, levelForXp, xpForLevel } from '../core/progression';
 import { SKATERS } from '../core/skaters';
+import { addBackdrop, setupCamera, type Backdrop } from './backdrop';
 import { InputController } from './input';
 import { loadSave, writeSave, type Save } from './storage';
-import { makeTextures } from './textures';
-import { label } from './ui';
-import { H, PAL, W } from './view';
+import { SPRITE } from './textures';
+import { drips, graf } from './ui';
+import { AH, AW, PAL } from './view';
 
 export class MenuScene extends Phaser.Scene {
   private save!: Save;
+  private bg!: Backdrop;
   constructor() { super('menu'); }
 
   create(): void {
-    makeTextures(this);
+    setupCamera(this);
     this.save = loadSave();
-    this.add.image(0, 0, 'sky').setOrigin(0);
-    this.add.tileSprite(0, H - 70, W, 70, 'wall').setOrigin(0).setAlpha(0.9);
+    this.bg = addBackdrop(this);
+    this.add.rectangle(0, 0, AW, AH, PAL.ink, 0.45).setOrigin(0);
 
-    label(this, W / 2, 10, 'SK8SCROLLER', 28, PAL.yellow).setOrigin(0.5, 0).setAngle(-3);
-    label(this, W / 2, 44, 'grind the city', 10, PAL.pink).setOrigin(0.5, 0);
+    // the piece
+    drips(this, AW / 2 - 150, 70, 300, PAL.pink, 4);
+    graf(this, AW / 2, 44, 'SK8SCROLLER', { font: 'piece', size: 54, fill: [PAL.yellow, PAL.pink], block: PAL.cyan, angle: -3, outlineWidth: 9 }).setOrigin(0.5);
+    graf(this, AW / 2 + 120, 80, 'grind the city', { size: 13, fill: PAL.white, angle: -6 }).setOrigin(0.5);
 
     const lvl = levelForXp(this.save.xp);
-    const next = lvl < MAX_LEVEL ? `${this.save.xp}/${xpForLevel(lvl + 1)} XP` : 'MAX';
-    label(this, 8, 6, `LVL ${lvl}  ${next}`, 9, PAL.green);
-    label(this, W - 8, 6, `BEST ${this.save.best}`, 9, PAL.cyan).setOrigin(1, 0);
+    const next = lvl < MAX_LEVEL ? `${this.save.xp}/${xpForLevel(lvl + 1)} xp` : 'max';
+    graf(this, 10, 6, `LVL ${lvl}`, { font: 'spray', size: 15, fill: [PAL.green, PAL.cyan] });
+    graf(this, 12, 28, next, { size: 9 });
+    graf(this, AW - 10, 6, `BEST ${this.save.best}`, { font: 'spray', size: 15, fill: [PAL.yellow, PAL.orange] }).setOrigin(1, 0);
 
-    // skater select
-    const marker = this.add.rectangle(0, 0, 96, 92).setStrokeStyle(2, PAL.yellow).setFillStyle(PAL.ink, 0.55);
-    SKATERS.forEach((sk, i) => {
-      const cx = 72 + i * 112, cy = 112;
-      const card = this.add.rectangle(cx, cy, 96, 92, PAL.ink, 0.35).setInteractive({ useHandCursor: true });
-      this.add.image(cx, cy - 8, `sk-${sk.id}-roll`).setScale(2);
-      label(this, cx, cy - 44, sk.name, 11, PAL.white).setOrigin(0.5, 0);
-      label(this, cx, cy + 22, sk.blurb, 7, PAL.steel).setOrigin(0.5, 0);
-      ([['SPD', sk.speed, PAL.pink], ['AIR', sk.air, PAL.cyan], ['BAL', sk.balance, PAL.green]] as const).forEach(([, v, col], j) => {
-        this.add.rectangle(cx - 30, cy + 35 + j * 4, 60, 2, PAL.ink).setOrigin(0, 0);
-        this.add.rectangle(cx - 30, cy + 35 + j * 4, Math.round((v - 0.7) * 100), 2, col).setOrigin(0, 0);
+    // skaters as name-tag stickers
+    const cards: Phaser.GameObjects.Container[] = [];
+    const select = (id: string) => {
+      this.save.skaterId = id; writeSave(this.save);
+      cards.forEach((c, i) => {
+        const on = SKATERS[i].id === id;
+        this.tweens.add({ targets: c, scale: on ? 1.12 : 0.94, angle: on ? 0 : [-4, 3, -2, 4][i], y: on ? 162 : 170, duration: 140, ease: 'Back.easeOut' });
+        c.setDepth(on ? 60 : 50);
       });
-      const pick = () => { this.save.skaterId = sk.id; writeSave(this.save); marker.setPosition(cx, cy); };
-      card.on('pointerdown', pick);
-      if (sk.id === this.save.skaterId) marker.setPosition(cx, cy);
+    };
+    SKATERS.forEach((sk, i) => {
+      const c = this.add.container(98 + i * 148, 170), w = 122, h = 132;
+      const g = this.add.graphics();
+      g.fillStyle(PAL.ink, 0.5).fillRoundedRect(-w / 2 + 3, -h / 2 + 4, w, h, 7);
+      g.fillStyle(PAL.paper, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 7);
+      g.fillStyle(0xd62839, 1).fillRoundedRect(-w / 2, -h / 2, w, 30, { tl: 7, tr: 7, bl: 0, br: 0 });
+      g.fillStyle(0xd62839, 1).fillRoundedRect(-w / 2, h / 2 - 9, w, 9, { tl: 0, tr: 0, bl: 7, br: 7 });
+      g.lineStyle(1.5, PAL.ink, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 7);
+      const hello = this.add.text(0, -h / 2 + 3, 'HELLO', { fontFamily: 'Arial Black, Arial, sans-serif', fontStyle: 'bold', fontSize: '13px', color: '#fff' }).setOrigin(0.5, 0).setResolution(4);
+      const my = this.add.text(0, -h / 2 + 18, 'my name is', { fontFamily: 'Arial, sans-serif', fontSize: '7px', color: '#fff' }).setOrigin(0.5, 0).setResolution(4);
+      const name = graf(this, -w / 2 + 8, -h / 2 + 30, sk.name, { font: 'marker', size: 21, fill: PAL.ink, outlineWidth: 0, angle: -4 });
+      const spr = this.add.image(34, 50, `sk-${sk.id}-roll0`).setOrigin(SPRITE.ox / SPRITE.frame, (SPRITE.gy + 1) / SPRITE.frame);
+      const blurb = graf(this, -w / 2 + 8, -h / 2 + 62, sk.blurb.replace(', ', ',\n'), { size: 8, fill: 0x3a3a52, outlineWidth: 0 });
+      c.add([g, hello, my, ...name.parts, ...blurb.parts, spr]);
+      ([['spd', sk.speed, PAL.pink], ['air', sk.air, 0x0090c8], ['bal', sk.balance, 0x18a860]] as const).forEach(([lab, v, col], j) => {
+        const y = 22 + j * 11;
+        c.add(graf(this, -w / 2 + 8, y - 6, lab, { size: 7, fill: PAL.ink, outlineWidth: 0 }).parts);
+        const bar = this.add.graphics();
+        bar.fillStyle(0xcfc6b0, 1).fillRoundedRect(-w / 2 + 28, y, 44, 4, 2);
+        bar.fillStyle(col, 1).fillRoundedRect(-w / 2 + 28, y, Math.max(6, (v - 0.72) * 72), 4, 2);
+        c.add(bar);
+      });
+      c.setSize(w, h).setInteractive({ useHandCursor: true }).on('pointerdown', () => select(sk.id));
+      c.setAngle([-4, 3, -2, 4][i]);
+      cards.push(c);
     });
+    select(this.save.skaterId);
 
-    const tilt = label(this, 8, H - 18, '', 9, PAL.cyan).setInteractive({ useHandCursor: true });
-    const showTilt = () => tilt.setText(`TILT BALANCE: ${this.save.tilt ? 'ON' : 'OFF'}`);
+    const play = graf(this, AW / 2, 268, 'SKATE!', { font: 'spray', size: 40, fill: [PAL.green, PAL.cyan], block: PAL.plum, angle: -2 }).setOrigin(0.5);
+    this.tweens.add({ targets: play, scale: 1.07, yoyo: true, repeat: -1, duration: 520, ease: 'Sine.easeInOut' });
+    const start = () => this.scene.start('game');
+    play.button(start);
+    this.input.keyboard?.on('keydown-SPACE', start);
+
+    // controls on strips of tape
+    const tape = (x: number, y: number, text: string, angle: number) => {
+      const t = graf(this, x, y, text, { size: 8, fill: PAL.ink, outlineWidth: 0, angle, align: 'center' }).setOrigin(0.5);
+      const g = this.add.graphics().setDepth(99).setPosition(x, y).setAngle(angle);
+      g.fillStyle(PAL.ink, 0.35).fillRect(-t.textWidth / 2 + 1, -9, t.textWidth, 20);
+      g.fillStyle(0xf6e7a1, 0.95).fillRect(-t.textWidth / 2 - 1, -11, t.textWidth, 20);
+    };
+    tape(AW / 2 - 150, 318, 'LEFT THUMB  jump · hold = higher\non rails: drag to balance, tap to hop off', -1.5);
+    tape(AW / 2 + 150, 318, 'RIGHT THUMB  swipe = tricks\non rails: swipe to switch up', 1.5);
+    graf(this, AW / 2, 348, 'keys: SPACE jump · WASD tricks · ← → balance', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
+
+    const tilt = graf(this, AW - 10, 30, '', { size: 9, fill: PAL.cyan }).setOrigin(1, 0);
+    const showTilt = () => tilt.setText(`tilt balance: ${this.save.tilt ? 'ON' : 'off'}`);
     showTilt();
-    tilt.on('pointerdown', async () => {
+    tilt.button(async () => {
       this.save.tilt = !this.save.tilt && (await InputController.requestTilt());
       writeSave(this.save); showTilt();
     });
-
-    const play = label(this, W / 2, 178, '▶ SKATE', 20, PAL.green).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
-    this.tweens.add({ targets: play, scale: 1.08, yoyo: true, repeat: -1, duration: 500 });
-    const start = () => this.scene.start('game');
-    play.on('pointerdown', start);
-    this.input.keyboard?.on('keydown-SPACE', start);
-
-    this.add.rectangle(0, 204, W, 44, PAL.ink, 0.8).setOrigin(0);
-    label(this, W / 2, 210,
-      'LEFT THUMB: jump (hold = higher) · on rails drag to balance, tap to hop off\n' +
-      'RIGHT THUMB: swipe for tricks · on rails swipe to switch up\n' +
-      'KEYS: SPACE jump · WASD tricks · ← → balance', 7, PAL.white).setOrigin(0.5, 0).setAlign('center');
   }
+
+  update(t: number): void { this.bg.scroll(t * 0.03); }
 }

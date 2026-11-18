@@ -9,6 +9,8 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - Balance tuning in `config.ts` was set by simulation (idle player falls in ~2s, a laggy player holds ~7s). Not yet felt on a phone.
 - Tilt axis/sign in `game/input.ts` is untested on a real device.
 - Trick descriptions in TRICKS.md should be checked by someone who skates.
+- Grind stances in `art/skater.ts` are side-view approximations; check each reads as the right trick.
+- Art has only been viewed in headless Chrome at 1280×720. Check sharpness on a phone and a retina display.
 
 ## M1 — Feel
 
@@ -23,8 +25,9 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 
 - [ ] **T-07 [H] Art bible + one hero sprite.** Decide final skater size and animation list (roll, push, crouch, jump, fall, land, 4 grind stances, 3 grabs, spin, flip, bail). Produce one skater sheet in Aseprite as the reference.
 - [ ] **T-08 Sprite pipeline.** Load atlases from `public/assets/`, keep texture keys, fall back to generated placeholders when a file is missing. Animation state chosen from sim state in one function.
-- [ ] **T-09 Bitmap font + HUD pass.** Replace monospace text. Combo readout that grows with multiplier.
-- [ ] **T-10 Environment sprites.** Rails, ledges, kickers, obstacles, ground tiles, 3 parallax layers; replace per-frame Graphics drawing.
+- [x] **T-09 Graffiti lettering + HUD pass.** Done 2026-11-18 (`ui.ts`).
+- [x] **T-10 Environment sprites.** Done 2026-11-18 (`art/world.ts`). Follow-ups: more wall/obstacle variety, a foreground layer.
+- [ ] **T-10b Animation depth.** In-between frames: push cycle to 6–8 frames, take-off and landing frames, spin frames instead of the x-squash, per-trick grab-in/out.
 
 ## M3 — On the phone
 

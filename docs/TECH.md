@@ -33,14 +33,16 @@ Known costs of the web route, accepted:
   src/game  ──────────────────────────────────────────────
    GameScene     draws state, turns events into popups / shake / sparks
    MenuScene     skater select, progress
-   input.ts      device → core Input      textures.ts  placeholder pixel art
+   input.ts      device → core Input      textures.ts  uploads generated art
+   art/          pixel.ts rasteriser · skater.ts rig + poses · world.ts scenery/obstacles
+   ui.ts         graffiti lettering       backdrop.ts  parallax layers + camera
    storage.ts    localStorage save        view.ts      resolution + palette
 ```
 
 - **Deterministic core.** Seed + inputs → identical run. Enables unit tests, the bot, daily seeds, replays, cheat-resistant leaderboards (re-simulate the inputs server-side).
 - **Fixed timestep** with an accumulator in `GameScene.update`; rendering reads the latest state.
 - **Data-driven content.** Tricks, skaters and level patterns are arrays. Most content tasks are "append an entry".
-- **Rendering is deliberately dumb** in v0.1 (one Graphics object redrawn per frame). Replace with sprites/tilemaps during the art pass.
+- **Rendering:** pixel art on a 640×360 grid, canvas at 2–4× that (`Z` in `view.ts`) so UI text is sharp. All art is generated at boot by `game/art/` (a small software rasteriser + an IK-posed skater rig); one sprite per level feature, created as it scrolls in.
 
 ## Verification loop (what makes this agent-friendly)
 

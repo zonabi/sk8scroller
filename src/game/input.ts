@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import type { Dir, Input, Mode } from '../core/sim';
-import { W } from './view';
+import { AW } from './view';
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
-const SWIPE_PX = 12, TAP_MS = 220, BALANCE_PX = 28;
+const SWIPE_PX = 16, TAP_MS = 220, BALANCE_PX = 38; // art units (640 wide)
 
 /**
  * Turns touch / keyboard / tilt into core `Input`.
@@ -53,21 +53,21 @@ export class InputController {
   }
 
   private down(p: Phaser.Input.Pointer): void {
-    if (p.x < W / 2) {
-      this.left = { id: p.id, x: p.x, t: this.scene.time.now, moved: false };
+    if (p.worldX < AW / 2) {
+      this.left = { id: p.id, x: p.worldX, t: this.scene.time.now, moved: false };
       this.jumpHeld = true;
       if (this.getMode() !== 'grind') this.jumpQueued = true;
     } else {
-      this.right = { id: p.id, x: p.x, y: p.y, fired: false };
+      this.right = { id: p.id, x: p.worldX, y: p.worldY, fired: false };
     }
   }
   private move(p: Phaser.Input.Pointer): void {
     if (this.left?.id === p.id) {
-      const dx = p.x - this.left.x;
+      const dx = p.worldX - this.left.x;
       if (Math.abs(dx) > 6) this.left.moved = true;
       this.touchBalance = clamp(dx / BALANCE_PX);
     } else if (this.right?.id === p.id && !this.right.fired) {
-      const dx = p.x - this.right.x, dy = p.y - this.right.y;
+      const dx = p.worldX - this.right.x, dy = p.worldY - this.right.y;
       if (Math.hypot(dx, dy) > SWIPE_PX) {
         this.trickQueued = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
         this.right.fired = true;

@@ -3,7 +3,7 @@
 A fast, auto-scrolling, side-view aggressive inline skating game. Mobile first, pixel art,
 graffiti grit. Sonic's speed, an endless runner's one-more-go loop, THPS's combo scoring.
 
-**Status: v0.1 — playable prototype with placeholder art, no audio.**
+**Status: v0.2 — playable prototype, 16-bit style art pass and graffiti UI, no audio.**
 
 ## Run it
 
@@ -37,6 +37,7 @@ Debug URLs: `?seed=7` fixes the level, `?bot` lets the bot play.
 |---|---|
 | `npm run dev` | dev server with hot reload |
 | `npm run check` | typecheck + unit tests + bot fairness sim — **run before every commit** |
+| `npm run sprites` | skater pose contact sheet → `shots/sprites.png` |
 | `npm run shots` | build, then headless screenshots into `shots/` (needs Chrome) |
 | `npm run build` | production build in `dist/` |
 

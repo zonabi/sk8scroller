@@ -64,11 +64,22 @@ long line of grinds, switch-ups and air tricks. Short runs, big combos, loud col
 
 ## Art direction
 
-- 480×270 canvas, integer-scaled. Skater ~24×30 now; target 32×32 with 6–8 frame animations.
-- Palette is fixed (`PAL` in `src/game/view.ts`): dusk purples and asphalt greys, with pink / cyan / green / yellow / orange as the spray-can accents.
-- Thick ink outlines on anything interactive. Rails and coping always bright steel so lines read at speed.
-- Background graffiti is set dressing; anything the player can hit or grind must contrast with it.
-- Characters, tags and brands are original. JSR and 90s skate mags are the mood board, not the source.
+**Game world: 16-bit console pixel art (Genesis / SNES era — think Sonic), not chunky 8-bit.**
+- 640×360 pixel grid. Skater sprites are 72×72 frames, roughly 58 px tall — about a sixth of the screen.
+- Shaded, rounded forms: 3-tone ramps with shadows pushed toward violet and highlights toward warm yellow, light from the upper left, an ink outline around every body part.
+- Dithered gradients for sky and soft shadows. Parallax: sky, far skyline, near skyline, graffiti wall, pavement.
+- Rails and coping are always bright steel so lines read at speed. The wall behind the play layer is knocked back ~35% toward dark violet so skater and obstacles pop.
+- Skaters are posed from data (hips, feet, hands) with IK, one pose per trick, so a new trick stance is a few numbers, not a redraw.
+
+**UI: street art, rendered sharp (not pixelated).**
+- Lettering is graffiti: `Sedgwick Ave Display` for pieces and call-outs, `Rubik Spray Paint` for numbers and buttons, `Permanent Marker` for labels. All open-licensed and bundled.
+- Fat ink outlines, two-colour spray fades, offset block shadows, a few degrees of tilt, drips.
+- Panels are street objects: name-tag stickers for skaters, masking tape for hints. No rounded-rectangle app UI.
+- Trick call-outs slap on like stickers; the combo total changes spray colour as the multiplier climbs.
+
+**Rules:** palette is `PAL` plus the ramps in `art/`. Characters, tags and brands are original — JSR and 90s skate mags are the mood board, not the source.
+
+**Known limits of the current art:** it is drawn by code, so it is consistent and cheap to change but stiffer than hand animation. The roll cycle is 4 poses and tricks are single poses. A human pixel artist (or hand-polished sheets) is the upgrade path — see BACKLOG T-07.
 
 ## Audio (not started)
 

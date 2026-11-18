@@ -1,18 +1,23 @@
 import Phaser from 'phaser';
 import { botInput } from '../core/bot';
 import { CFG } from '../core/config';
-import { railY, type Feature } from '../core/level';
+import type { Feature } from '../core/level';
 import { levelForXp, unlocksAt, xpFromRun } from '../core/progression';
 import { Sim, comboValue, type SimEvent } from '../core/sim';
 import { skaterById, type SkaterDef } from '../core/skaters';
 import { TRICKS } from '../core/tricks';
+import type { PoseName } from './art/skater';
+import { addBackdrop, setupCamera, type Backdrop } from './backdrop';
 import { InputController } from './input';
 import { loadSave, writeSave } from './storage';
-import { makeTextures, type Pose } from './textures';
-import { label } from './ui';
-import { GROUND, H, PAL, PLAYER_X, W } from './view';
+import { SPRITE, dropFeatureTexture, featureTexture } from './textures';
+import { Graf, graf } from './ui';
+import { AH, AW, GROUND, K, PAL, PLAYER_X } from './view';
 
-interface Spark { x: number; y: number; vx: number; vy: number; life: number; color: number }
+interface Spark { x: number; y: number; vx: number; vy: number; life: number; color: number; size: number }
+const BODY = 28; // art px from feet to the sprite's rotation centre
+const ROLL: PoseName[] = ['roll0', 'roll0', 'roll1', 'roll2', 'roll3', 'roll0', 'roll0', 'roll0'];
+const HYPE = [PAL.white, PAL.white, PAL.cyan, PAL.green, PAL.yellow, PAL.orange, PAL.pink];
 
 /** Thin presentation layer: feeds input to the Sim, draws its state, reacts to its events. No rules here. */
 export class GameScene extends Phaser.Scene {
@@ -21,42 +26,48 @@ export class GameScene extends Phaser.Scene {
   private ctl!: InputController;
   private bot = false;
   private acc = 0;
-  private far!: Phaser.GameObjects.TileSprite;
-  private wall!: Phaser.GameObjects.TileSprite;
-  private street!: Phaser.GameObjects.TileSprite;
+  private bg!: Backdrop;
   private gfx!: Phaser.GameObjects.Graphics;
   private player!: Phaser.GameObjects.Image;
-  private scoreText!: Phaser.GameObjects.Text;
-  private comboText!: Phaser.GameObjects.Text;
+  private shadow!: Phaser.GameObjects.Image;
+  private feats = new Map<number, { f: Feature; img: Phaser.GameObjects.Image }>();
+  private scoreText!: Graf;
+  private comboNames!: Graf;
+  private comboTotal!: Graf;
   private lives: Phaser.GameObjects.Image[] = [];
   private sparks: Spark[] = [];
   private airTrickTotal = 0;
+  private landT = 0;
+  private lastCombo = 0;
   private finished = false;
+  private popN = 0;
 
   constructor() { super('game'); }
 
   create(): void {
-    makeTextures(this);
+    setupCamera(this);
     const save = loadSave(), q = new URLSearchParams(location.search);
     this.skater = skaterById(save.skaterId);
     this.bot = q.has('bot');
     const seed = q.has('seed') ? Number(q.get('seed')) : (Math.random() * 2 ** 32) >>> 0;
     this.sim = new Sim({ seed, skater: this.skater, playerLevel: levelForXp(save.xp) });
-    this.acc = 0; this.sparks = []; this.finished = false; this.lives = [];
+    this.acc = 0; this.sparks = []; this.finished = false; this.lives = []; this.feats = new Map(); this.landT = 0; this.lastCombo = 0;
 
-    this.add.image(0, 0, 'sky').setOrigin(0);
-    this.far = this.add.tileSprite(0, GROUND - 40 - 140, W, 140, 'city-far').setOrigin(0);
-    this.wall = this.add.tileSprite(0, GROUND - 70, W, 70, 'wall').setOrigin(0);
-    this.street = this.add.tileSprite(0, GROUND, W, H - GROUND, 'street').setOrigin(0);
-    this.gfx = this.add.graphics().setDepth(10);
-    this.player = this.add.image(PLAYER_X, GROUND, `sk-${this.skater.id}-roll`).setOrigin(0.5, 1).setDepth(20);
+    this.bg = addBackdrop(this);
+    this.shadow = this.add.image(PLAYER_X, GROUND, 'shadow').setAlpha(0.45).setDepth(15);
+    this.player = this.add.image(PLAYER_X, GROUND, `sk-${this.skater.id}-roll0`)
+      .setOrigin(SPRITE.ox / SPRITE.frame, (SPRITE.gy + 1 - BODY) / SPRITE.frame).setDepth(20);
+    this.gfx = this.add.graphics().setDepth(30);
 
-    this.scoreText = label(this, 8, 6, '0', 12, PAL.yellow);
-    this.comboText = label(this, W / 2, H - 34, '', 9, PAL.white).setOrigin(0.5, 0).setAlign('center');
-    for (let i = 0; i < CFG.lives; i++) this.lives.push(this.add.image(W - 12 - i * 10, 12, 'wheel').setDepth(100));
+    graf(this, 12, 5, 'score', { size: 9, fill: PAL.white, angle: -4 });
+    this.scoreText = graf(this, 10, 14, '0', { font: 'spray', size: 26, fill: [PAL.yellow, PAL.orange], block: PAL.magenta, outlineWidth: 6 });
+    for (let i = 0; i < CFG.lives; i++) this.lives.push(this.add.image(AW - 18 - i * 20, 20, 'wheel').setDepth(100));
+    this.comboNames = graf(this, AW / 2, AH - 48, '', { size: 11, fill: PAL.white, align: 'center' }).setOrigin(0.5, 1);
+    this.comboTotal = graf(this, AW / 2, AH - 26, '', { font: 'spray', size: 24, fill: PAL.white, block: PAL.ink, angle: -2, outlineWidth: 6 }).setOrigin(0.5);
 
     this.ctl = new InputController(this, () => this.sim.s.mode, save.tilt);
     this.input.keyboard?.on('keydown-ESC', () => this.scene.start('menu'));
+    this.events.once('shutdown', () => { for (const { f } of this.feats.values()) dropFeatureTexture(this, f); });
   }
 
   update(_t: number, deltaMs: number): void {
@@ -66,6 +77,7 @@ export class GameScene extends Phaser.Scene {
       const input = this.bot ? botInput(this.sim) : this.ctl.sample();
       for (const e of this.sim.step(input)) this.onEvent(e);
       this.stepSparks();
+      if (this.landT > 0) this.landT -= CFG.dt;
     }
     this.draw();
   }
@@ -74,116 +86,111 @@ export class GameScene extends Phaser.Scene {
   private onEvent(e: SimEvent): void {
     const s = this.sim.s;
     switch (e.type) {
-      case 'grindStart': case 'switchUp': this.popup(TRICKS[e.trickId].name, PAL.cyan); break;
+      case 'grindStart': case 'switchUp': this.popup(TRICKS[e.trickId].name, [PAL.cyan, PAL.white]); break;
       case 'airTrickStart': this.airTrickTotal = TRICKS[e.trickId].duration; break;
-      case 'airTrickDone': this.popup(TRICKS[e.trickId].name, PAL.green); break;
-      case 'bank': this.popup(`+${e.points}`, PAL.yellow, 16); this.cameras.main.flash(80, 255, 210, 63); break;
-      case 'land': this.burst(4, PAL.white); break;
+      case 'airTrickDone': this.popup(TRICKS[e.trickId].name, [PAL.green, PAL.yellow]); break;
+      case 'bank': this.popup(`+${e.points}`, [PAL.yellow, PAL.orange], 26); this.cameras.main.flash(90, 255, 230, 120); break;
+      case 'land': this.landT = 0.12; this.burst(6, 0xd8d8e8, 3); break;
       case 'bail':
-        this.popup(e.reason === 'balance' ? 'LOST IT!' : e.reason === 'sketchy' ? 'SKETCHY!' : 'BAIL!', PAL.pink, 16);
-        this.cameras.main.shake(180, 0.012); this.burst(12, PAL.pink);
+        this.popup(e.reason === 'balance' ? 'LOST IT!' : e.reason === 'sketchy' ? 'SKETCHY!' : 'SLAM!', [PAL.pink, PAL.magenta], 28);
+        this.cameras.main.shake(200, 0.01); this.burst(14, PAL.pink, 3);
         break;
       case 'over': this.finish(); break;
     }
-    this.lives.forEach((img, i) => img.setAlpha(i < s.lives ? 1 : 0.2));
+    this.lives.forEach((img, i) => img.setAlpha(i < s.lives ? 1 : 0.25).setTint(i < s.lives ? 0xffffff : 0x555577));
   }
 
-  private popup(text: string, color: number, size = 11): void {
-    const t = label(this, PLAYER_X + 14, this.player.y - 44, text, size, color).setOrigin(0, 0.5);
-    this.tweens.add({ targets: t, y: t.y - 26, alpha: 0, duration: 800, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
+  /** A trick call-out: slaps in like a sticker, then fades. */
+  private popup(text: string, fill: [number, number], size = 20): void {
+    const t = graf(this, PLAYER_X + 34, this.player.y - 40 - (this.popN++ % 3) * 24, text.toUpperCase(), { font: 'piece', size, fill, block: PAL.ink, angle: Phaser.Math.Between(-9, 5), outlineWidth: size * 0.24 }).setOrigin(0, 0.5);
+    t.setScale(1.7);
+    this.tweens.add({ targets: t, scale: 1, duration: 130, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: t, y: t.y - 22, alpha: 0, delay: 520, duration: 380, onComplete: () => t.destroy() });
   }
-  private burst(n: number, color: number): void {
-    for (let i = 0; i < n; i++) {
-      this.sparks.push({ x: PLAYER_X, y: this.player.y, vx: Phaser.Math.Between(-90, 30), vy: Phaser.Math.Between(-90, -10), life: 0.4, color });
-    }
+  private burst(n: number, color: number, size: number): void {
+    for (let i = 0; i < n; i++) this.sparks.push({ x: PLAYER_X, y: this.player.y + BODY, vx: Phaser.Math.Between(-120, 40), vy: Phaser.Math.Between(-110, -10), life: 0.4, color, size });
   }
   private stepSparks(): void {
     const s = this.sim.s;
-    if (s.mode === 'grind' && Math.random() < 0.7) {
-      this.sparks.push({ x: PLAYER_X - 4, y: GROUND - s.y, vx: Phaser.Math.Between(-140, -40), vy: Phaser.Math.Between(-70, 10), life: 0.3, color: Math.random() < 0.5 ? PAL.yellow : PAL.orange });
+    if (s.mode === 'grind') for (let i = 0; i < 2; i++) {
+      this.sparks.push({ x: PLAYER_X - 6 + Math.random() * 10, y: GROUND - s.y * K, vx: Phaser.Math.Between(-190, -50), vy: Phaser.Math.Between(-110, 10), life: 0.25 + Math.random() * 0.2, color: [0xffffff, PAL.yellow, PAL.orange][i + (Math.random() < 0.5 ? 0 : 1)], size: 2 });
     }
-    for (const p of this.sparks) { p.x += p.vx * CFG.dt; p.y += p.vy * CFG.dt; p.vy += 300 * CFG.dt; p.life -= CFG.dt; }
+    for (const p of this.sparks) { p.x += p.vx * CFG.dt; p.y += p.vy * CFG.dt; p.vy += 420 * CFG.dt; p.life -= CFG.dt; }
     this.sparks = this.sparks.filter(p => p.life > 0);
   }
 
   // ---- drawing --------------------------------------------------------------
-  private draw(): void {
-    const s = this.sim.s, cam = Math.floor(s.x - PLAYER_X), g = this.gfx;
-    this.far.tilePositionX = Math.floor(cam * 0.15);
-    this.wall.tilePositionX = Math.floor(cam * 0.6);
-    this.street.tilePositionX = cam;
-
-    g.clear();
-    for (const f of this.sim.level.features) {
-      const x = Math.floor(f.x - cam);
-      if (x > W + 10 || x + f.w < -10) continue;
-      this.drawFeature(g, f, x);
+  private pose(): PoseName {
+    const s = this.sim.s;
+    if (s.mode === 'grind') return s.grindTrick as PoseName;
+    if (s.mode === 'bail') return s.bailTimer > CFG.bailTime * 0.45 ? 'bail0' : 'bail1';
+    if (s.mode === 'over') return 'bail1';
+    if (s.mode === 'air') {
+      if (s.airTrick) return (['mute', 'safety', 'rocket', 'liukang'] as const).find(n => n === s.airTrick!.id) ?? 'jump';
+      return s.vy > 40 ? 'jump' : 'fall';
     }
-    for (const p of this.sparks) { g.fillStyle(p.color, 1); g.fillRect(Math.floor(p.x), Math.floor(p.y), 2, 2); }
-
-    // player
-    let pose: Pose = 'roll';
-    if (s.mode === 'air') pose = s.airTrick ? 'grab' : 'air';
-    else if (s.mode === 'grind') pose = 'grind';
-    else if (s.mode === 'bail' || s.mode === 'over') pose = 'bail';
-    const bob = s.mode === 'ground' ? Math.floor(s.t * 8) % 2 : 0;
-    this.player.setTexture(`sk-${this.skater.id}-${pose}`).setY(Math.floor(GROUND - s.y) + bob + (s.mode === 'grind' ? -1 : 0));
-    this.player.setAlpha(s.invuln > 0 && s.mode !== 'bail' && Math.floor(s.t * 14) % 2 ? 0.35 : 1);
-    this.player.setScale(1, 1).setRotation(0);
-    if (s.airTrick) {
-      const tr = TRICKS[s.airTrick.id], p = 1 - s.airTrick.timeLeft / (this.airTrickTotal || tr.duration);
-      if (tr.id.startsWith('spin')) this.player.setScale(Math.cos(p * Math.PI * (Number(tr.id.slice(4)) / 180)), 1);
-      else if (tr.id === 'backflip' || tr.id === 'misty') this.player.setRotation(-p * Math.PI * 2);
-      else if (tr.id === 'rocket' || tr.id === 'liukang') this.player.setRotation(-0.5);
-    } else if (s.mode === 'grind') {
-      this.player.setRotation(s.balance * 0.35);
-      // balance meter
-      const mx = PLAYER_X - 30, my = this.player.y - 42;
-      g.fillStyle(PAL.ink, 1); g.fillRect(mx - 1, my - 1, 62, 7);
-      g.fillStyle(PAL.pink, 1); g.fillRect(mx, my, 60, 5);
-      g.fillStyle(PAL.green, 1); g.fillRect(mx + 15, my, 30, 5);
-      g.fillStyle(PAL.white, 1); g.fillRect(Math.floor(mx + 29 + s.balance * 29), my - 2, 3, 9);
-    }
-
-    this.scoreText.setText(String(this.sim.totalScore).padStart(6, '0'));
-    if (s.combo.length) {
-      const names = s.combo.slice(-4).map(c => c.name).join(' + ');
-      this.comboText.setText(`${s.combo.length > 4 ? '… + ' : ''}${names}\n${comboValue(s.combo)}  x${s.combo.length}`);
-    } else this.comboText.setText('');
+    if (this.landT > 0) return 'land';
+    return ROLL[Math.floor(s.t * 9) % ROLL.length];
   }
 
-  private drawFeature(g: Phaser.GameObjects.Graphics, f: Feature, x: number): void {
-    switch (f.kind) {
-      case 'rail': {
-        const y1 = GROUND - f.h, y2 = GROUND - (f.h2 ?? f.h);
-        g.fillStyle(PAL.ink, 1);
-        for (let px = 6; px < f.w; px += 48) g.fillRect(x + px, Math.floor(GROUND - railY(f, f.x + px)), 2, Math.ceil(railY(f, f.x + px)));
-        g.lineStyle(4, PAL.ink, 1); g.lineBetween(x, y1, x + f.w, y2);
-        g.lineStyle(2, PAL.steel, 1); g.lineBetween(x, y1 - 1, x + f.w, y2 - 1);
-        break;
-      }
-      case 'ledge':
-        g.fillStyle(PAL.ink, 1); g.fillRect(x - 1, GROUND - f.h - 1, f.w + 2, f.h + 1);
-        g.fillStyle(PAL.concrete, 1); g.fillRect(x, GROUND - f.h, f.w, f.h);
-        g.fillStyle(PAL.concreteDark, 1); g.fillRect(x, GROUND - f.h + 6, f.w, f.h - 6);
-        g.fillStyle(PAL.steel, 1); g.fillRect(x, GROUND - f.h, f.w, 2);
-        g.fillStyle(PAL.pink, 1); g.fillRect(x + 10, GROUND - 8, 14, 4);
-        break;
-      case 'kicker':
-        g.fillStyle(PAL.ink, 1); g.fillTriangle(x - 2, GROUND, x + f.w + 1, GROUND, x + f.w + 1, GROUND - f.h - 2);
-        g.fillStyle(PAL.orange, 1); g.fillTriangle(x, GROUND, x + f.w, GROUND, x + f.w, GROUND - f.h);
-        g.fillStyle(PAL.yellow, 1); g.fillRect(x + f.w - 3, GROUND - f.h, 3, f.h);
-        break;
-      case 'cone':
-        g.fillStyle(PAL.ink, 1); g.fillRect(x - 2, GROUND - 2, f.w + 4, 2);
-        g.fillStyle(PAL.orange, 1); g.fillTriangle(x, GROUND - 1, x + f.w, GROUND - 1, x + f.w / 2, GROUND - f.h - 1);
-        g.fillStyle(PAL.white, 1); g.fillRect(x + 2, GROUND - 6, f.w - 4, 2);
-        break;
-      case 'barrier':
-        g.fillStyle(PAL.ink, 1); g.fillRect(x - 1, GROUND - f.h - 1, f.w + 2, f.h + 1);
-        for (let i = 0; i < f.h; i += 4) { g.fillStyle((i / 4) % 2 ? PAL.ink : PAL.yellow, 1); g.fillRect(x, GROUND - f.h + i, f.w, Math.min(4, f.h - i)); }
-        break;
+  private draw(): void {
+    const s = this.sim.s, camW = s.x - PLAYER_X / K, g = this.gfx;
+    this.bg.scroll(camW * K);
+
+    // level features: one sprite each, created as they scroll in and released behind us
+    const live = new Set<number>();
+    for (const f of this.sim.level.features) {
+      const x = Math.floor((f.x - camW) * K);
+      if (x > AW + 20 || x + f.w * K < -40) continue;
+      live.add(f.id);
+      let e = this.feats.get(f.id);
+      if (!e) { const t = featureTexture(this, f); e = { f, img: this.add.image(0, 0, t.key).setOrigin(0).setDepth(10).setData('a', t) }; this.feats.set(f.id, e); }
+      const a = e.img.getData('a') as { ox: number; oy: number };
+      e.img.setPosition(x - a.ox, GROUND - a.oy + 1);
     }
+    for (const [id, e] of this.feats) if (!live.has(id)) { e.img.destroy(); dropFeatureTexture(this, e.f); this.feats.delete(id); }
+
+    // player
+    const feetY = Math.floor(GROUND - s.y * K);
+    let rot = 0, sx = 1;
+    if (s.airTrick) {
+      const tr = TRICKS[s.airTrick.id], p = 1 - s.airTrick.timeLeft / (this.airTrickTotal || tr.duration);
+      if (tr.id.startsWith('spin')) sx = Math.cos(p * Math.PI * (Number(tr.id.slice(4)) / 180));
+      else if (tr.id === 'backflip' || tr.id === 'misty') rot = -p * Math.PI * 2;
+    } else if (s.mode === 'grind') rot = s.balance * 0.3;
+    else if (s.mode === 'air') rot = Phaser.Math.Clamp(-s.vy / 2600, -0.12, 0.16);
+    const flip = !!s.airTrick && rot !== 0;
+    // lean pivots at the feet; flips pivot at the body centre
+    this.player.setTexture(`sk-${this.skater.id}-${this.pose()}`).setRotation(rot).setScale(sx, 1)
+      .setPosition(PLAYER_X + (flip ? 0 : Math.sin(rot) * BODY), feetY - (flip ? BODY : Math.cos(rot) * BODY));
+    this.player.setAlpha(s.invuln > 0 && s.mode !== 'bail' && Math.floor(s.t * 14) % 2 ? 0.4 : 1);
+    const floor = s.mode === 'grind' ? feetY : GROUND - Math.floor(this.sim.level.groundY(s.x) * K);
+    this.shadow.setPosition(PLAYER_X, floor + 2).setScale(Phaser.Math.Clamp(1 - (floor - feetY) / 160, 0.4, 1), 1).setVisible(s.mode !== 'grind');
+
+    g.clear();
+    for (const p of this.sparks) { g.fillStyle(p.color, 1); g.fillRect(Math.floor(p.x), Math.floor(p.y), p.size, p.size); }
+    if (s.mode === 'grind') this.drawBalance(g, feetY - 78, s.balance);
+
+    this.scoreText.setText(String(this.sim.totalScore));
+    const n = s.combo.length;
+    if (n) {
+      this.comboNames.setText((n > 4 ? '… + ' : '') + s.combo.slice(-4).map(c => c.name).join(' + '));
+      this.comboTotal.setText(`${comboValue(s.combo)} x${n}`, n !== this.lastCombo ? HYPE[Math.min(n, HYPE.length - 1)] : undefined);
+      if (n !== this.lastCombo) { this.comboTotal.setScale(1.5); this.tweens.add({ targets: this.comboTotal, scale: 1 + Math.min(n, 8) * 0.03, duration: 160, ease: 'Back.easeOut' }); }
+    } else { this.comboNames.setText(''); this.comboTotal.setText(''); }
+    this.lastCombo = n;
+  }
+
+  /** Balance meter: a spray-painted bar with a safe zone and a paint-marker needle. */
+  private drawBalance(g: Phaser.GameObjects.Graphics, y: number, b: number): void {
+    const w = 84, x = PLAYER_X - w / 2, danger = Math.abs(b) > 0.6;
+    g.fillStyle(PAL.ink, 1).fillRoundedRect(x - 3, y - 3, w + 6, 13, 6.5);
+    g.fillStyle(PAL.pink, 1).fillRoundedRect(x, y, w, 7, 3.5);
+    g.fillStyle(PAL.yellow, 1).fillRect(x + w * 0.2, y, w * 0.6, 7);
+    g.fillStyle(PAL.green, 1).fillRect(x + w * 0.35, y, w * 0.3, 7);
+    const nx = PLAYER_X + b * (w / 2 - 2);
+    g.fillStyle(PAL.ink, 1).fillTriangle(nx - 7, y - 9, nx + 7, y - 9, nx, y + 6);
+    g.fillStyle(danger ? PAL.pink : PAL.white, 1).fillTriangle(nx - 4.5, y - 7.5, nx + 4.5, y - 7.5, nx, y + 3);
   }
 
   // ---- end of run -----------------------------------------------------------
@@ -196,20 +203,18 @@ export class GameScene extends Phaser.Scene {
     writeSave(save);
     const after = levelForXp(save.xp);
 
-    this.add.rectangle(0, 0, W, H, PAL.ink, 0.7).setOrigin(0).setDepth(90);
-    label(this, W / 2, 40, 'RUN OVER', 24, PAL.pink).setOrigin(0.5, 0);
-    const lines = [`SCORE ${total}`, `BEST COMBO ${this.sim.s.bestCombo}`, `DISTANCE ${this.sim.distance}m`, `+${gained} XP`];
-    label(this, W / 2, 84, lines.join('\n'), 11, PAL.white).setOrigin(0.5, 0).setAlign('center');
+    this.add.rectangle(0, 0, AW, AH, PAL.ink, 0.72).setOrigin(0).setDepth(90);
+    graf(this, AW / 2, 62, 'SLAMMED', { font: 'piece', size: 60, fill: [PAL.pink, PAL.orange], block: PAL.cyan, angle: -4, outlineWidth: 10 }).setOrigin(0.5);
+    graf(this, AW / 2, 128, `${total}`, { font: 'spray', size: 38, fill: [PAL.yellow, PAL.orange], block: PAL.magenta }).setOrigin(0.5);
+    graf(this, AW / 2, 176, `best combo ${this.sim.s.bestCombo}   ·   ${this.sim.distance} m   ·   +${gained} xp`, { size: 12 }).setOrigin(0.5);
     if (after > before) {
       const names: string[] = [];
       for (let l = before + 1; l <= after; l++) names.push(...unlocksAt(l).map(t => t.name));
-      label(this, W / 2, 152, `LEVEL ${after}!` + (names.length ? `  UNLOCKED: ${names.join(', ')}` : ''), 10, PAL.green).setOrigin(0.5, 0);
+      graf(this, AW / 2, 208, `LEVEL ${after}!` + (names.length ? `  new: ${names.join(', ')}` : ''), { font: 'piece', size: 20, fill: [PAL.green, PAL.cyan], angle: 2 }).setOrigin(0.5);
     }
     this.time.delayedCall(500, () => {
-      const again = label(this, W / 2 - 60, 190, '▶ AGAIN', 14, PAL.green).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
-      const menu = label(this, W / 2 + 70, 190, 'MENU', 14, PAL.cyan).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
-      again.on('pointerdown', () => this.scene.restart());
-      menu.on('pointerdown', () => this.scene.start('menu'));
+      graf(this, AW / 2 - 90, 266, 'AGAIN!', { font: 'spray', size: 34, fill: [PAL.green, PAL.cyan], block: PAL.plum, angle: -3 }).setOrigin(0.5).button(() => this.scene.restart());
+      graf(this, AW / 2 + 110, 268, 'menu', { font: 'piece', size: 26, fill: PAL.white, angle: 3 }).setOrigin(0.5).button(() => this.scene.start('menu'));
       this.input.keyboard?.once('keydown-SPACE', () => this.scene.restart());
     });
   }
