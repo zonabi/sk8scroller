@@ -21,13 +21,15 @@ const top = (profile, n = 12) => {
 await cdp.send('Profiler.enable');
 await cdp.send('Profiler.start');
 const t0 = Date.now();
-await page.goto('http://localhost:4178/?bot&seed=7' + (process.argv[2] ?? ''));
+await page.goto('http://localhost:4178/?bot&fps&seed=7' + (process.argv[2] ?? ''));
 await page.waitForFunction(() => window.__sk8?.scene?.isActive('menu'), { timeout: 120000 });
 await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 console.log(`LOAD to first menu frame: ${Date.now() - t0} ms   (zoom Z=${await page.evaluate(() => window.__sk8.config.width / 640)})`);
 console.log(top((await cdp.send('Profiler.stop')).profile));
 
 const boot = await page.evaluate(() => ({ ...window.__sk8perf }));
+page.on('console', () => {});
+console.log('  ' + await page.evaluate(() => document.getElementById('fps')?.textContent || ''));
 console.log(`  text stamps at boot: ${boot.stamps} (${boot.stampMs.toFixed(0)} ms)`);
 await page.keyboard.press('Space');
 await wait(1500);

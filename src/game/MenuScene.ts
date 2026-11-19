@@ -4,7 +4,7 @@ import { SKATERS } from '../core/skaters';
 import { World, setupCamera } from './backdrop';
 import { showFullscreenButton } from './fullscreen';
 import { InputController } from './input';
-import { loading } from './loading';
+import { bootMark, bootSummary, loading } from './loading';
 import { loadSave, writeSave, type Save } from './storage';
 import { SPRITE, skaterTex } from './textures';
 import { drips, graf, uiPerf } from './ui';
@@ -101,6 +101,11 @@ export class MenuScene extends Phaser.Scene {
   update(t: number): void {
     this.bg.scroll(t * 0.03);
     this.bg.flush();
-    if (loading.done()) { uiPerf.bootMs = performance.now(); console.info(`[sk8] ready in ${uiPerf.bootMs.toFixed(0)} ms`); }
+    if (loading.done()) {
+      bootMark('menu'); uiPerf.bootMs = performance.now();
+      console.info(`[sk8] ready in ${uiPerf.bootMs.toFixed(0)} ms — ${bootSummary()}`);
+      const f = new URLSearchParams(location.search).has('fps') ? document.getElementById('fps') : null;
+      if (f) f.textContent = `boot ${uiPerf.bootMs.toFixed(0)} ms — ${bootSummary()}`;
+    }
   }
 }

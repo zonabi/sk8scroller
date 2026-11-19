@@ -16,3 +16,8 @@ export const loading = {
     return true;
   },
 };
+
+/** Boot timeline: where the time between page load and the first menu frame goes. Shown by ?fps and logged. */
+const marks: [string, number][] = [];
+export const bootMark = (label: string): void => { marks.push([label, performance.now()]); };
+export const bootSummary = (): string => marks.map(([l, t], i) => `${l} ${(t - (i ? marks[i - 1][1] : 0)).toFixed(0)}`).join(' · ');

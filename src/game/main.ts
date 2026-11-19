@@ -5,14 +5,16 @@ import Phaser from 'phaser';
 import { BootScene } from './BootScene';
 import { initFullscreen } from './fullscreen';
 import { GameScene } from './GameScene';
-import { loading } from './loading';
+import { bootMark, loading } from './loading';
 import { MenuScene } from './MenuScene';
 import { uiPerf } from './ui';
 import { AH, AW, FONT, PAL, Z } from './view';
 
+bootMark('code');   // page load → scripts downloaded, parsed and running
 // Fonts must be ready before any text or wall graffiti is rasterised.
 await Promise.all([FONT.piece, FONT.marker, FONT.spray].map(f => document.fonts.load(`32px ${f}`, 'SK8 scroller 0123')));
 
+bootMark('fonts');
 initFullscreen();
 loading.fontsReady();
 loading.stage('shaking the cans', 0.15);
