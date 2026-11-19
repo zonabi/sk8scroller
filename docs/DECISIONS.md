@@ -5,8 +5,9 @@ Newest first. Keep entries to a few lines: what, why, what would change our mind
 ## 2026-11-18 — Lettering outlines are built from blits, not strokeText
 The user's Mac spent 5.1 s of a 5.3 s boot building the menu; the boot timeline (`?fps`) pinned it there. Headless
 Linux did the same work in ~0.2 s, so the suspect was canvas `strokeText` with a very wide round-joined stroke on
-complex glyphs. Outlines are now made by stamping the fill-only glyph mask around a circle. Confirm with the user's
-next readout before calling it closed.
+complex glyphs. Outlines are now made by stamping the fill-only glyph mask around a circle.
+**Confirmed on the user's Mac:** boot 5,304 ms → 551 ms, menu build 5,112 ms → 180 ms, 60 fps in play.
+Lesson: a single platform-specific canvas call can dominate; the boot timeline found it in one round trip.
 
 ## 2026-11-18 — Spins are sprite turnarounds; no full-screen flashes
 Spins used to squash the side-view sprite horizontally, which read as a paper cut-out flipping. `drawSpin` now poses a

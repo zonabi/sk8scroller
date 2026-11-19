@@ -10,7 +10,10 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - Tilt axis/sign in `game/input.ts` is untested on a real device.
 - Trick descriptions in TRICKS.md should be checked by someone who skates.
 - Grind stances in `art/skater.ts` are side-view approximations; check each reads as the right trick.
-- Art has only been viewed in headless Chrome at 1280×720. Check sharpness on a phone and a retina display.
+- Art style approved by the user on a Mac retina display (2026-11-18). Not yet judged on a phone.
+- Performance verified on the user's Mac only: 60 fps at zoom Z4, boot 551 ms. **Phone `?fps` readout still needed** (fps, frame ms, zoom, boot timeline) — that is the device that matters.
+- Full-screen button untested on Android/iPad; iPhone route is Add to Home Screen.
+- Spin turnaround (8 frames) not yet judged at full speed; flips still rotate the side-view sprite.
 
 ## M1 — Feel
 

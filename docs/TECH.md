@@ -48,7 +48,8 @@ Known costs of the web route, accepted:
 
 1. `npm run check` — types, 10 unit tests, then 200 bot runs per skater. Fails if the bot's median distance collapses.
 2. `npm run shots` — headless Chrome screenshots of menu + a seeded bot run; fails on console errors.
-3. Human playtest on a phone for feel. Agents log what they can't judge.
+3. `npm run perf` — load time, CPU ms per frame, and text drawn mid-run, with budgets that fail the run.
+4. Human playtest on a phone for feel, plus the `?fps` readout from that device. Agents log what they can't judge.
 
 ## Path to iOS (milestone M3)
 

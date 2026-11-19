@@ -60,7 +60,15 @@ Rules that came out of a real incident (v0.2 shipped at <10 fps and a 10 s load)
 - Boot work goes in `textureSteps()` (one step per frame, drives the loading bar). The loading screen itself is plain HTML/CSS in `index.html` and may only animate `transform`/`opacity`.
 - No full-screen flashes, ever (photosensitivity, and it reads as a glitch).
 - No MSAA (`antialiasGL: false`), no full-screen filters/shaders without measuring first.
-- `?fps` on the URL shows live fps, frame ms, zoom level and boot time — ask the human for these numbers from a real device; headless Chrome renders in software, so its frame *pacing* means nothing, only its CPU numbers do.
+- `?fps` on the URL shows live fps and frame ms during a run, and on the menu a boot timeline (`code · fonts · engine · sky · … · menu · first-draw · lettering`).
+
+How to chase a performance problem (learned the hard way):
+1. **Measure on the human's device before changing anything.** Ask for the `?fps` line. Headless Chrome renders in software, so its frame *pacing* means nothing — only its CPU numbers do.
+2. **Your machine is not their machine.** The same menu build took 0.2 s here and 5.1 s on the user's Mac (one canvas call, `strokeText`). If your numbers look fine and theirs don't, add finer timing marks (`bootMark`) and ask again rather than guessing.
+3. **Fix the biggest number, then re-measure.** Record before/after in DECISIONS.md.
+4. If a step can't be made fast, hide it behind the loading screen (`textureSteps`) — never let it land mid-run.
+
+Reference numbers (user's Mac, Chrome, zoom Z4, 2026-11-18): 60 fps / 16.7 ms per frame; boot 551 ms. Phone numbers: not yet measured.
 
 ## Definition of done
 
