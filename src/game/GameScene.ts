@@ -7,6 +7,7 @@ import { Sim, comboValue, type SimEvent } from '../core/sim';
 import { skaterById, type SkaterDef } from '../core/skaters';
 import { TRICKS, TRICK_LIST } from '../core/tricks';
 import { SPIN_FRAMES, type PoseName } from './art/skater';
+import { sfx } from './audio';
 import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
 import { loadSave, writeSave } from './storage';
@@ -87,7 +88,8 @@ export class GameScene extends Phaser.Scene {
 
     this.ctl = new InputController(this, () => this.sim.s.mode, save.tilt);
     this.input.keyboard?.on('keydown-ESC', () => this.scene.start('menu'));
-    this.events.once('shutdown', () => { for (const { f } of this.feats.values()) dropFeatureTexture(this, f); });
+    this.events.once('shutdown', () => { sfx.hush(); for (const { f } of this.feats.values()) dropFeatureTexture(this, f); });
+    this.input.keyboard?.on('keydown-M', () => { const sv = loadSave(); sv.mute = !sv.mute; writeSave(sv); sfx.setMuted(sv.mute); });
   }
 
   update(_t: number, deltaMs: number): void {
@@ -104,12 +106,15 @@ export class GameScene extends Phaser.Scene {
       this.stepSparks();
       if (this.landT > 0) this.landT -= CFG.dt;
     }
+    const s = this.sim.s;
+    sfx.frame(s.mode, s.speed, s.grind ? (s.grind.kind as 'rail' | 'ledge') : null, s.balance);
     this.draw();
   }
 
   // ---- events → juice -------------------------------------------------------
   private onEvent(e: SimEvent): void {
     const s = this.sim.s;
+    sfx.event(e);
     switch (e.type) {
       case 'grindStart': case 'switchUp': this.popup(TRICKS[e.trickId].name, 'grind'); break;
       case 'airTrickStart': this.airTrickTotal = TRICKS[e.trickId].duration; break;

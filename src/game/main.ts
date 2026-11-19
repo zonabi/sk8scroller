@@ -2,11 +2,13 @@ import '@fontsource/sedgwick-ave-display';
 import '@fontsource/permanent-marker';
 import '@fontsource/rubik-spray-paint';
 import Phaser from 'phaser';
+import { sfx } from './audio';
 import { BootScene } from './BootScene';
 import { initFullscreen } from './fullscreen';
 import { GameScene } from './GameScene';
 import { bootMark, loading } from './loading';
 import { MenuScene } from './MenuScene';
+import { loadSave } from './storage';
 import { uiPerf } from './ui';
 import { AH, AW, FONT, PAL, Z } from './view';
 
@@ -16,6 +18,8 @@ await Promise.all([FONT.piece, FONT.marker, FONT.spray].map(f => document.fonts.
 
 bootMark('fonts');
 initFullscreen();
+sfx.init(loadSave().mute);
+(window as unknown as { __sk8audio: unknown }).__sk8audio = sfx;
 loading.fontsReady();
 loading.stage('shaking the cans', 0.15);
 

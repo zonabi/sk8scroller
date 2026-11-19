@@ -3,7 +3,7 @@
 A fast, auto-scrolling, side-view aggressive inline skating game. Mobile first, pixel art,
 graffiti grit. Sonic's speed, an endless runner's one-more-go loop, THPS's combo scoring.
 
-**Status: v0.2 — playable prototype, 16-bit style art pass and graffiti UI, no audio.**
+**Status: v0.3 — playable prototype, 16-bit style art, graffiti UI, synthesised sound effects (no music).**
 
 ## Run it
 
@@ -26,6 +26,7 @@ Tilt control needs HTTPS on iOS Safari, so over plain Wi-Fi use touch; tilt work
 | Balance on a grind | left thumb hold + drag sideways, or tilt | ← → |
 | Switch-up (change grind) | right thumb swipe | W A S D |
 | Hop off a grind | left thumb quick tap | Space |
+| Mute | "sound" toggle on the menu | M |
 
 Land with a trick unfinished and you bail. Combos bank ~1s after you touch down; three bails ends the run.
 Score becomes XP, levels unlock tricks.

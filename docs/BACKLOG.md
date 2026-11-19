@@ -12,13 +12,14 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - Grind stances in `art/skater.ts` are side-view approximations; check each reads as the right trick.
 - Art style approved by the user on a Mac retina display (2026-11-18). Not yet judged on a phone.
 - Performance verified on the user's Mac only: 60 fps at zoom Z4, boot 551 ms. **Phone `?fps` readout still needed** (fps, frame ms, zoom, boot timeline) — that is the device that matters.
+- **Sound has never been heard by anyone.** Levels were balanced by measured loudness only. Needs a listen on phone speaker and headphones: is anything harsh, too loud, too quiet, or annoying on repeat (roll loop, grind scrape)? Does audio start on iPhone after the first tap?
 - Full-screen button untested on Android/iPad; iPhone route is Add to Home Screen.
 - Spin turnaround (8 frames) not yet judged at full speed; flips still rotate the side-view sprite.
 
 ## M1 — Feel
 
 - [ ] **T-01 [H] Device playtest + tuning pass.** Play 20 runs on a phone. Adjust only `config.ts`. Record before/after values and why in DECISIONS.md.
-- [ ] **T-02 Sound effects.** `game/audio.ts` using WebAudio synthesis (no asset files yet): roll loop pitched by speed, grind scrape, jump, land, bail, bank sting. Driven only by SimEvents. Mute toggle saved in storage. Accept: no audio before first user gesture; no console errors in `shots`.
+- [x] **T-02 Sound effects.** Done 2026-11-18 (`audio.ts`): roll and grind loops, 12 one-shots, mute (menu toggle / M). Tuned blind — see playtest notes. Original card:  `game/audio.ts` using WebAudio synthesis (no asset files yet): roll loop pitched by speed, grind scrape, jump, land, bail, bank sting. Driven only by SimEvents. Mute toggle saved in storage. Accept: no audio before first user gesture; no console errors in `shots`.
 - [ ] **T-03 Manuals.** New `manual` mode in sim: swipe down on landing within 0.15s to enter; own balance meter (forward/back); counts as a combo entry and keeps the combo alive; ends on jump or balance loss. Tests + bot unaffected. Touch + keys.
 - [ ] **T-04 First-run tutorial.** Scripted opening stretch (fixed features) with contextual prompts: jump → grind → balance → switch-up → air trick. Skippable; flag in save.
 - [ ] **T-05 Pause + settings.** Pause on blur and via a corner button; settings for tilt, sound, left-handed (mirror thumbs).

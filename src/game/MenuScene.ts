@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { MAX_LEVEL, levelForXp, xpForLevel } from '../core/progression';
 import { SKATERS } from '../core/skaters';
+import { sfx } from './audio';
 import { World, setupCamera } from './backdrop';
 import { showFullscreenButton } from './fullscreen';
 import { InputController } from './input';
@@ -40,6 +41,7 @@ export class MenuScene extends Phaser.Scene {
     // skaters as name-tag stickers
     const cards: Phaser.GameObjects.Container[] = [];
     const select = (id: string) => {
+      if (id !== this.save.skaterId) sfx.play('tap');
       this.save.skaterId = id; writeSave(this.save);
       cards.forEach((c, i) => {
         const on = SKATERS[i].id === id;
@@ -77,7 +79,7 @@ export class MenuScene extends Phaser.Scene {
 
     const play = graf(this, AW / 2, 268, 'SKATE!', { font: 'spray', size: 40, fill: [PAL.green, PAL.cyan], block: PAL.plum, angle: -2 }).setOrigin(0.5);
     this.tweens.add({ targets: play, scale: 1.07, yoyo: true, repeat: -1, duration: 520, ease: 'Sine.easeInOut' });
-    const start = () => this.scene.start('game');
+    const start = () => { sfx.play('go'); this.scene.start('game'); };
     play.button(start);
     this.input.keyboard?.on('keydown-SPACE', start);
 
@@ -90,7 +92,14 @@ export class MenuScene extends Phaser.Scene {
     };
     tape(AW / 2 - 150, 318, 'LEFT THUMB  jump · hold = higher\non rails: drag to balance, tap to hop off', -1.5);
     tape(AW / 2 + 150, 318, 'RIGHT THUMB  swipe = tricks\non rails: swipe to switch up', 1.5);
-    graf(this, AW / 2, 348, 'keys: SPACE jump · WASD tricks · ← → balance', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
+    graf(this, AW / 2, 348, 'keys: SPACE jump · WASD tricks · ← → balance · M mute', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
+
+    const sound = graf(this, AW - 10, 44, '', { size: 9, fill: PAL.yellow }).setOrigin(1, 0);
+    const showSound = () => sound.setText(`sound: ${this.save.mute ? 'off' : 'ON'}`);
+    showSound();
+    const toggleSound = () => { this.save.mute = !this.save.mute; writeSave(this.save); sfx.setMuted(this.save.mute); showSound(); sfx.play('tap'); };
+    sound.button(toggleSound);
+    this.input.keyboard?.on('keydown-M', toggleSound);
 
     const tilt = graf(this, AW - 10, 30, '', { size: 9, fill: PAL.cyan }).setOrigin(1, 0);
     const showTilt = () => tilt.setText(`tilt balance: ${this.save.tilt ? 'ON' : 'off'}`);

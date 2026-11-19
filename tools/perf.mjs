@@ -50,4 +50,9 @@ console.log(`  CPU per frame (step+render JS): ${cpu.toFixed(2)} ms   text stamp
 console.log(top(prof));
 // Budgets. Frame *pacing* above is from software GL here and only meaningful on real hardware; these two are hardware-independent.
 if (cpu > 3 || stamps > 12) { console.error('PERF BUDGET EXCEEDED: cpu/frame must be < 3 ms and text stamps during a run must stay rare'); process.exitCode = 1; }
+// every sound must produce signal and stay under full scale
+const audio = await page.evaluate(() => window.__sk8audio.selfTest());
+const bad = Object.entries(audio).filter(([, a]) => a.peak < 0.02 || a.peak > 1.5);
+console.log('\nAUDIO one-shots (peak / rms): ' + Object.entries(audio).map(([k, a]) => `${k} ${a.peak}/${a.rms}`).join('  '));
+if (bad.length) { console.error('AUDIO: silent or wildly loud: ' + bad.map(b => b[0]).join(', ')); process.exitCode = 1; }
 await browser.close(); await server.close();

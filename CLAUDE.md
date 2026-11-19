@@ -43,6 +43,7 @@ Why: core can be tested and bot-played in milliseconds with no browser. That is 
 | Scenery, rails, obstacles | `src/game/art/world.ts` |
 | Any text or UI | `graf()` in `src/game/ui.ts` — never raw `scene.add.text` with a system font |
 | HUD, layout | `src/game/` scenes — palette is `PAL` in `view.ts`, stay inside it |
+| Sounds | `src/game/audio.ts` — add a recipe to `ONE_SHOTS`, trigger it from `event()`. Synthesised only, no audio files yet |
 | Controls | `src/game/input.ts` (must keep producing the core `Input` shape) |
 
 ## Performance — the game has to feel buttery

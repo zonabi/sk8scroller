@@ -81,7 +81,7 @@ long line of grinds, switch-ups and air tricks. Short runs, big combos, loud col
 
 **Known limits of the current art:** it is drawn by code, so it is consistent and cheap to change but stiffer than hand animation. The roll cycle is 4 poses and tricks are single poses. A human pixel artist (or hand-polished sheets) is the upgrade path — see BACKLOG T-07.
 
-## Audio (not started)
+## Audio (placeholder effects in, no music)
 
 - Wheel roll loop pitched by speed, grind scrape per surface, landing thump, bail crunch, combo-bank sting.
 - Music: boom-bap / punk / breakbeat. Must be licensed or commissioned — budget for it or use CC-BY tracks with credits.
