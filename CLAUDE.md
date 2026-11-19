@@ -53,6 +53,7 @@ Budgets (checked by `npm run perf`): JS under 3 ms per frame; no text drawn duri
 
 Rules that came out of a real incident (v0.2 shipped at <10 fps and a 10 s load):
 - **No Phaser `Text`, ever.** Use `graf()` for fixed strings (drawn once, cached) and `num()` for anything that changes per frame (pre-drawn glyph sprites). `Rubik Spray Paint` is ~10× slower to draw than the other fonts — only via `num()` or cached `graf()`.
+- **Never `strokeText`.** Fat outlines on these fonts took 5 s on macOS. `stamp()` in `ui.ts` builds outlines by smearing a fill-only glyph mask; keep it that way.
 - **World art goes through `World.add()`** (`backdrop.ts`). The world is drawn at 640×360 and upscaled once; only UI is drawn at full canvas resolution. Don't put full-screen layers on the scene directly.
 - **Nothing is generated mid-run that could be generated up front.** Warm textures in `create()` (see `warmSkater`, `warm`).
 - **No per-frame allocations in `update`/`draw`** (no `new Set`, array spreads, closures, template strings that feed textures).
