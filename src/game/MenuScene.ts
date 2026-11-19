@@ -13,6 +13,7 @@ import { AH, AW, PAL } from './view';
 export class MenuScene extends Phaser.Scene {
   private save!: Save;
   private bg!: World;
+  private frames = 0;
   constructor() { super('menu'); }
 
   create(): void {
@@ -20,7 +21,9 @@ export class MenuScene extends Phaser.Scene {
     showFullscreenButton(true);
     this.events.once('shutdown', () => showFullscreenButton(false));
     this.save = loadSave();
+    this.frames = 0;
     this.bg = new World(this);
+    bootMark('world');
     this.add.rectangle(0, 0, AW, AH, PAL.ink, 0.45).setOrigin(0);
 
     // the piece
@@ -99,13 +102,16 @@ export class MenuScene extends Phaser.Scene {
   }
 
   update(t: number): void {
+    if (this.frames === 0) bootMark('menu');
     this.bg.scroll(t * 0.03);
     this.bg.flush();
-    if (loading.done()) {
-      bootMark('menu'); uiPerf.bootMs = performance.now();
-      console.info(`[sk8] ready in ${uiPerf.bootMs.toFixed(0)} ms — ${bootSummary()}`);
+    // Hide the loading screen on the SECOND frame, so the first real render (GPU shader compile etc.) happens under it.
+    if (++this.frames === 2 && loading.done()) {
+      bootMark('first-draw'); uiPerf.bootMs = performance.now();
+      const line = `boot ${uiPerf.bootMs.toFixed(0)} ms — ${bootSummary()} · (lettering ${uiPerf.stampMs.toFixed(0)} ms in ${uiPerf.stamps})`;
+      console.info('[sk8] ' + line);
       const f = new URLSearchParams(location.search).has('fps') ? document.getElementById('fps') : null;
-      if (f) f.textContent = `boot ${uiPerf.bootMs.toFixed(0)} ms — ${bootSummary()}`;
+      if (f) f.textContent = line;
     }
   }
 }

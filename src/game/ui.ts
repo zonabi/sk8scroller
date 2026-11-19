@@ -30,36 +30,70 @@ interface Stamp { key: string; w: number; h: number; adv: number; pad: number }
 const cache = new Map<string, Stamp>();
 let uid = 0;
 
+const scratch = document.createElement('canvas').getContext('2d')!;
+const mk = (w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] => {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  // willReadFrequently keeps these CPU canvases: predictable cost, no GPU readback on upload
+  return [c, c.getContext('2d', { willReadFrequently: true })!];
+};
+/** Recolour everything already drawn on a canvas (flat colour or a vertical fade per line). */
+const tintAll = (ctx: CanvasRenderingContext2D, style: string | CanvasGradient) => {
+  ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = style; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.globalCompositeOperation = 'source-over';
+};
+
 function stamp(scene: Phaser.Scene, text: string, s: GrafStyle): Stamp {
   const size = s.size ?? 12, fontName = FONT[s.font ?? 'marker'], ow = s.outlineWidth ?? Math.max(2, size * 0.28);
   const id = `${s.font}|${size}|${s.fill}|${s.outline}|${ow}|${s.block}|${s.align}|${text}`;
   if (!s.ephemeral) { const hit = cache.get(id); if (hit) return hit; }
   const t0 = performance.now();
-  const canvas = document.createElement('canvas');
-  // willReadFrequently keeps this a CPU canvas: far faster for stroked complex glyphs than the GPU path
-  let ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   const font = `${size * Z}px ${fontName}`, lines = text.split('\n');
-  ctx.font = font;
-  const m = ctx.measureText('Mg'), asc = m.fontBoundingBoxAscent ?? size * Z * 0.9, desc = m.fontBoundingBoxDescent ?? size * Z * 0.3;
-  const widths = lines.map(l => ctx.measureText(l).width), maxW = Math.max(1, ...widths);
-  const d = s.block !== undefined ? Math.max(1, size * 0.09) * Z : 0, pad = Math.ceil((ow * Z) / 2 + 2 * Z), lineH = (asc + desc) * 0.8;
-  canvas.width = Math.ceil(maxW + pad * 2 + d); canvas.height = Math.ceil(asc + desc + (lines.length - 1) * lineH + pad * 2 + d);
-  ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-  ctx.font = font; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round'; ctx.lineWidth = ow * Z;
+  scratch.font = font;
+  const m = scratch.measureText('Mg'), asc = m.fontBoundingBoxAscent ?? size * Z * 0.9, desc = m.fontBoundingBoxDescent ?? size * Z * 0.3;
+  const widths = lines.map(l => scratch.measureText(l).width), maxW = Math.max(1, ...widths);
+  const r = (ow * Z) / 2;                                  // outline radius in canvas px
+  const d = s.block !== undefined ? Math.max(1, size * 0.09) * Z : 0, pad = Math.ceil(r + 2 * Z), lineH = (asc + desc) * 0.8;
+  const W = Math.ceil(maxW + pad * 2 + d), H = Math.ceil(asc + desc + (lines.length - 1) * lineH + pad * 2 + d);
+
+  // 1. glyphs, fill only. NEVER strokeText: stroking these fonts with a fat round-joined line took
+  //    seconds on macOS (5 s of menu build). The outline is made by smearing the glyph mask instead.
+  const [glyphs, gx] = mk(W, H);
+  gx.font = font; gx.textBaseline = 'alphabetic'; gx.fillStyle = '#fff';
+  lines.forEach((l, i) => gx.fillText(l, pad + (s.align === 'center' ? (maxW - widths[i]) / 2 : s.align === 'right' ? maxW - widths[i] : 0), pad + asc + i * lineH));
+
+  // 2. silhouette = glyph mask stamped around a circle of radius r (cheap image blits)
+  const [out, ox] = mk(W, H);
+  if (r > 0) {
+    const [sc, sx] = mk(W, H);
+    for (let rr = r; rr > 0.75; rr -= Math.max(2, r * 0.5)) {
+      const n = Math.max(8, Math.min(28, Math.ceil(rr * 1.6)));
+      for (let k = 0; k < n; k++) sx.drawImage(glyphs, Math.cos((k / n) * Math.PI * 2) * rr, Math.sin((k / n) * Math.PI * 2) * rr);
+    }
+    sx.drawImage(glyphs, 0, 0);
+    if (s.block !== undefined) {                           // offset block shadow: the silhouette again, recoloured
+      const [bc, bx] = mk(W, H); bx.drawImage(sc, 0, 0); tintAll(bx, hex(s.block)); ox.drawImage(bc, d, d);
+    }
+    tintAll(sx, hex(s.outline ?? PAL.ink));
+    ox.drawImage(sc, 0, 0);
+  } else if (s.block !== undefined) {
+    const [bc, bx] = mk(W, H); bx.drawImage(glyphs, 0, 0); tintAll(bx, hex(s.block)); ox.drawImage(bc, d, d);
+  }
+
+  // 3. coloured fill on top
   const fill = s.fill ?? PAL.white;
-  const draw = (ox: number, oy: number, flat?: number) => lines.forEach((l, i) => {
-    const x = ox + pad + (s.align === 'center' ? (maxW - widths[i]) / 2 : s.align === 'right' ? maxW - widths[i] : 0), y = oy + pad + asc + i * lineH;
-    if (flat !== undefined) { ctx.strokeStyle = ctx.fillStyle = hex(flat); ctx.strokeText(l, x, y); ctx.fillText(l, x, y); return; }
-    if (ow > 0) { ctx.strokeStyle = hex(s.outline ?? PAL.ink); ctx.strokeText(l, x, y); }
-    if (typeof fill === 'number') ctx.fillStyle = hex(fill);
-    else { const g = ctx.createLinearGradient(0, y - asc * 0.75, 0, y + desc * 0.2); g.addColorStop(0, hex(fill[0])); g.addColorStop(1, hex(fill[1])); ctx.fillStyle = g; }
-    ctx.fillText(l, x, y);
-  });
-  if (s.block !== undefined) draw(d, d, s.block);
-  draw(0, 0);
+  if (typeof fill === 'number') tintAll(gx, hex(fill));
+  else {
+    const g = gx.createLinearGradient(0, 0, 0, H);
+    lines.forEach((_l, i) => {                              // the fade restarts on every line
+      const y0 = (pad + asc + i * lineH - asc * 0.75) / H, y1 = (pad + asc + i * lineH + desc * 0.2) / H;
+      g.addColorStop(Math.max(0, Math.min(1, y0)), hex(fill[0])); g.addColorStop(Math.max(0, Math.min(1, y1)), hex(fill[1]));
+    });
+    tintAll(gx, g);
+  }
+  ox.drawImage(glyphs, 0, 0);
+
   const key = `graf-${uid++}`;
-  scene.textures.addCanvas(key, canvas);
-  const st: Stamp = { key, w: canvas.width / Z, h: canvas.height / Z, adv: widths[0] / Z, pad: pad / Z };
+  scene.textures.addCanvas(key, out);
+  const st: Stamp = { key, w: W / Z, h: H / Z, adv: widths[0] / Z, pad: pad / Z };
   if (!s.ephemeral) cache.set(id, st);
   uiPerf.stamps++; uiPerf.stampMs += performance.now() - t0;
   return st;

@@ -2,6 +2,12 @@
 
 Newest first. Keep entries to a few lines: what, why, what would change our mind.
 
+## 2026-11-18 — Lettering outlines are built from blits, not strokeText
+The user's Mac spent 5.1 s of a 5.3 s boot building the menu; the boot timeline (`?fps`) pinned it there. Headless
+Linux did the same work in ~0.2 s, so the suspect was canvas `strokeText` with a very wide round-joined stroke on
+complex glyphs. Outlines are now made by stamping the fill-only glyph mask around a circle. Confirm with the user's
+next readout before calling it closed.
+
 ## 2026-11-18 — Spins are sprite turnarounds; no full-screen flashes
 Spins used to squash the side-view sprite horizontally, which read as a paper cut-out flipping. `drawSpin` now poses a
 tucked skater in 3D and renders 8 yaw frames (side, back, side, front and the in-betweens). The white flash on combo
