@@ -19,6 +19,9 @@ export function railY(f: Feature, x: number): number {
   return f.h + (f.h2 - f.h) * t;
 }
 
+/** Length of the practice rail: about 10 seconds of grinding at early-run speed. */
+export const LONG_RAIL = 2000;
+
 type Pattern = (lv: Level, x: number, d: number) => number; // returns pattern length incl. clearance
 
 /**
@@ -78,7 +81,9 @@ export class Level {
   readonly rng: Rng;
   private genX = 500; // empty runway at the start
   private nextId = 1;
-  constructor(seed: number) { this.rng = new Rng(seed); }
+  /** Practice aid: world x at which to drop one very long flat rail (0 = none). */
+  private longRailAt: number;
+  constructor(seed: number, opts: { longRailAt?: number } = {}) { this.rng = new Rng(seed); this.longRailAt = opts.longRailAt ?? 0; }
 
   add(kind: FeatureKind, x: number, w: number, h: number, h2?: number): Feature {
     const f: Feature = { id: this.nextId++, kind, x, w, h, h2 };
@@ -89,6 +94,11 @@ export class Level {
   /** Generate features up to world x and drop ones far behind `behindX`. */
   ensure(x: number, behindX = -Infinity): void {
     while (this.genX < x) {
+      if (this.longRailAt && this.genX >= this.longRailAt) {
+        this.add('rail', this.genX, LONG_RAIL, 24);
+        this.genX += LONG_RAIL + 320; this.longRailAt = 0;
+        continue;
+      }
       const d = Math.min(1, this.genX / 15000);
       const pool = PATTERNS.filter(p => p.minD <= d);
       let r = this.rng.next() * pool.reduce((s, p) => s + p.weight, 0);

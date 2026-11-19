@@ -37,7 +37,11 @@ export interface SimState {
   lives: number; invuln: number; bailTimer: number;
 }
 
-export interface SimOptions { seed: number; skater: SkaterDef; playerLevel: number }
+export interface SimOptions {
+  seed: number; skater: SkaterDef; playerLevel: number;
+  /** Practice aid (?rail): one very long rail about 10 seconds into the run. */
+  longRail?: boolean;
+}
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -65,7 +69,7 @@ export class Sim {
   private readonly playerLevel: number;
 
   constructor(opts: SimOptions) {
-    this.level = new Level(opts.seed);
+    this.level = new Level(opts.seed, { longRailAt: opts.longRail ? 1350 : 0 });
     this.rng = new Rng(opts.seed ^ 0x9e3779b9);
     this.skater = opts.skater;
     this.playerLevel = opts.playerLevel;

@@ -64,7 +64,7 @@ export class GameScene extends Phaser.Scene {
     this.skater = skaterById(save.skaterId);
     this.bot = q.has('bot');
     const seed = q.has('seed') ? Number(q.get('seed')) : (Math.random() * 2 ** 32) >>> 0;
-    this.sim = new Sim({ seed, skater: this.skater, playerLevel: levelForXp(save.xp) });
+    this.sim = new Sim({ seed, skater: this.skater, playerLevel: levelForXp(save.xp), longRail: q.has('rail') });
     this.acc = 0; this.sparks = []; this.finished = false; this.lives = []; this.feats = new Map(); this.landT = 0; this.lastCombo = 0;
 
     this.bg = new World(this);

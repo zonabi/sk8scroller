@@ -80,6 +80,17 @@ describe('sim', () => {
   });
 });
 
+describe('practice rail', () => {
+  it('?rail puts one long rail about 10 seconds in', () => {
+    const sim = new Sim({ seed: 3, skater: SKATERS[0], playerLevel: 1, longRail: true });
+    sim.level.ensure(6000);
+    const long = sim.level.features.filter(f => f.kind === 'rail' && f.w >= 2000);
+    expect(long.length).toBe(1);
+    expect(long[0].x / CFG.baseSpeed).toBeGreaterThan(9);
+    expect(long[0].x / CFG.baseSpeed).toBeLessThan(13);
+  });
+});
+
 describe('progression', () => {
   it('levels are monotonic', () => {
     expect(levelForXp(0)).toBe(1);
