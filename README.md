@@ -55,11 +55,14 @@ Settings are saved on that device and written into each recording. See [docs/PLA
 | `npm run perf` | load time, CPU per frame, text budget — fails if over |
 | `npm run replay` | playtest report from the newest recorded run (`-- --all` for every run, `-- --verify` to prove old runs still replay) |
 | `npm run sprites` | skater pose contact sheet → `shots/sprites.png` |
+| `npm run fakie` | fakie roll / jump / fall / landing sheet → `shots/fakie.png` |
 | `npm run shots` | build, then headless screenshots into `shots/` (needs Chrome) |
 | `npm run build` | production build in `dist/` |
 
 ## Where things are
 
+- [docs/HANDOFF.md](docs/HANDOFF.md) — **start here**: current state, what's approved, what's next
+- [docs/PLAYTEST.md](docs/PLAYTEST.md) — how feel changes are made, and the log of each one
 - [docs/GDD.md](docs/GDD.md) — the game design
 - [docs/TECH.md](docs/TECH.md) — stack choice, architecture, path to iOS
 - [docs/TRICKS.md](docs/TRICKS.md) — researched trick vocabulary and what's implemented

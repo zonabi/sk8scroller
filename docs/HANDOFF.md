@@ -1,0 +1,53 @@
+# Handoff — where the project stands
+
+Updated 2026-11-19, version 0.7.0. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
+
+## State in one paragraph
+
+A playable browser build of the whole core loop: run, jump, grind with balance, switch-ups, air tricks, combos, bails, XP, four skaters, push, and fakie (rolling backwards, with its own sprite set). 16-bit art generated in code, graffiti UI, synthesised sound, full-screen button. Every human run is recorded and can be replayed and analysed. On the user's Mac it holds 60 fps at zoom Z4 and boots in about 0.5 s. **It has not yet been judged on a phone**, which is the target device.
+
+## What the user has approved
+
+- Art style (Genesis/SNES, "think Sonic") and graffiti lettering.
+- Performance on Mac ("still feels really good and buttery").
+- Feel after P-01…P-04 ("It feels much better now!").
+- Fakie mechanic and all fakie sprites (P-06, P-06a…h): "approved here on that fakie addition".
+
+## On trial (shipped, no verdict yet)
+
+- P-05 push — used only 10 times in the last session; ask whether it's noticeable enough.
+- P-07 pre-jump trick buffer.
+- Sound — played with for a day, no comment either way.
+
+## Parked by the user
+
+- **P-08 real blading trick names.** Proposal in `TRICKS.md` ("Naming model"). He is thinking it over. Don't build it until he brings it back.
+
+## Suggested next steps, in order
+
+1. **Phone playtest (needs the user).** `npm run dev`, open the network URL on the phone with `?fps`, play, send the readout and impressions. Recordings land in `runs/` automatically. Everything about touch controls, tilt, audio start on iPhone and frame rate is unverified until this happens.
+2. **P-09 mid-trick slams** — the one number that got worse in the last session (see `PLAYTEST.md`, "Open after S3"). Investigate in the recordings before changing anything.
+3. **P-11 progression pacing** — needs a decision from the user on how long unlocking should take.
+4. **T-03 manuals, T-04 tutorial, T-05 pause/settings** — the remaining M1 cards that don't need a device.
+5. **T-11 Capacitor iOS shell** once the phone playtest says the web build is worth wrapping.
+
+## How to work with this user
+
+- He skates; trust his eye on poses and trick names over yours, and ask rather than guess on blading specifics.
+- He gives feedback in short batches after playing. Work through it with the method in `PLAYTEST.md`: evidence from recordings, one ID and one commit per change, each behind a switch. Art-only changes need no switch but still get an ID and a row.
+- For sprite feedback, send a still sheet (`npm run fakie`, `npm run sprites`) with each attempt; he judges from those faster than from play.
+- Performance is a standing requirement ("it needs to feel buttery"): `npm run perf` after any change under `src/game/`.
+- Say what was checked and how. Stills are not the same as seeing it in motion.
+
+## Repo and delivery
+
+- The working copy is on the user's Mac at `~/Documents/projects/zemog-gamez/sk8scroller`. `origin` is `https://github.com/zonabi/sk8scroller.git`; **nothing has been pushed yet** (he said he'll set up credentials himself). `package-lock.json` shows as modified locally; that's from his `npm install`, leave it.
+- `runs/` is git-ignored and holds his raw recordings. Sessions worth keeping are copied into `tests/golden-runs/` (34 runs: S1, S2, S3) and must keep replaying exactly (`npm run check`).
+- The dev server picks up changes on reload; no restart needed unless `vite.config.ts` changes.
+
+## Known gaps
+
+- Phone: fps, touch feel, tilt axis, audio unlock, full-screen on Android/iPad — all untested.
+- Flips still rotate the side-view sprite (spins have a proper 8-frame turnaround).
+- Trick descriptions in `TRICKS.md` not yet checked by the user.
+- 56 trick swipes did nothing in the last session (P-10), not yet classified.

@@ -1,6 +1,6 @@
 # Agent guide — SK8SCROLLER
 
-Read this first. Then read the task card you were given in `docs/BACKLOG.md`.
+Read this first, then `docs/HANDOFF.md` (where the project stands and what's next), then the task card you were given in `docs/BACKLOG.md`.
 Only open `docs/GDD.md` / `docs/TECH.md` when the task touches design or architecture.
 
 ## What this is
@@ -13,6 +13,7 @@ Mobile-first side-scrolling inline skating game. TypeScript + Phaser 4 + Vite. W
 - `npm run shots` — builds and writes screenshots to `shots/`. Look at them after any visual change. Fails on browser console errors.
 - `npm run perf` — builds, bot-plays in headless Chrome, prints load time, CPU ms per frame and how many text textures were drawn mid-run. Fails if the budget is blown. **Run it after any change under `src/game/`.**
 - `npm run sprites` — dumps every skater pose to `shots/sprites.png`. Look at it after touching `src/game/art/`.
+- `npm run fakie` — fakie roll / jump / fall / landing at 6× to `shots/fakie.png`, as drawn in game.
 - `npm run dev` — dev server. `?seed=N` fixes the level, `?bot` autoplays.
 
 ## Architecture — the one rule
@@ -99,6 +100,7 @@ Reference numbers (user's Mac, Chrome, zoom Z4, 2026-11-18): 60 fps / 16.7 ms pe
 - Core world units → art pixels is `K` (4/3). Core uses y-up (height above street); `game/` converts.
 - Art style is 16-bit console (Genesis/SNES): 3-tone hue-shifted ramps, light from upper left, ink outline per body part, ordered dithering for gradients. Use the helpers in `art/pixel.ts`; no flat unshaded rectangles.
 - UI style is street art: graffiti lettering with fat outlines, colour fades, block shadows, slight tilt; stickers and tape for panels.
+- Fakie sprites (rolling backwards, still travelling right) are never a plain mirror. Rules the user approved: knees deeper and hips back; head turned over the shoulder toward travel (`head3`); the **leading arm** — camera side, the shoulder being looked over — reaches toward travel with the upper arm out and the forearm dropping to the hand, nearly straight; the other arm trails. Grabs keep their hands on the skate. See `lookBack` / `FAKIE_TWEAKS` / `drawFakie` in `art/skater.ts`, and check with `npm run fakie`.
 - Keep `maxTextures: 1` in `main.ts` (works around a Phaser 4 batching glitch, see DECISIONS).
 - All randomness through `core/rng.ts`. Same seed + same inputs must give the same run (there is a test).
 - All art is generated in code at boot (`game/art/` → `game/textures.ts`). Hand-drawn sheets can replace it later under `public/assets/` using the same texture keys.

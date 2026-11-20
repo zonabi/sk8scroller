@@ -6,23 +6,31 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 
 ## Needs human playtest (agents append observations here)
 
-- Balance tuning in `config.ts` was set by simulation (idle player falls in ~2s, a laggy player holds ~7s). Not yet felt on a phone.
+- Balance tuning: approved on Mac keyboard after P-01 (S2, S3). Not yet felt on a phone.
 - Tilt axis/sign in `game/input.ts` is untested on a real device.
 - Trick descriptions in TRICKS.md should be checked by someone who skates.
 - Grind stances in `art/skater.ts` are side-view approximations; check each reads as the right trick.
 - Art style approved by the user on a Mac retina display (2026-11-18). Not yet judged on a phone.
 - Performance verified on the user's Mac only: 60 fps at zoom Z4, boot 551 ms. **Phone `?fps` readout still needed** (fps, frame ms, zoom, boot timeline) — that is the device that matters.
-- **Sound has never been heard by anyone.** Levels were balanced by measured loudness only. Needs a listen on phone speaker and headphones: is anything harsh, too loud, too quiet, or annoying on repeat (roll loop, grind scrape)? Does audio start on iPhone after the first tap?
+- **Sound has had no feedback.** The user has played with it since 2026-11-18 without comment; ask. Levels were balanced by measured loudness only. Needs a listen on phone speaker and headphones: is anything harsh, too loud, too quiet, or annoying on repeat (roll loop, grind scrape)? Does audio start on iPhone after the first tap?
 - Full-screen button untested on Android/iPad; iPhone route is Add to Home Screen.
-- Spin turnaround (8 frames) not yet judged at full speed; flips still rotate the side-view sprite.
+- Spin turnaround approved in play; flips still rotate the side-view sprite.
+- Fakie sprites (roll, jump, fall, landing, grinds, air tricks) approved 2026-11-19 from stills and play on Mac.
+- Push (P-05) and the pre-jump trick buffer (P-07) are on trial with no direct comment yet.
 
 ## Tooling done
 
 - [x] **Run recording + replay analysis** (2026-11-19). `npm run replay`, `?replay=`, flag button.
 - [x] **Live tuning panel + change switches** (2026-11-19, P-00). See PLAYTEST.md.
-- [ ] **Playtest triage skill.** Write after the first real feedback batch has been worked through by hand.
+- [x] **Playtest triage skill** (2026-11-19). Proposed to the user as `playtest-feedback-triage`; the method itself is in PLAYTEST.md.
+- [x] **Fakie sprite sheet** (2026-11-19). `npm run fakie` → `shots/fakie.png`.
 
 ## M1 — Feel
+
+- [ ] **P-09 Mid-trick slams after fakie (investigate first).** S3: 23 slams in 9.8 min, 26 of 143 air tricks unfinished at touchdown. Break down by trick, air time left and whether a second trick was queued; propose one change. Follow PLAYTEST.md.
+- [ ] **P-10 Ignored trick swipes.** S3: 56. Classify them with `npm run replay -- --all tests/golden-runs`, then decide whether anything needs fixing.
+- [ ] **P-11 [H] Progression pacing.** One run maxes the level (`core/progression.ts`). Needs the user's call on how long unlocking everything should take; then retune the XP curve. Note `allSlotsFromStart` already gives all four slots at level 1.
+- [ ] **P-08 [H] Real blading names — PARKED by the user.** Proposal is in TRICKS.md ("Naming model"). Waiting on his answers: spin direction for truespin, natural side for switch, groove-trick names, corrections to the table. Do not build until he picks it up.
 
 - [ ] **T-01 [H] Device playtest + tuning pass.** Play 20 runs on a phone. Adjust only `config.ts`. Record before/after values and why in DECISIONS.md.
 - [x] **T-02 Sound effects.** Done 2026-11-18 (`audio.ts`): roll and grind loops, 12 one-shots, mute (menu toggle / M). Tuned blind — see playtest notes. Original card:  `game/audio.ts` using WebAudio synthesis (no asset files yet): roll loop pitched by speed, grind scrape, jump, land, bail, bank sting. Driven only by SimEvents. Mute toggle saved in storage. Accept: no audio before first user gesture; no console errors in `shots`.
