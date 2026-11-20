@@ -192,7 +192,7 @@ export class GameScene extends Phaser.Scene {
           const p = 1 - s.airTrick.timeLeft / (this.airTrickTotal || 1), turns = Number(id.slice(4)) / 360;
           return `spin${Math.floor(p * turns * SPIN_FRAMES + 0.5) % SPIN_FRAMES}`;
         }
-        return (['mute', 'safety', 'rocket', 'liukang'] as const).find(n => n === id) ?? 'jump';
+        return (['mute', 'safety', 'stale', 'rocket', 'liukang'] as const).find(n => n === id) ?? 'jump';
       }
       return s.vy > 40 ? 'jump' : 'fall';
     }

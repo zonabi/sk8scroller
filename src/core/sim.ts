@@ -38,6 +38,10 @@ export interface SimState {
   swipeDir: Dir | null; swipeAge: number;
   /** Direction of the last air trick completed during this airtime. */
   doneDir: Dir | null;
+  /** A swipe waiting for the current air trick to finish (P-04), and its age in seconds. */
+  queuedDir: Dir | null; queuedAge: number;
+  /** Seconds left in which a jump still works after a rail ran out (P-04). */
+  coyote: number;
   combo: ComboEntry[]; comboTimer: number;
   score: number; bestCombo: number;
   lives: number; invuln: number; bailTimer: number;
@@ -83,7 +87,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedAge: 0, coyote: 0,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -136,6 +140,11 @@ export class Sim {
       }
       case 'air': {
         s.x += s.speed * dt;
+        // P-04: the rail ran out a moment ago — a jump press still counts
+        if (s.coyote > 0) {
+          if (input.jumpPressed) { s.vy = CFG.jumpV * this.skater.air; s.coyote = 0; ev.push({ type: 'jump' }); }
+          else s.coyote -= dt;
+        }
         if (!input.jumpHeld && s.vy > 0) s.vy -= CFG.jumpCutGravity * dt;
         s.vy -= CFG.gravity * dt;
         s.y += s.vy * dt;
@@ -143,7 +152,13 @@ export class Sim {
         if (input.trick) { s.swipeDir = input.trick; s.swipeAge = 0; }
         if (s.airTrick) {
           s.airTrick.timeLeft -= dt; s.airTrick.age += dt;
-          if (s.airTrick.timeLeft <= 0) this.completeAirTrick(ev);
+          // P-04: a swipe during a trick waits for it to finish instead of vanishing
+          if (CFG.trickBufferMs > 0) { if (input.trick) { s.queuedDir = input.trick; s.queuedAge = 0; } else s.queuedAge += dt; }
+          if (s.airTrick.timeLeft <= 0) {
+            this.completeAirTrick(ev);
+            if (s.queuedDir && s.queuedAge * 1000 <= CFG.trickBufferMs) this.startAirTrick(s.queuedDir, ev);
+            s.queuedDir = null;
+          }
         } else if (input.trick) this.startAirTrick(input.trick, ev);
         // catch a rail/ledge on the way down
         if (s.vy <= 0) {
@@ -184,7 +199,7 @@ export class Sim {
         s.x += s.speed * dt;
         s.grindTime += dt; s.stanceTime += dt;
         if (s.x > f.x + f.w) {
-          s.mode = 'air'; s.vy = CFG.railEndPop; s.grind = null;
+          s.mode = 'air'; s.vy = CFG.railEndPop; s.grind = null; s.coyote = CFG.coyoteMs / 1000;
           break;
         }
         s.y = railY(f, s.x);
@@ -248,7 +263,7 @@ export class Sim {
     const t = this.s.airTrick;
     if (t && CFG.landGraceMs > 0 && t.timeLeft * 1000 <= CFG.landGraceMs + 1e-6) this.completeAirTrick(ev);
   }
-  private clearAir(): void { const s = this.s; s.swipeDir = null; s.swipeAge = 99; s.doneDir = null; }
+  private clearAir(): void { const s = this.s; s.swipeDir = null; s.swipeAge = 99; s.doneDir = null; s.queuedDir = null; s.coyote = 0; }
 
   private startGrind(f: Feature, ev: SimEvent[], dir: Dir | null = null): void {
     const s = this.s, tr = (dir && trickForSlot('grind', dir, this.playerLevel)) || trickForSlot('grind', null, this.playerLevel)!;

@@ -141,6 +141,32 @@ describe('P-03 landing grace', () => {
   it('a trick 200 ms from finished still slams', () => { expect(landWith(200).s.lives).toBe(CFG.lives - 1); });
 });
 
+describe('P-04 inputs that did nothing', () => {
+  it('a swipe made as a trick is finishing fires when it ends', () => {
+    const sim = mk(1, 1);
+    sim.level.add('kicker', 60, 40, 18);                     // kicker air: room for two tricks
+    while (sim.s.mode !== 'air') sim.step(press({}));
+    sim.step(press({ trick: 'up' }));
+    for (let i = 0; i < 12; i++) sim.step(press({}));        // 200 ms into a 300 ms mute
+    sim.step(press({ trick: 'left' }));                      // ~85 ms before it ends
+    for (let i = 0; i < 8; i++) sim.step(press({}));
+    expect(sim.s.combo.map(c => c.trickId)).toEqual(['mute']);
+    expect(sim.s.airTrick?.id).toBe('spin180');
+  });
+  it('a jump just after the rail runs out still works', () => {
+    const sim = mk(1, 1);
+    sim.level.add('rail', 80, 120, 24);
+    while (sim.s.x < 80 - sim.s.speed * 0.3) sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    while (sim.s.mode !== 'grind') sim.step(press({}));
+    while (sim.s.mode === 'grind') sim.step(press({ balance: -(sim.s.balance * 6 + sim.s.balanceVel * 2) }));
+    for (let i = 0; i < 4; i++) sim.step(press({}));         // ~65 ms late
+    const vy = sim.s.vy;
+    sim.step(press({ jumpPressed: true }));
+    expect(sim.s.vy).toBeGreaterThan(vy + 150);
+  });
+});
+
 describe('recording', () => {
   it('replays a recorded run exactly and survives a JSON round trip', () => {
     const sim = new Sim({ seed: 9, skater: SKATERS[1], playerLevel: 4 });
@@ -182,7 +208,8 @@ describe('progression', () => {
   it('higher level upgrades a slot', () => {
     expect(trickForSlot('grind', 'up', 1)!.id).toBe('soul');
     expect(trickForSlot('grind', 'up', 4)!.id).toBe('topsoul');
-    expect(trickForSlot('air', 'right', 1)).toBeNull();
+    expect(trickForSlot('air', 'right', 1)!.id).toBe('stale');          // P-04: every direction has a trick from level 1
+    for (const d of ['up', 'down', 'left', 'right'] as const) { expect(trickForSlot('air', d, 1)).not.toBeNull(); expect(trickForSlot('grind', d, 1)).not.toBeNull(); }
   });
 });
 

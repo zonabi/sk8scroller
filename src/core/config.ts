@@ -50,6 +50,10 @@ const DEF = {
   railTrickPicksGrind: 1,   // a completed air trick's direction picks the stance you lock into
   // P-03 near-miss landings count
   landGraceMs: 100,         // a trick this close to finished when you touch down lands clean
+  // P-04 inputs that used to do nothing
+  trickBufferMs: 150,       // a swipe made while a trick is finishing fires as soon as it ends, if it ends within this
+  coyoteMs: 110,            // you can still jump this long after a rail runs out under you
+  allSlotsFromStart: 1,     // every swipe direction has a trick from level 1
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -60,7 +64,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -73,6 +77,9 @@ export interface Knob {
 }
 /** Panel layout. Groups are change IDs (newest work first) then base feel. */
 export const KNOBS: Knob[] = [
+  { key: 'trickBufferMs', group: 'P-04 Inputs that did nothing', label: 'Trick queue window (ms)', kind: 'slider', min: 0, max: 400, step: 10, hint: 'Swipe while a trick is finishing: it fires when the first one ends. 0 = off' },
+  { key: 'coyoteMs', group: 'P-04 Inputs that did nothing', label: 'Late jump off a rail end (ms)', kind: 'slider', min: 0, max: 300, step: 10 },
+  { key: 'allSlotsFromStart', group: 'P-04 Inputs that did nothing', label: 'A trick in every direction from level 1', kind: 'toggle' },
   { key: 'landGraceMs', group: 'P-03 Near-miss landings', label: 'Landing forgiveness (ms)', kind: 'slider', min: 0, max: 250, step: 10, hint: 'A trick this close to finished when you touch down counts as landed. 0 = off' },
   { key: 'railIntentMs', group: 'P-02 Swipe picks the grind', label: 'Swipe-before-rail window (ms)', kind: 'slider', min: 0, max: 300, step: 10, hint: 'A swipe this close to touching a rail picks the stance instead of starting an air trick. 0 = off' },
   { key: 'railTrickPicksGrind', group: 'P-02 Swipe picks the grind', label: 'Finished air trick picks the stance', kind: 'toggle', hint: 'Land a trick, then a rail: you lock into the stance for that swipe direction' },

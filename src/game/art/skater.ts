@@ -32,6 +32,7 @@ export const POSES = {
   fall: { hip: [0, 31], lean: 6, footF: [5, 1, -12], footB: [-5, 2, -6], handF: [12, 40], handB: [-11, 41] },
   land: { hip: [-2, 22], lean: 30, footF: [6, 0], footB: [-6, 0], handF: [11, 24], handB: [-9, 28] },
   mute: { hip: [0, 26], lean: 24, footF: [7, 9, 18], footB: [-3, 9, -4], handF: [8, 18], handB: [-9, 46], head: -8 },
+  stale: { hip: [0, 26], lean: 2, footF: [4, 9, 8], footB: [-5, 11, -10], handF: [10, 43], handB: [-6, 14], head: -6 },
   safety: { hip: [0, 26], lean: 8, footF: [3, 9, 6], footB: [-3, 10, -4], handF: [1, 17], handB: [-11, 44] },
   rocket: { hip: [-5, 22], lean: 38, footF: [15, 15, 62], footB: [12, 18, 62], handF: [17, 27], handB: [14, 29], head: -18 },
   liukang: { hip: [-2, 24], lean: 12, footF: [15, 19, 55], footB: [-2, 9, -8], handF: [-1, 18], handB: [-11, 42] },

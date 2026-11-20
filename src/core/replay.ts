@@ -108,7 +108,7 @@ function analyseNow(rec: Recording): Analysis {
     if (input.trick) {
       let why = '';
       if (before === 'ground') why = 'on the ground (tricks only work in the air or on a rail)';
-      else if (before === 'air' && hadTrick) why = `while ${TRICKS[s.airTrick!.id].name} was still going (${Math.round(s.airTrick!.timeLeft * 1000)} ms left)`;
+      else if (before === 'air' && hadTrick) { if (s.airTrick!.timeLeft * 1000 > CFG.trickBufferMs + 17) why = `while ${TRICKS[s.airTrick!.id].name} was still going (${Math.round(s.airTrick!.timeLeft * 1000)} ms left${CFG.trickBufferMs ? ', beyond the queue window' : ''})`; }
       else if (before === 'air' && !trickForSlot('air', input.trick, rec.playerLevel)) why = `no air trick unlocked for swipe ${input.trick} at level ${rec.playerLevel}`;
       else if (before === 'grind' && !trickForSlot('grind', input.trick, rec.playerLevel)) why = `no grind unlocked for swipe ${input.trick} at level ${rec.playerLevel}`;
       else if (before === 'grind' && trickForSlot('grind', input.trick, rec.playerLevel)!.id === grindTrick) why = `already in that grind (${TRICKS[grindTrick!].name})`;

@@ -44,6 +44,7 @@ Skate anatomy that the names depend on: the **soul plate** (flat sole edge of th
 | | Trick | Notes |
 |---|---|---|
 | ✅ | Mute Grab | Cross-body grab of the skate. |
+| ✅ | Stale Grab | Back hand to the back skate, behind you. |
 | ✅ | Safety Grab | Same-side hand to the outside of the skate. |
 | ✅ | Rocket Air | Legs straight out in front, grabbing the toes. |
 | ✅ | Liu Kang | One leg kicked straight out, the other tucked and grabbed. |

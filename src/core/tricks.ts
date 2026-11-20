@@ -1,3 +1,4 @@
+import { CFG } from './config';
 import type { Dir } from './sim';
 
 export interface TrickDef {
@@ -11,6 +12,8 @@ export interface TrickDef {
   /** Air tricks: seconds to complete. Landing before it finishes = bail. */
   duration: number;
   unlockLevel: number;
+  /** Unlock level before P-04 gave every direction a trick from level 1 (99 = didn't exist). */
+  legacyLevel?: number;
 }
 
 /**
@@ -23,18 +26,19 @@ export const TRICK_LIST: TrickDef[] = [
   { id: 'frontside', name: 'Frontside', type: 'grind', slot: null, points: 100, difficulty: 0.8, duration: 0, unlockLevel: 1 },
   { id: 'soul', name: 'Soul', type: 'grind', slot: 'up', points: 150, difficulty: 1.0, duration: 0, unlockLevel: 1 },
   { id: 'makio', name: 'Makio', type: 'grind', slot: 'down', points: 200, difficulty: 1.2, duration: 0, unlockLevel: 1 },
-  { id: 'royale', name: 'Royale', type: 'grind', slot: 'left', points: 220, difficulty: 1.25, duration: 0, unlockLevel: 2 },
-  { id: 'mizou', name: 'Mizou', type: 'grind', slot: 'right', points: 220, difficulty: 1.25, duration: 0, unlockLevel: 3 },
+  { id: 'royale', name: 'Royale', type: 'grind', slot: 'left', points: 220, difficulty: 1.25, duration: 0, unlockLevel: 1, legacyLevel: 2 },
+  { id: 'mizou', name: 'Mizou', type: 'grind', slot: 'right', points: 220, difficulty: 1.25, duration: 0, unlockLevel: 1, legacyLevel: 3 },
   { id: 'topsoul', name: 'Top Soul', type: 'grind', slot: 'up', points: 300, difficulty: 1.45, duration: 0, unlockLevel: 4 },
   { id: 'backslide', name: 'Backslide', type: 'grind', slot: 'left', points: 350, difficulty: 1.6, duration: 0, unlockLevel: 5 },
   { id: 'fishbrain', name: 'Fishbrain', type: 'grind', slot: 'down', points: 400, difficulty: 1.7, duration: 0, unlockLevel: 6 },
   { id: 'unity', name: 'Unity', type: 'grind', slot: 'right', points: 420, difficulty: 1.75, duration: 0, unlockLevel: 7 },
   // air
   { id: 'mute', name: 'Mute Grab', type: 'air', slot: 'up', points: 150, difficulty: 1, duration: 0.3, unlockLevel: 1 },
+  { id: 'stale', name: 'Stale Grab', type: 'air', slot: 'right', points: 160, difficulty: 1, duration: 0.3, unlockLevel: 1, legacyLevel: 99 },
   { id: 'spin180', name: '180', type: 'air', slot: 'left', points: 120, difficulty: 1, duration: 0.28, unlockLevel: 1 },
-  { id: 'safety', name: 'Safety Grab', type: 'air', slot: 'down', points: 170, difficulty: 1, duration: 0.32, unlockLevel: 2 },
-  { id: 'spin360', name: '360', type: 'air', slot: 'left', points: 300, difficulty: 1, duration: 0.4, unlockLevel: 3 },
-  { id: 'rocket', name: 'Rocket Air', type: 'air', slot: 'up', points: 320, difficulty: 1, duration: 0.4, unlockLevel: 4 },
+  { id: 'safety', name: 'Safety Grab', type: 'air', slot: 'down', points: 170, difficulty: 1, duration: 0.32, unlockLevel: 1, legacyLevel: 2 },
+  { id: 'spin360', name: '360', type: 'air', slot: 'left', points: 300, difficulty: 1, duration: 0.4, unlockLevel: 2, legacyLevel: 3 },
+  { id: 'rocket', name: 'Rocket Air', type: 'air', slot: 'up', points: 320, difficulty: 1, duration: 0.4, unlockLevel: 3, legacyLevel: 4 },
   { id: 'backflip', name: 'Backflip', type: 'air', slot: 'right', points: 450, difficulty: 1, duration: 0.5, unlockLevel: 5 },
   { id: 'spin540', name: '540', type: 'air', slot: 'left', points: 550, difficulty: 1, duration: 0.52, unlockLevel: 6 },
   { id: 'liukang', name: 'Liu Kang', type: 'air', slot: 'down', points: 500, difficulty: 1, duration: 0.45, unlockLevel: 7 },
@@ -43,10 +47,13 @@ export const TRICK_LIST: TrickDef[] = [
 
 export const TRICKS: Record<string, TrickDef> = Object.fromEntries(TRICK_LIST.map(t => [t.id, t]));
 
+/** The level a trick unlocks at under the current rules. */
+export const levelOf = (t: TrickDef): number => (CFG.allSlotsFromStart ? t.unlockLevel : t.legacyLevel ?? t.unlockLevel);
+
 export function trickForSlot(type: 'grind' | 'air', slot: Dir | null, level: number): TrickDef | null {
   let best: TrickDef | null = null;
   for (const t of TRICK_LIST) {
-    if (t.type === type && t.slot === slot && t.unlockLevel <= level && (!best || t.unlockLevel > best.unlockLevel)) best = t;
+    if (t.type === type && t.slot === slot && levelOf(t) <= level && (!best || levelOf(t) > levelOf(best))) best = t;
   }
   return best;
 }

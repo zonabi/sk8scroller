@@ -1,4 +1,4 @@
-import { TRICK_LIST, type TrickDef } from './tricks';
+import { TRICK_LIST, levelOf, type TrickDef } from './tricks';
 
 export const MAX_LEVEL = 10;
 /** XP needed to *reach* a level (level 1 = 0). */
@@ -9,4 +9,4 @@ export function levelForXp(xp: number): number {
   return lvl;
 }
 export const xpFromRun = (totalScore: number): number => Math.floor(totalScore / 20);
-export const unlocksAt = (level: number): TrickDef[] => TRICK_LIST.filter(t => t.unlockLevel === level);
+export const unlocksAt = (level: number): TrickDef[] => TRICK_LIST.filter(t => levelOf(t) === level);
