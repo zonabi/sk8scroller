@@ -13,7 +13,7 @@ import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
 import { bindFlag, downloadLastRun, playback, saveRun } from './recording';
 import { loadSave, writeSave } from './storage';
-import { SPRITE, dropFeatureTexture, featureTexture, skaterTex, warmSkater, type SkaterFrame } from './textures';
+import { SPRITE, dropFeatureTexture, featureTexture, hasFakieVersion, skaterTex, warmSkater, type SkaterFrame } from './textures';
 import { Graf, Num, graf, num, uiPerf, warm, type GrafStyle } from './ui';
 import { AH, AW, APP_VERSION, GROUND, K, PAL, PLAYER_X, Z, Z_KEY } from './view';
 
@@ -191,8 +191,7 @@ export class GameScene extends Phaser.Scene {
   // ---- drawing --------------------------------------------------------------
   private pose(): SkaterFrame {
     const s = this.sim.s;
-    // grinding fakie: same stance, head turned to look where you're going (the sprite is mirrored when drawn)
-    if (s.mode === 'grind') return s.grindFakie ? `fg-${s.grindTrick}` : (s.grindTrick as PoseName);
+    if (s.mode === 'grind') return s.grindTrick as PoseName;
     if (s.mode === 'bail') return s.bailTimer > CFG.bailTime * 0.45 ? 'bail0' : 'bail1';
     if (s.mode === 'over') return 'bail1';
     if (s.mode === 'air') {
@@ -212,7 +211,7 @@ export class GameScene extends Phaser.Scene {
       const p = 1 - this.turnAnim / TURN_SECS, from = this.turnTo ? 0 : SPIN_FRAMES / 2;
       return `spin${(from + Math.round(p * (SPIN_FRAMES / 2))) % SPIN_FRAMES}`;
     }
-    if (this.landT > 0 && !s.fakie) return 'land';
+    if (this.landT > 0) return 'land';
     // rolling fakie has its own frames (crouched, hips back, looking over the shoulder) — not a mirrored forward roll
     if (s.fakie) return `fk${Math.floor(s.t * (this.pushAnim > 0 ? 12 : 5)) % FAKIE_FRAMES}`;
     if (this.pushAnim > 0) return this.pushAnim > 0.24 ? 'roll1' : this.pushAnim > 0.1 ? 'roll2' : 'roll3';   // a real push stride
@@ -245,9 +244,11 @@ export class GameScene extends Phaser.Scene {
     else if (s.mode === 'air') rot = Phaser.Math.Clamp(-s.vy / 2600, -0.12, 0.16);
     const flip = !!s.airTrick && rot !== 0;
     // lean pivots at the feet; flips pivot at the body centre
-    const frame = this.pose();
+    let frame = this.pose();
     // fakie = the same sprites mirrored: facing left while still travelling right. Turnaround frames carry their own facing.
     const backwards = s.mode === 'grind' ? s.grindFakie : s.airTrick ? s.airTrick.fakie : s.fakie;
+    // …with the head turned to look where you're going, for every pose that has a fakie version (grinds, air, landing)
+    if (backwards && hasFakieVersion(frame)) frame = `fg-${frame}`;
     this.player.setFlipX(backwards && !frame.startsWith('spin') && !frame.startsWith('fk'));
     this.fakieTag.img.setVisible(s.fakie && s.mode !== 'bail' && s.mode !== 'over');
     this.player.setTexture(skaterTex(this, this.skater.id, frame)).setRotation(backwards ? -rot : rot)

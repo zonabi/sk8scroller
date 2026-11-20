@@ -84,8 +84,11 @@ function graffitiWall(): Pix {
 }
 
 export type SkaterFrame = PoseName | `spin${number}` | `fk${number}` | `fg-${string}`;
-/** Grind stances, each of which also has a fakie version (`fg-<stance>`). */
-const GRIND_POSES: PoseName[] = ['frontside', 'soul', 'makio', 'mizou', 'royale', 'backslide', 'topsoul', 'fishbrain', 'unity'];
+/**
+ * `fg-<pose>` is the fakie version of a pose: same body, head turned to look toward travel (the game
+ * mirrors it when drawing). Every pose has one except rolling (fakie rolling has its own `fk` frames) and bails.
+ */
+export const hasFakieVersion = (n: string): boolean => n in POSES && !n.startsWith('roll') && !n.startsWith('bail');
 /** Texture key for one skater frame, drawn the first time it is asked for. */
 export function skaterTex(scene: Phaser.Scene, id: string, frame: SkaterFrame): string {
   const key = `sk-${id}-${frame}`;
@@ -103,7 +106,7 @@ export function warmSkater(scene: Phaser.Scene, id: string): void {
   for (const n of POSE_NAMES) skaterTex(scene, id, n);
   for (let i = 0; i < SPIN_FRAMES; i++) skaterTex(scene, id, `spin${i}`);
   for (let i = 0; i < FAKIE_FRAMES; i++) skaterTex(scene, id, `fk${i}`);
-  for (const g of GRIND_POSES) skaterTex(scene, id, `fg-${g}`);
+  for (const n of POSE_NAMES) if (hasFakieVersion(n)) skaterTex(scene, id, `fg-${n}`);
 }
 
 const featCache = new Map<number, { ox: number; oy: number }>();
