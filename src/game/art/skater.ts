@@ -51,6 +51,16 @@ export const POSES = {
   bail1: { hip: [-3, 7], lean: -72, footF: [13, 4, 55], footB: [10, 0, 15], handF: [-4, 3], handB: [-15, 9], head: 20 },
 } satisfies Record<string, Pose>;
 export type PoseName = keyof typeof POSES;
+/**
+ * Fakie-only overrides, in the same (unmirrored) coordinates as POSES. In game the sprite is mirrored,
+ * so F (near) limbs end up on the screen-left side, trailing the direction of travel.
+ */
+const FAKIE_TWEAKS: Partial<Record<PoseName, Partial<Pose>>> = {
+  // forward jump tucks both hands up by the head; fakie that left an arm folded against the face.
+  // Carry the arms out from the fakie roll instead: near arm reaching out and a little up, far arm out the other way.
+  jump: { handF: [16, 39], handB: [-12, 42] },
+};
+const poseName = (p: Pose): PoseName => (Object.keys(POSES) as PoseName[]).find(k => POSES[k] === p)!;
 export const POSE_NAMES = Object.keys(POSES) as PoseName[];
 
 const THIGH = 9, SHIN = 9, TORSO = 13, UARM = 7, FARM = 6;
@@ -136,7 +146,8 @@ function head(p: Pix, cx: number, cy: number, sk: SkaterDef): void {
  * back and the head faces the direction of travel.
  */
 export function drawSkater(sk: SkaterDef, pose: Pose, lookBack = false): Pix {
-  if (lookBack) pose = { ...pose, lean: pose.lean - 5, head: (pose.head ?? 0) * 0.3 };   // a touch more upright, chest opened
+  // a touch more upright, chest opened — plus per-pose adjustments where the forward arms look wrong with the head turned
+  if (lookBack) pose = { ...pose, lean: pose.lean - 5, head: (pose.head ?? 0) * 0.3, ...FAKIE_TWEAKS[poseName(pose)] };
   const p = new Pix(FRAME, FRAME), C = sk.colors;
   const top = ramp(C.top), pants = ramp(C.pants), skin = skinRamp(C.skin), boot = ramp(C.skate);
   const X = (x: number) => OX + x, Y = (y: number) => GY - y;
