@@ -29,7 +29,7 @@ const DEF = {
   balanceTimeRamp: 0.25,
   balanceNoise: 8,
   balanceControl: 6,
-  balanceDamp: 4,
+  balanceDamp: 6, // was 4 before P-01 (recordings carry their own value)
   grindPointsRate: 1.0, // fraction of a trick's points earned per second held
   // combos
   comboGrace: 0.9, // seconds on the ground before a combo banks
@@ -39,6 +39,13 @@ const DEF = {
   bailTime: 0.8,
   invulnTime: 1.6,
   bailSpeedFactor: 0.4,
+
+  // ---- playtest changes (docs/PLAYTEST.md). Each key needs a LEGACY value below. ----
+  // P-01 balance you can actually save
+  balanceControlScale: 0.9, // steering strength as a fraction of the stance's own pull (never below balanceControl)
+  balanceSettleMs: 400,     // after locking into a stance, the lean takes this long to start running away
+  switchUpKick: 0.25,       // shove a switch-up gives the lean, × stance difficulty
+  stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
 export const DEFAULTS: Readonly<Record<CfgKey, number>> = Object.freeze({ ...DEF });
@@ -46,7 +53,9 @@ export const DEFAULTS: Readonly<Record<CfgKey, number>> = Object.freeze({ ...DEF
 export const CFG: Record<CfgKey, number> = { ...DEF };
 
 /** Pre-change values for keys introduced by a playtest change (see header). */
-export const LEGACY: Partial<Record<CfgKey, number>> = {};
+export const LEGACY: Partial<Record<CfgKey, number>> = {
+  balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
+};
 
 /** A control shown in the tuning panel. */
 export interface Knob {
@@ -58,6 +67,11 @@ export interface Knob {
 }
 /** Panel layout. Groups are change IDs (newest work first) then base feel. */
 export const KNOBS: Knob[] = [
+  { key: 'balanceControlScale', group: 'P-01 Balance you can save', label: 'Steering strength vs the stance', kind: 'slider', min: 0, max: 1.3, step: 0.05, hint: 'Higher = a lean can be pulled back from further over' },
+  { key: 'balanceSettleMs', group: 'P-01 Balance you can save', label: 'Calm moment after locking in (ms)', kind: 'slider', min: 0, max: 900, step: 50, hint: 'Time before a new stance starts to tip' },
+  { key: 'stanceHardness', group: 'P-01 Balance you can save', label: 'How much faster hard stances tip', kind: 'slider', min: 0, max: 1, step: 0.05, hint: '1 = Unity tips over twice as fast as Frontside; lower = closer together' },
+  { key: 'balanceDamp', group: 'P-01 Balance you can save', label: 'Lean damping', kind: 'slider', min: 2, max: 9, step: 0.5, hint: 'Higher = the lean builds more slowly (was 4)' },
+  { key: 'switchUpKick', group: 'P-01 Balance you can save', label: 'Shove from a switch-up', kind: 'slider', min: 0, max: 0.6, step: 0.05 },
   { key: 'jumpV', group: 'Base feel', label: 'Jump power', kind: 'slider', min: 240, max: 420, step: 5 },
   { key: 'gravity', group: 'Base feel', label: 'Gravity', kind: 'slider', min: 600, max: 1300, step: 25 },
   { key: 'baseSpeed', group: 'Base feel', label: 'Starting speed', kind: 'slider', min: 100, max: 220, step: 5 },

@@ -32,3 +32,4 @@ How feel changes are made on this project, and the record of each one.
 | ID | Status | Player's note | Evidence (session) | Change | Switches |
 |---|---|---|---|---|---|
 | P-00 | kept | — | — | Tuning panel, switches, this log, golden-run verification | — |
+| P-01 | trial | "Rail balance seems hard to counter the failing tilt" | S1: 17 balance falls in 153 grinds. 11 with no correcting input at all (fall took ~1 s); 5 of the 6 corrected ones were already past the point the controls could recover. Hard stances (Unity, Backslide) tipped in under a second after a switch-up. | Steering strength scales with the stance; a new stance is calm for 0.4 s; only 40% of a stance's difficulty speeds up the lean; more damping; softer switch-up shove. Modelled player (250 ms reactions) in Unity: 1.5 s → 5.2 s; doing nothing: 1.0 s → 1.9 s. Frontside: 5.3 s → 9.2 s. | `balanceControlScale` `balanceSettleMs` `stanceHardness` `switchUpKick` `balanceDamp` |

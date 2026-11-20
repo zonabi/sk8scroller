@@ -30,6 +30,8 @@ export interface SimState {
   t: number; x: number; y: number; vy: number; speed: number;
   mode: Mode;
   grind: Feature | null; grindTrick: string | null; grindTime: number;
+  /** Seconds in the current stance (resets on lock-on and on every switch-up). */
+  stanceTime: number;
   balance: number; balanceVel: number;
   airTrick: { id: string; timeLeft: number } | null;
   combo: ComboEntry[]; comboTimer: number;
@@ -44,6 +46,8 @@ export interface SimOptions {
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+/** Difficulty of the default lock-in grind; other stances are measured against it. */
+const EASIEST = 0.8;
 
 /** Score of a combo: repeated tricks decay, then everything is multiplied by the trick count. */
 export function comboValue(combo: ComboEntry[]): number {
@@ -75,7 +79,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, balance: 0, balanceVel: 0, airTrick: null,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -170,15 +174,20 @@ export class Sim {
       case 'grind': {
         const f = s.grind!, tr = TRICKS[s.grindTrick!];
         s.x += s.speed * dt;
-        s.grindTime += dt;
+        s.grindTime += dt; s.stanceTime += dt;
         if (s.x > f.x + f.w) {
           s.mode = 'air'; s.vy = CFG.railEndPop; s.grind = null;
           break;
         }
         s.y = railY(f, s.x);
-        const k = (CFG.balanceInstability * tr.difficulty * (1 + s.grindTime * CFG.balanceTimeRamp)) / this.skater.balance;
+        // P-01: only part of a stance's difficulty speeds up the lean (EASIEST is the baseline stance)
+        const hard = CFG.stanceHardness === 1 ? tr.difficulty : EASIEST + (tr.difficulty - EASIEST) * CFG.stanceHardness;
+        const k = (CFG.balanceInstability * hard * (1 + s.grindTime * CFG.balanceTimeRamp)) / this.skater.balance;
         const noise = (this.rng.next() * 2 - 1) * CFG.balanceNoise * tr.difficulty;
-        s.balanceVel += (k * s.balance + noise + clamp(input.balance, -1, 1) * CFG.balanceControl) * dt;
+        // P-01: steering scales with the stance so hard stances stay saveable; a fresh stance is calm for a moment
+        const control = Math.max(CFG.balanceControl, (CFG.balanceControlScale * CFG.balanceInstability * hard) / this.skater.balance);
+        const settle = CFG.balanceSettleMs > 0 ? Math.min(1, (s.stanceTime * 1000) / CFG.balanceSettleMs) : 1;
+        s.balanceVel += ((k * s.balance + noise) * settle + clamp(input.balance, -1, 1) * control) * dt;
         s.balanceVel *= 1 - CFG.balanceDamp * dt;
         s.balance += s.balanceVel * dt;
         s.combo[s.combo.length - 1].points += tr.points * CFG.grindPointsRate * dt;
@@ -188,7 +197,8 @@ export class Sim {
           if (nt && nt.id !== s.grindTrick) {
             s.grindTrick = nt.id;
             s.combo.push({ trickId: nt.id, name: nt.name, points: nt.points });
-            s.balanceVel += (this.rng.next() < 0.5 ? -1 : 1) * 0.4 * nt.difficulty; // switch-ups wobble you
+            s.balanceVel += (this.rng.next() < 0.5 ? -1 : 1) * CFG.switchUpKick * nt.difficulty; // switch-ups wobble you
+            s.stanceTime = 0;
             ev.push({ type: 'switchUp', trickId: nt.id });
           }
         }
@@ -216,7 +226,7 @@ export class Sim {
 
   private startGrind(f: Feature, ev: SimEvent[]): void {
     const s = this.s, tr = trickForSlot('grind', null, this.playerLevel)!;
-    s.mode = 'grind'; s.grind = f; s.grindTrick = tr.id; s.grindTime = 0; s.vy = 0;
+    s.mode = 'grind'; s.grind = f; s.grindTrick = tr.id; s.grindTime = 0; s.stanceTime = 0; s.vy = 0;
     s.balance = (this.rng.next() * 2 - 1) * 0.15; s.balanceVel = 0;
     s.combo.push({ trickId: tr.id, name: tr.name, points: tr.points * 0.5 });
     ev.push({ type: 'grindStart', trickId: tr.id });
