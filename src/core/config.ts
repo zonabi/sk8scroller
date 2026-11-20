@@ -45,6 +45,9 @@ const DEF = {
   balanceControlScale: 0.9, // steering strength as a fraction of the stance's own pull (never below balanceControl)
   balanceSettleMs: 400,     // after locking into a stance, the lean takes this long to start running away
   switchUpKick: 0.25,       // shove a switch-up gives the lean, × stance difficulty
+  // P-02 rail landings: your swipe picks the grind
+  railIntentMs: 100,        // a swipe this close before touching a rail means "grind in this stance", not an air trick
+  railTrickPicksGrind: 1,   // a completed air trick's direction picks the stance you lock into
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -55,6 +58,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
+  railIntentMs: 0, railTrickPicksGrind: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -67,6 +71,8 @@ export interface Knob {
 }
 /** Panel layout. Groups are change IDs (newest work first) then base feel. */
 export const KNOBS: Knob[] = [
+  { key: 'railIntentMs', group: 'P-02 Swipe picks the grind', label: 'Swipe-before-rail window (ms)', kind: 'slider', min: 0, max: 300, step: 10, hint: 'A swipe this close to touching a rail picks the stance instead of starting an air trick. 0 = off' },
+  { key: 'railTrickPicksGrind', group: 'P-02 Swipe picks the grind', label: 'Finished air trick picks the stance', kind: 'toggle', hint: 'Land a trick, then a rail: you lock into the stance for that swipe direction' },
   { key: 'balanceControlScale', group: 'P-01 Balance you can save', label: 'Steering strength vs the stance', kind: 'slider', min: 0, max: 1.3, step: 0.05, hint: 'Higher = a lean can be pulled back from further over' },
   { key: 'balanceSettleMs', group: 'P-01 Balance you can save', label: 'Calm moment after locking in (ms)', kind: 'slider', min: 0, max: 900, step: 50, hint: 'Time before a new stance starts to tip' },
   { key: 'stanceHardness', group: 'P-01 Balance you can save', label: 'How much faster hard stances tip', kind: 'slider', min: 0, max: 1, step: 0.05, hint: '1 = Unity tips over twice as fast as Frontside; lower = closer together' },

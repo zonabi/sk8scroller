@@ -33,7 +33,11 @@ export interface SimState {
   /** Seconds in the current stance (resets on lock-on and on every switch-up). */
   stanceTime: number;
   balance: number; balanceVel: number;
-  airTrick: { id: string; timeLeft: number } | null;
+  airTrick: { id: string; timeLeft: number; dir: Dir; age: number } | null;
+  /** Most recent trick swipe made in the air and how long ago (seconds); cleared on touchdown. */
+  swipeDir: Dir | null; swipeAge: number;
+  /** Direction of the last air trick completed during this airtime. */
+  doneDir: Dir | null;
   combo: ComboEntry[]; comboTimer: number;
   score: number; bestCombo: number;
   lives: number; invuln: number; bailTimer: number;
@@ -79,7 +83,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -135,18 +139,12 @@ export class Sim {
         if (!input.jumpHeld && s.vy > 0) s.vy -= CFG.jumpCutGravity * dt;
         s.vy -= CFG.gravity * dt;
         s.y += s.vy * dt;
+        s.swipeAge += dt;
+        if (input.trick) { s.swipeDir = input.trick; s.swipeAge = 0; }
         if (s.airTrick) {
-          s.airTrick.timeLeft -= dt;
-          if (s.airTrick.timeLeft <= 0) {
-            const tr = TRICKS[s.airTrick.id];
-            s.combo.push({ trickId: tr.id, name: tr.name, points: tr.points });
-            ev.push({ type: 'airTrickDone', trickId: tr.id });
-            s.airTrick = null;
-          }
-        } else if (input.trick) {
-          const tr = trickForSlot('air', input.trick, this.playerLevel);
-          if (tr) { s.airTrick = { id: tr.id, timeLeft: tr.duration }; ev.push({ type: 'airTrickStart', trickId: tr.id }); }
-        }
+          s.airTrick.timeLeft -= dt; s.airTrick.age += dt;
+          if (s.airTrick.timeLeft <= 0) this.completeAirTrick(ev);
+        } else if (input.trick) this.startAirTrick(input.trick, ev);
         // catch a rail/ledge on the way down
         if (s.vy <= 0) {
           for (const f of this.level.near(s.x)) {
@@ -154,8 +152,16 @@ export class Sim {
             const ry = railY(f, s.x);
             if (prevY >= ry - 3 && s.y <= ry) {
               s.y = ry;
+              // P-02: a swipe just before the rail was meant for the rail — it picks the stance, and the
+              // air trick that same swipe started is dropped. An older unfinished trick still slams.
+              let dir: Dir | null = null;
+              if (CFG.railIntentMs > 0 && s.swipeDir && s.swipeAge * 1000 <= CFG.railIntentMs) {
+                dir = s.swipeDir;
+                if (s.airTrick && s.airTrick.age <= s.swipeAge + 1e-9) s.airTrick = null;
+              }
               if (s.airTrick) { this.bail('sketchy', ev); return ev; }
-              this.startGrind(f, ev);
+              if (!dir && CFG.railTrickPicksGrind) dir = s.doneDir;
+              this.startGrind(f, ev, dir);
               break;
             }
           }
@@ -165,7 +171,7 @@ export class Sim {
           if (s.y <= gy) {
             s.y = gy; s.vy = 0;
             if (s.airTrick) { this.bail('sketchy', ev); return ev; }
-            s.mode = 'ground'; s.comboTimer = CFG.comboGrace;
+            s.mode = 'ground'; s.comboTimer = CFG.comboGrace; this.clearAir();
             ev.push({ type: 'land' });
           }
         }
@@ -224,8 +230,22 @@ export class Sim {
     return ev;
   }
 
-  private startGrind(f: Feature, ev: SimEvent[]): void {
-    const s = this.s, tr = trickForSlot('grind', null, this.playerLevel)!;
+  private startAirTrick(dir: Dir, ev: SimEvent[]): void {
+    const tr = trickForSlot('air', dir, this.playerLevel);
+    if (tr) { this.s.airTrick = { id: tr.id, timeLeft: tr.duration, dir, age: 0 }; ev.push({ type: 'airTrickStart', trickId: tr.id }); }
+  }
+  private completeAirTrick(ev: SimEvent[]): void {
+    const s = this.s, tr = TRICKS[s.airTrick!.id];
+    s.combo.push({ trickId: tr.id, name: tr.name, points: tr.points });
+    ev.push({ type: 'airTrickDone', trickId: tr.id });
+    s.doneDir = s.airTrick!.dir;
+    s.airTrick = null;
+  }
+  private clearAir(): void { const s = this.s; s.swipeDir = null; s.swipeAge = 99; s.doneDir = null; }
+
+  private startGrind(f: Feature, ev: SimEvent[], dir: Dir | null = null): void {
+    const s = this.s, tr = (dir && trickForSlot('grind', dir, this.playerLevel)) || trickForSlot('grind', null, this.playerLevel)!;
+    this.clearAir();
     s.mode = 'grind'; s.grind = f; s.grindTrick = tr.id; s.grindTime = 0; s.stanceTime = 0; s.vy = 0;
     s.balance = (this.rng.next() * 2 - 1) * 0.15; s.balanceVel = 0;
     s.combo.push({ trickId: tr.id, name: tr.name, points: tr.points * 0.5 });
@@ -242,7 +262,7 @@ export class Sim {
 
   private bail(reason: 'obstacle' | 'balance' | 'sketchy', ev: SimEvent[]): void {
     const s = this.s;
-    s.mode = 'bail'; s.combo = []; s.airTrick = null; s.grind = null; s.grindTrick = null;
+    s.mode = 'bail'; s.combo = []; s.airTrick = null; s.grind = null; s.grindTrick = null; this.clearAir();
     s.lives -= 1; s.bailTimer = CFG.bailTime; s.invuln = CFG.bailTime + CFG.invulnTime;
     s.speed *= CFG.bailSpeedFactor; s.vy = 0;
     ev.push({ type: 'bail', reason });

@@ -92,6 +92,37 @@ describe('practice rail', () => {
   });
 });
 
+describe('P-02 rail landings', () => {
+  const ontoRail = (playerLevel: number, during: (sim: Sim, framesToRail: number) => Partial<Input>) => {
+    const sim = mk(1, playerLevel);
+    sim.level.add('rail', 80, 400, 24);
+    while (sim.s.x < 80 - sim.s.speed * 0.3) sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    // dry-run the same jump to learn which frame touches the rail
+    const probe = mk(1, playerLevel); probe.level.add('rail', 80, 400, 24);
+    while (probe.s.x < 80 - probe.s.speed * 0.3) probe.step(press({}));
+    probe.step(press({ jumpPressed: true }));
+    let total = 0; while (probe.s.mode === 'air') { probe.step(press({})); total++; }
+    for (let i = 0; i < total && sim.s.mode === 'air'; i++) sim.step(press(during(sim, total - i)));
+    return sim;
+  };
+  it('a swipe within 100 ms of the rail picks the stance and drops the air trick', () => {
+    const sim = ontoRail(1, (_s, left) => (left === 4 ? { trick: 'up' } : {}));
+    expect(sim.s.mode).toBe('grind');
+    expect(sim.s.grindTrick).toBe('soul');
+    expect(sim.s.combo.map(c => c.trickId)).toEqual(['soul']);
+  });
+  it('a finished air trick picks the stance', () => {
+    const sim = ontoRail(1, (_s, left) => (left === 30 ? { trick: 'up' } : {}));   // mute (0.3 s) finishes in time
+    expect(sim.s.mode).toBe('grind');
+    expect(sim.s.combo.map(c => c.trickId)).toEqual(['mute', 'soul']);
+  });
+  it('an unfinished older trick still slams', () => {
+    const sim = ontoRail(8, (_s, left) => (left === 15 ? { trick: 'right' } : {}));  // misty needs 0.55 s, has 0.25
+    expect(sim.s.mode).toBe('bail');
+  });
+});
+
 describe('recording', () => {
   it('replays a recorded run exactly and survives a JSON round trip', () => {
     const sim = new Sim({ seed: 9, skater: SKATERS[1], playerLevel: 4 });
