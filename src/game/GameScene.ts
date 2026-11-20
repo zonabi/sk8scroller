@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { botInput } from '../core/bot';
-import { CFG } from '../core/config';
+import { CFG, recordedTuning } from '../core/config';
 import type { Feature } from '../core/level';
 import { levelForXp, unlocksAt, xpFromRun } from '../core/progression';
 import { Recorder, inputsOf, simFor } from '../core/replay';
@@ -76,6 +76,10 @@ export class GameScene extends Phaser.Scene {
     this.rec = this.bot || playback ? null : new Recorder();
     this.replayIn = null;
     if (playback) {
+      // play it back under the settings it was recorded with, then restore ours
+      const mine = { ...CFG };
+      Object.assign(CFG, recordedTuning(playback.cfg));
+      this.events.once('shutdown', () => Object.assign(CFG, mine));
       this.skater = skaterById(playback.skaterId); this.sim = simFor(playback); this.replayIn = inputsOf(playback);
       // ?at=12.5 jumps straight to that second and holds the frame, for looking at one moment
       const at = Number(q.get('at'));

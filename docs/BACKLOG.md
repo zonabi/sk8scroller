@@ -19,7 +19,7 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 ## Tooling done
 
 - [x] **Run recording + replay analysis** (2026-11-19). `npm run replay`, `?replay=`, flag button.
-- [ ] **Live tuning panel.** Sliders over `config.ts` values, adjustable on the phone mid-session; values saved into the recording.
+- [x] **Live tuning panel + change switches** (2026-11-19, P-00). See PLAYTEST.md.
 - [ ] **Playtest triage skill.** Write after the first real feedback batch has been worked through by hand.
 
 ## M1 — Feel

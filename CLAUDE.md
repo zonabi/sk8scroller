@@ -34,7 +34,7 @@ Why: core can be tested and bot-played in milliseconds with no browser. That is 
 
 | To change… | Edit |
 |---|---|
-| Feel / tuning numbers | `src/core/config.ts` (never inline magic numbers) |
+| Feel / tuning numbers | `src/core/config.ts` (never inline magic numbers). `CFG` is live and mutable — the tuning panel overrides it — so read `CFG.x` at use, never cache it |
 | Add a trick | `src/core/tricks.ts` (+ row in `docs/TRICKS.md`) |
 | Add a skater | `src/core/skaters.ts` |
 | Add a level pattern | `PATTERNS` in `src/core/level.ts` |
@@ -55,6 +55,8 @@ Every human run is recorded (inputs per step; the sim is deterministic) and, whi
 - `npm run replay -- --all` — one line per run plus totals. Start here when handed a batch of feedback.
 - `?replay=latest` (or a file name) plays a run back in the game; add `&at=12.5` to jump to that second and hold the frame. Use with a screenshot to *see* a moment.
 - The player can flag "that felt wrong" mid-run (flag button top centre, or F). Flags appear in the report with the 3 seconds before them.
+
+**Feel changes follow `docs/PLAYTEST.md`:** one ID and one commit per change, each behind a switch in `config.ts` (`DEFAULTS` + `LEGACY` + `KNOBS`), and `npm run replay -- --verify` must keep passing. Read that file before changing any rule in `core/sim.ts`.
 
 When working through playtest feedback: find the note in the recordings first, state it as something countable ("7 of 31 jump presses ignored within 150 ms of landing"), change one thing, and re-run the same recordings' numbers where possible. A recording only replays exactly on the code and tuning that made it — the report says when it no longer matches.
 

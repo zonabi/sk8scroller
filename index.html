@@ -73,6 +73,25 @@
   #flag svg { width: 20px; height: 20px; }
   #flag.hit { animation: flagged .5s ease-out; }
   @keyframes flagged { 0% { transform: rotate(3deg) scale(1.5); opacity: 1; background: #ffd23f; } 100% { transform: rotate(3deg) scale(1); opacity: .55; } }
+  /* tuning panel (menu only) */
+  #tune { position: fixed; inset: 0; z-index: 8; background: rgba(10,6,18,.86); display: flex; justify-content: center; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    font: 14px/1.3 system-ui, sans-serif; color: #f5f5f5; touch-action: pan-y; }
+  #tune .box { width: min(680px, 100%); padding: 14px calc(14px + env(safe-area-inset-right)) 40px calc(14px + env(safe-area-inset-left)); box-sizing: border-box; }
+  #tune header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: sticky; top: 0; background: #1a1026; padding: 8px 0; z-index: 1; }
+  #tune h2 { margin: 0 6px 0 0; font: 400 26px/1 "Rubik Spray Paint", system-ui; color: #ffd23f; }
+  #tune .n { flex: 1; color: #00d9ff; font-family: "Permanent Marker", system-ui; }
+  #tune button { border: 2px solid #1a1026; border-radius: 8px; padding: 8px 10px; background: #f6e7a1; color: #1a1026; font: 400 13px/1 "Permanent Marker", system-ui; box-shadow: 2px 3px 0 #000; }
+  #tune button.x { background: #3dff8f; }
+  #tune p { margin: 8px 0 4px; color: #b8c2d8; font-size: 12px; }
+  #tune h3 { margin: 16px 0 4px; font: 400 16px/1.1 "Permanent Marker", system-ui; color: #ff3d6e; }
+  #tune .r { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,.05); margin-top: 4px; border-left: 4px solid transparent; }
+  #tune .r.ch { border-left-color: #00d9ff; background: rgba(0,217,255,.12); }
+  #tune .l { flex: 1; min-width: 0; } #tune .l b { display: block; font-weight: 600; } #tune small { display: block; color: #9aa3b8; font-size: 11px; } #tune .was { color: #ffd23f; }
+  #tune .c { display: flex; align-items: center; gap: 8px; } #tune input[type=range] { width: min(38vw, 220px); } #tune output { width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+  #tune .sw { position: relative; width: 52px; height: 30px; } #tune .sw input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; z-index: 1; }
+  #tune .sw i { position: absolute; inset: 0; border-radius: 15px; background: #4a4460; transition: background .15s; }
+  #tune .sw i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #f5f5f5; transition: transform .15s; }
+  #tune .sw input:checked + i { background: #3dff8f; } #tune .sw input:checked + i::after { transform: translateX(22px); }
   #fps { position: fixed; left: 4px; bottom: 4px; color: #3dff8f; font: 12px monospace; z-index: 6; pointer-events: none; }
   @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
 </style>

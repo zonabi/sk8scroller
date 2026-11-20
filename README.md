@@ -39,6 +39,11 @@ While `npm run dev` is running, every run you play (phone included) is saved to 
 screen (or press F) when something feels wrong; it marks that moment. `npm run replay` turns a run into a report, and
 `?replay=latest` plays it back.
 
+## Tuning panel
+
+Menu → *tuning*: switch individual playtest changes on or off and adjust feel values, on the device you're playing on.
+Settings are saved on that device and written into each recording. See [docs/PLAYTEST.md](docs/PLAYTEST.md).
+
 ## Commands
 
 | Command | What it does |
@@ -46,7 +51,7 @@ screen (or press F) when something feels wrong; it marks that moment. `npm run r
 | `npm run dev` | dev server with hot reload |
 | `npm run check` | typecheck + unit tests + bot fairness sim — **run before every commit** |
 | `npm run perf` | load time, CPU per frame, text budget — fails if over |
-| `npm run replay` | playtest report from the newest recorded run (`-- --all` for every run) |
+| `npm run replay` | playtest report from the newest recorded run (`-- --all` for every run, `-- --verify` to prove old runs still replay) |
 | `npm run sprites` | skater pose contact sheet → `shots/sprites.png` |
 | `npm run shots` | build, then headless screenshots into `shots/` (needs Chrome) |
 | `npm run build` | production build in `dist/` |

@@ -1,4 +1,4 @@
-import { CFG } from './config';
+import { CFG, DEFAULTS as DEFAULTS_NOW, recordedTuning, withTuning } from './config';
 import { isObstacle } from './level';
 import { Sim, type Dir, type Input, type Mode, type SimEvent } from './sim';
 import { skaterById } from './skaters';
@@ -63,7 +63,7 @@ export const simFor = (rec: Recording): Sim => new Sim({ seed: rec.seed, skater:
 export interface Finding { t: number; kind: string; detail: string }
 export interface Analysis {
   exact: boolean;              // replay reproduced the recorded result
-  tuningChanged: string[];     // CFG keys that differ from when it was recorded
+  tuningChanged: string[];     // settings this run was played with that differ from the current game
   seconds: number; distance: number; score: number;
   counts: Record<string, number>;
   timeIn: Record<Mode, number>;
@@ -77,11 +77,14 @@ export interface Analysis {
 
 const ms = (steps: number) => Math.round(steps * CFG.dt * 1000);
 
-/** Replays a recording and extracts the things that explain how a run *felt*. */
-export function analyse(rec: Recording): Analysis {
+/** Replays a recording (under the tuning it was played with) and extracts the things that explain how a run *felt*. */
+export function analyse(rec: Recording): Analysis { return withTuning(rec.cfg, () => analyseNow(rec)); }
+
+function analyseNow(rec: Recording): Analysis {
+  const played = recordedTuning(rec.cfg);
   const sim = simFor(rec), s = sim.s;
   const a: Analysis = {
-    exact: false, tuningChanged: Object.keys(rec.cfg).filter(k => rec.cfg[k] !== (CFG as Record<string, number>)[k]),
+    exact: false, tuningChanged: (Object.keys(played) as (keyof typeof played)[]).filter(k => played[k] !== DEFAULTS_NOW[k]).map(k => `${k}=${played[k]} (now ${DEFAULTS_NOW[k]})`),
     seconds: 0, distance: 0, score: 0, counts: {}, timeIn: { ground: 0, air: 0, grind: 0, bail: 0, over: 0 },
     bails: [], ignoredJumps: [], ignoredTricks: [], grinds: [], marks: [], log: [],
   };
@@ -168,8 +171,8 @@ export function report(rec: Recording, a: Analysis = analyse(rec)): string {
   const L: string[] = [], f = (x: Finding) => `  ${x.t.toFixed(2).padStart(7)}s  ${x.kind.padEnd(11)} ${x.detail}`;
   L.push(`RUN ${rec.at}  v${rec.app}  skater ${rec.skaterId}  level ${rec.playerLevel}  seed ${rec.seed}${rec.longRail ? '  (+practice rail)' : ''}`);
   L.push(`device: ${rec.device}`);
-  L.push(a.exact ? 'replay: exact match with the live run' : `replay: DOES NOT MATCH the live run (recorded score ${rec.result.score}, replay ${a.score}) — code or tuning changed since; treat details below as approximate`);
-  if (a.tuningChanged.length) L.push(`tuning changed since recording: ${a.tuningChanged.join(', ')}`);
+  L.push(a.exact ? 'replay: exact match with the live run' : `replay: DOES NOT MATCH the live run (recorded score ${rec.result.score}, replay ${a.score}) — a change leaked outside its switch; treat details below as approximate`);
+  if (a.tuningChanged.length) L.push(`played with settings that differ from the current game: ${a.tuningChanged.join(', ')}`);
   L.push(`\n${a.seconds.toFixed(1)} s · ${a.distance} m · score ${a.score} · ended ${rec.result.over ? 'by running out of lives' : 'early (quit)'}`);
   const tot = a.seconds || 1;
   L.push(`time: ${(['ground', 'air', 'grind', 'bail'] as const).map(m => `${m} ${Math.round((a.timeIn[m] / tot) * 100)}%`).join(' · ')}`);

@@ -10,6 +10,7 @@ import { bootMark, loading } from './loading';
 import { MenuScene } from './MenuScene';
 import { initFlag, loadPlayback } from './recording';
 import { loadSave } from './storage';
+import { loadTuning } from './tuning';
 import { uiPerf } from './ui';
 import { AH, AW, FONT, PAL, Z } from './view';
 
@@ -17,6 +18,7 @@ bootMark('code');   // page load → scripts downloaded, parsed and running
 // Fonts must be ready before any text or wall graffiti is rasterised.
 await Promise.all([FONT.piece, FONT.marker, FONT.spray].map(f => document.fonts.load(`32px ${f}`, 'SK8 scroller 0123')));
 
+loadTuning();
 await loadPlayback();
 bootMark('fonts');
 initFlag();

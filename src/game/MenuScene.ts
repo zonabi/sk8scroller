@@ -8,6 +8,7 @@ import { InputController } from './input';
 import { bootMark, bootSummary, loading } from './loading';
 import { loadSave, writeSave, type Save } from './storage';
 import { SPRITE, skaterTex } from './textures';
+import { openTuningPanel, tuningCount } from './tuning';
 import { drips, graf, uiPerf } from './ui';
 import { AH, AW, PAL } from './view';
 
@@ -100,6 +101,11 @@ export class MenuScene extends Phaser.Scene {
     const toggleSound = () => { this.save.mute = !this.save.mute; writeSave(this.save); sfx.setMuted(this.save.mute); showSound(); sfx.play('tap'); };
     sound.button(toggleSound);
     this.input.keyboard?.on('keydown-M', toggleSound);
+
+    const tune = graf(this, AW - 10, 58, '', { size: 9, fill: PAL.green }).setOrigin(1, 0);
+    const showTune = () => tune.setText(tuningCount() ? `tuning: ${tuningCount()} changed` : 'tuning');
+    showTune();
+    tune.button(() => { sfx.play('tap'); this.input.enabled = false; openTuningPanel(() => { this.input.enabled = true; showTune(); }); });
 
     const tilt = graf(this, AW - 10, 30, '', { size: 9, fill: PAL.cyan }).setOrigin(1, 0);
     const showTilt = () => tilt.setText(`tilt balance: ${this.save.tilt ? 'ON' : 'off'}`);
