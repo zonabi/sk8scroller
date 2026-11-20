@@ -60,9 +60,9 @@ export type PoseName = keyof typeof POSES;
 const FAKIE_TWEAKS: Partial<Record<PoseName, Partial<Pose>>> = {
   // forward jump tucks both hands up by the head; fakie wants them out for balance, like the roll before it
   // leading arm: upper arm out toward travel, forearm dropping to the hand — the same shape as the fakie landing
-  jump: { handF: [-9, 32], handB: [14, 37], elbowF: 'up' },
+  jump: { handF: [-10.5, 32.5], handB: [14, 37], elbowF: 'up' },
   // falling: leading arm out and low toward travel, ready to catch the landing
-  fall: { handF: [-10, 35], handB: [11, 40], elbowF: 'up' },
+  fall: { handF: [-11.5, 35.5], handB: [11, 40], elbowF: 'up' },
 };
 /** Poses where a hand is on a skate: their arms can't be re-aimed for fakie. */
 const GRABS = new Set<PoseName>(['mute', 'safety', 'stale', 'rocket', 'liukang', 'makio', 'backslide', 'fishbrain']);
