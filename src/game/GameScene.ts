@@ -191,7 +191,8 @@ export class GameScene extends Phaser.Scene {
   // ---- drawing --------------------------------------------------------------
   private pose(): SkaterFrame {
     const s = this.sim.s;
-    if (s.mode === 'grind') return s.grindTrick as PoseName;
+    // grinding fakie: same stance, head turned to look where you're going (the sprite is mirrored when drawn)
+    if (s.mode === 'grind') return s.grindFakie ? `fg-${s.grindTrick}` : (s.grindTrick as PoseName);
     if (s.mode === 'bail') return s.bailTimer > CFG.bailTime * 0.45 ? 'bail0' : 'bail1';
     if (s.mode === 'over') return 'bail1';
     if (s.mode === 'air') {

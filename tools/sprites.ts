@@ -2,8 +2,15 @@
 import zlib from 'node:zlib';
 import fs from 'node:fs';
 import { SKATERS } from '../src/core/skaters';
-import { FAKIE_FRAMES, FRAME, POSES, POSE_NAMES, SPIN_FRAMES, drawFakie, drawSkater, drawSpin } from '../src/game/art/skater';
+import { FAKIE_FRAMES, FRAME, OX, POSES, POSE_NAMES, SPIN_FRAMES, drawFakie, drawSkater, drawSpin } from '../src/game/art/skater';
 import { Pix } from '../src/game/art/pixel';
+
+/** Horizontal mirror about the sprite's foot line, the way the game flips a sprite. */
+export function mirror(src: Pix): Pix {
+  const out = new Pix(src.w, src.h);
+  for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) { const c = src.get(x, y); if (c !== -1) out.set(2 * OX - x, y, c); }
+  return out;
+}
 
 export function writePng(file: string, pix: Pix, scale = 1, bg = 0x6a6a7e): void {
   const w = pix.w * scale, h = pix.h * scale, raw = Buffer.alloc((w * 3 + 1) * h);
@@ -30,6 +37,8 @@ if (process.argv[1]?.includes('sprites')) {
     POSE_NAMES.forEach((n, i) => sheet.blit(drawSkater(sk, POSES[n]), (i % cols) * FRAME, (si * rowsPer + Math.floor(i / cols)) * FRAME));
     for (let i = 0; i < SPIN_FRAMES; i++) sheet.blit(drawSpin(sk, (i * 360) / SPIN_FRAMES), i * FRAME, (si * rowsPer + rowsPer - 2) * FRAME);
     for (let i = 0; i < FAKIE_FRAMES; i++) sheet.blit(drawFakie(sk, i), i * FRAME, (si * rowsPer + rowsPer - 1) * FRAME);
+    // fakie grind check: forward stance, then its fakie version as drawn in game (mirrored, head toward travel)
+    (['soul', 'royale'] as const).forEach((g, j) => { sheet.blit(mirror(drawSkater(sk, POSES[g], true)), (FAKIE_FRAMES + j * 2) * FRAME, (si * rowsPer + rowsPer - 1) * FRAME); sheet.blit(drawSkater(sk, POSES[g]), (FAKIE_FRAMES + j * 2 + 1) * FRAME, (si * rowsPer + rowsPer - 1) * FRAME); });
   });
   fs.mkdirSync(out.split('/').slice(0, -1).join('/') || '.', { recursive: true });
   writePng(out, sheet, scale);

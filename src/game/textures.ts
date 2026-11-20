@@ -83,7 +83,9 @@ function graffitiWall(): Pix {
   return pix;
 }
 
-export type SkaterFrame = PoseName | `spin${number}` | `fk${number}`;
+export type SkaterFrame = PoseName | `spin${number}` | `fk${number}` | `fg-${string}`;
+/** Grind stances, each of which also has a fakie version (`fg-<stance>`). */
+const GRIND_POSES: PoseName[] = ['frontside', 'soul', 'makio', 'mizou', 'royale', 'backslide', 'topsoul', 'fishbrain', 'unity'];
 /** Texture key for one skater frame, drawn the first time it is asked for. */
 export function skaterTex(scene: Phaser.Scene, id: string, frame: SkaterFrame): string {
   const key = `sk-${id}-${frame}`;
@@ -91,6 +93,7 @@ export function skaterTex(scene: Phaser.Scene, id: string, frame: SkaterFrame): 
     const sk = skaterById(id);
     pixTex(scene, key, frame.startsWith('spin') ? drawSpin(sk, (Number(frame.slice(4)) * 360) / SPIN_FRAMES)
       : frame.startsWith('fk') ? drawFakie(sk, Number(frame.slice(2)))
+      : frame.startsWith('fg-') ? drawSkater(sk, POSES[frame.slice(3) as PoseName], true)
       : drawSkater(sk, POSES[frame as PoseName]));
   }
   return key;
@@ -100,6 +103,7 @@ export function warmSkater(scene: Phaser.Scene, id: string): void {
   for (const n of POSE_NAMES) skaterTex(scene, id, n);
   for (let i = 0; i < SPIN_FRAMES; i++) skaterTex(scene, id, `spin${i}`);
   for (let i = 0; i < FAKIE_FRAMES; i++) skaterTex(scene, id, `fk${i}`);
+  for (const g of GRIND_POSES) skaterTex(scene, id, `fg-${g}`);
 }
 
 const featCache = new Map<number, { ox: number; oy: number }>();

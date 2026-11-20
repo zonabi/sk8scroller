@@ -129,8 +129,14 @@ function head(p: Pix, cx: number, cy: number, sk: SkaterDef): void {
   }
 }
 
-/** Render one pose of one skater into a FRAME×FRAME sprite. */
-export function drawSkater(sk: SkaterDef, pose: Pose): Pix {
+/**
+ * Render one pose of one skater into a FRAME×FRAME sprite.
+ * `lookBack` turns the head to look over the shoulder (three-quarter view toward the camera, facing
+ * behind the body): used for grinding fakie, where the sprite is then mirrored so the body faces
+ * back and the head faces the direction of travel.
+ */
+export function drawSkater(sk: SkaterDef, pose: Pose, lookBack = false): Pix {
+  if (lookBack) pose = { ...pose, lean: pose.lean - 5, head: (pose.head ?? 0) * 0.3 };   // a touch more upright, chest opened
   const p = new Pix(FRAME, FRAME), C = sk.colors;
   const top = ramp(C.top), pants = ramp(C.pants), skin = skinRamp(C.skin), boot = ramp(C.skate);
   const X = (x: number) => OX + x, Y = (y: number) => GY - y;
@@ -177,7 +183,7 @@ export function drawSkater(sk: SkaterDef, pose: Pose): Pix {
       const cx = hx + (sx - hx) * 0.62 + nx * t, cy = hy + (sy - hy) * 0.62 + ny * t; if (q.get(cx | 0, cy | 0) !== -1) q.set(cx, cy, C.hair);
     }
   });
-  p.part(q => head(q, Math.round(hcx), Math.round(hcy), sk));
+  p.part(q => (lookBack ? head3(q, Math.round(hcx) - 1, Math.round(hcy), sk, 222) : head(q, Math.round(hcx), Math.round(hcy), sk)));
   leg(pose.footF, false);
   arm(pose.handF, false);
   return p;
@@ -187,6 +193,48 @@ export function drawSkater(sk: SkaterDef, pose: Pose): Pix {
 export const SPIN_FRAMES = 8;
 
 type V = [number, number, number];
+/**
+ * A head seen from any angle (yaw as in Pose3). Features are placed by projecting their position
+ * on the head, so the same code gives a profile, a three-quarter view or the back of the head.
+ */
+function head3(q: Pix, hx: number, hy: number, sk: SkaterDef, hYaw: number): void {
+  const cy = Math.cos(rad(hYaw)), sy = Math.sin(rad(hYaw)), side = Math.abs(cy), look = sk.look.head;
+  const skin = skinRamp(sk.colors.skin), hair = ramp(sk.colors.hair);
+  const shade = (r: Ramp, z: number): Ramp => (z < -1.5 ? dim(r) : r);
+    const faceZ = -sy;                      // +1 facing camera, -1 facing away
+    const pt = (x: number, y: number, z: number): V => [hx + x * cy + z * sy, hy - y, -x * sy + z * cy];
+    if (look === 'puffs') for (const s of [-1, 1]) { const u = pt(-3, 7, 5 * s); q.disc(u[0], u[1], 4.4, 4.4, shade(hair, u[2])); }
+    if (look === 'mohawk') for (let i = 0; i < 5; i++) {
+      const u = pt(4 - i * 2.8, 5.5 - Math.abs(i - 1.5) * 0.9, 0);
+      q.poly([[u[0] - 1.8, u[1] + 1.5], [u[0] + 1.8, u[1] + 1.5], [u[0] - 0.8 * cy, u[1] - 5.5]], i % 2 ? hair[1] : hair[2]);
+    }
+    q.disc(hx, hy, 6.6, 7, skin);
+    // back of the head: hair or headwear wraps round
+    if (faceZ < -0.3 && look === 'puffs') for (let y = -7; y <= 2; y++) for (let x = -7; x <= 7; x++) { const nx = x / 6.6, ny = y / 7; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, x * -0.55 + y * -0.83 > 3 ? hair[2] : y > 0 ? hair[0] : hair[1]); }
+    // face features, each placed by projecting its position on the head
+    for (const s of [1, -1]) {
+      const e = pt(5.6, 1, 2.6 * s);
+      if (e[2] > 0.8) { const ex = Math.round(e[0]) - 1, ey = Math.round(e[1]) - 1; q.rect(ex, ey, 2, 2, 0xffffff); q.set(ex + (cy > 0.3 ? 1 : cy < -0.3 ? 0 : s > 0 ? 0 : 1), ey, INK); q.set(ex + (cy > 0.3 ? 1 : cy < -0.3 ? 0 : s > 0 ? 0 : 1), ey + 1, INK); q.rect(ex - 1, ey - 1, 4, 1, INK); }
+    }
+    const nose = pt(6.8, -1, 0), mouth = pt(5.6, -4, 0);
+    if (side > 0.4) { q.set(nose[0], nose[1], skin[1]); q.set(nose[0] + Math.sign(cy), nose[1], skin[2]); }
+    else if (faceZ > 0) q.rect(hx, hy + 1, 1, 2, skin[0]);
+    if (mouth[2] > -1.5 || side > 0.6) q.rect(Math.round(mouth[0]) - 1, mouth[1], 3, 1, mix(skin[0], INK, 0.5));
+    if (side > 0.5) { const ear = pt(-2, -1, 0); q.rect(Math.round(ear[0]) - 1, ear[1], 2, 3, skin[0]); }
+    // headwear
+    if (look === 'beanie') {
+      for (let y = -8; y <= -2; y++) for (let x = -7; x <= 7; x++) { const nx = x / 7, ny = (y + 1) / 7.6; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, y >= -3 ? hair[0] : nx * -0.55 + ny * -0.83 > 0.5 ? hair[2] : hair[1]); }
+      q.rect(hx - 6, hy - 3, 13, 1, hair[2]); q.disc(hx - cy, hy - 9.5, 2, 2, hair);
+    } else if (look === 'cap') {
+      for (let y = -8; y <= -3; y++) for (let x = -7; x <= 6; x++) { const nx = x / 7, ny = y / 7.6; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, nx * -0.55 + ny * -0.83 > 0.55 ? hair[2] : hair[1]); }
+      const b = pt(-11, 1.5, 0);                                                    // brim, worn backwards
+      if (side > 0.4) q.poly([[hx - 6 * cy, hy - 4], [b[0], hy - 2], [b[0], hy - 0.5], [hx - 6 * cy, hy - 2]], hair[0]);
+      else if (faceZ < 0) q.rect(hx - 5, hy - 3, 10, 3, hair[0]);
+    } else if (look === 'puffs' && faceZ > -0.3) {
+      for (let x = -6; x <= 6; x++) for (let y = -7; y <= -5; y++) { const nx = x / 6.6, ny = y / 7; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, hair[1]); }
+    }
+}
+
 /**
  * A pose in 3D for views the side-on rig can't do: turnarounds, and rolling fakie where the hips
  * face one way and the head looks back the other. Coordinates are body-local: x forward (the way
@@ -230,7 +278,7 @@ export function drawFakie(sk: SkaterDef, frame: number): Pix {
 export function drawPose3(sk: SkaterDef, P: Pose3): Pix {
   const yawDeg = P.yaw, tYaw = P.torsoYaw ?? P.yaw, hYaw = P.headYaw ?? tYaw;
   const p = new Pix(FRAME, FRAME), C = sk.colors, cy = Math.cos(rad(yawDeg)), sy = Math.sin(rad(yawDeg));
-  const top = ramp(C.top), pants = ramp(C.pants), skin = skinRamp(C.skin), boot = ramp(C.skate), hair = ramp(C.hair);
+  const top = ramp(C.top), pants = ramp(C.pants), skin = skinRamp(C.skin), boot = ramp(C.skate);
   /** model (x fwd, y up, z toward camera) → [screen x, screen y, depth] */
   const R = (v: V): V => [OX + v[0] * cy + v[2] * sy, GY - v[1], -v[0] * sy + v[2] * cy];
   // the torso can be twisted relative to the hips: rotate about the chest instead
@@ -274,43 +322,7 @@ export function drawPose3(sk: SkaterDef, P: Pose3): Pix {
     }) });
   }
 
-  parts.push({ z: 0.5, draw: () => p.part(q => {
-    // the head has its own yaw; inside this block cy/sy/side mean the HEAD's
-    const cy = Math.cos(rad(hYaw)), sy = Math.sin(rad(hYaw)), side = Math.abs(cy);
-    const hx = Math.round(hd[0]), hy = Math.round(hd[1]), look = sk.look.head;
-    const faceZ = -sy;                      // +1 facing camera, -1 facing away
-    const pt = (x: number, y: number, z: number): V => [hx + x * cy + z * sy, hy - y, -x * sy + z * cy];
-    if (look === 'puffs') for (const s of [-1, 1]) { const u = pt(-3, 7, 5 * s); q.disc(u[0], u[1], 4.4, 4.4, shade(hair, u[2])); }
-    if (look === 'mohawk') for (let i = 0; i < 5; i++) {
-      const u = pt(4 - i * 2.8, 5.5 - Math.abs(i - 1.5) * 0.9, 0);
-      q.poly([[u[0] - 1.8, u[1] + 1.5], [u[0] + 1.8, u[1] + 1.5], [u[0] - 0.8 * cy, u[1] - 5.5]], i % 2 ? hair[1] : hair[2]);
-    }
-    q.disc(hx, hy, 6.6, 7, skin);
-    // back of the head: hair or headwear wraps round
-    if (faceZ < -0.3 && look === 'puffs') for (let y = -7; y <= 2; y++) for (let x = -7; x <= 7; x++) { const nx = x / 6.6, ny = y / 7; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, x * -0.55 + y * -0.83 > 3 ? hair[2] : y > 0 ? hair[0] : hair[1]); }
-    // face features, each placed by projecting its position on the head
-    for (const s of [1, -1]) {
-      const e = pt(5.6, 1, 2.6 * s);
-      if (e[2] > 0.8) { const ex = Math.round(e[0]) - 1, ey = Math.round(e[1]) - 1; q.rect(ex, ey, 2, 2, 0xffffff); q.set(ex + (cy > 0.3 ? 1 : cy < -0.3 ? 0 : s > 0 ? 0 : 1), ey, INK); q.set(ex + (cy > 0.3 ? 1 : cy < -0.3 ? 0 : s > 0 ? 0 : 1), ey + 1, INK); q.rect(ex - 1, ey - 1, 4, 1, INK); }
-    }
-    const nose = pt(6.8, -1, 0), mouth = pt(5.6, -4, 0);
-    if (side > 0.4) { q.set(nose[0], nose[1], skin[1]); q.set(nose[0] + Math.sign(cy), nose[1], skin[2]); }
-    else if (faceZ > 0) q.rect(hx, hy + 1, 1, 2, skin[0]);
-    if (mouth[2] > -1.5 || side > 0.6) q.rect(Math.round(mouth[0]) - 1, mouth[1], 3, 1, mix(skin[0], INK, 0.5));
-    if (side > 0.5) { const ear = pt(-2, -1, 0); q.rect(Math.round(ear[0]) - 1, ear[1], 2, 3, skin[0]); }
-    // headwear
-    if (look === 'beanie') {
-      for (let y = -8; y <= -2; y++) for (let x = -7; x <= 7; x++) { const nx = x / 7, ny = (y + 1) / 7.6; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, y >= -3 ? hair[0] : nx * -0.55 + ny * -0.83 > 0.5 ? hair[2] : hair[1]); }
-      q.rect(hx - 6, hy - 3, 13, 1, hair[2]); q.disc(hx - cy, hy - 9.5, 2, 2, hair);
-    } else if (look === 'cap') {
-      for (let y = -8; y <= -3; y++) for (let x = -7; x <= 6; x++) { const nx = x / 7, ny = y / 7.6; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, nx * -0.55 + ny * -0.83 > 0.55 ? hair[2] : hair[1]); }
-      const b = pt(-11, 1.5, 0);                                                    // brim, worn backwards
-      if (side > 0.4) q.poly([[hx - 6 * cy, hy - 4], [b[0], hy - 2], [b[0], hy - 0.5], [hx - 6 * cy, hy - 2]], hair[0]);
-      else if (faceZ < 0) q.rect(hx - 5, hy - 3, 10, 3, hair[0]);
-    } else if (look === 'puffs' && faceZ > -0.3) {
-      for (let x = -6; x <= 6; x++) for (let y = -7; y <= -5; y++) { const nx = x / 6.6, ny = y / 7; if (nx * nx + ny * ny <= 1) q.set(hx + x, hy + y, hair[1]); }
-    }
-  }) });
+  parts.push({ z: 0.5, draw: () => p.part(q => head3(q, Math.round(hd[0]), Math.round(hd[1]), sk, hYaw)) });
 
   parts.sort((a, b) => a.z - b.z).forEach(pt => pt.draw());
   return p;
