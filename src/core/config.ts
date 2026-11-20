@@ -54,6 +54,8 @@ const DEF = {
   trickBufferMs: 150,       // a swipe made while a trick is finishing fires as soon as it ends, if it ends within this
   coyoteMs: 110,            // you can still jump this long after a rail runs out under you
   allSlotsFromStart: 1,     // every swipe direction has a trick from level 1
+  // P-07 trick pressed just before take-off
+  preJumpMs: 140,           // a swipe on the ground this close before a jump fires as the jump leaves
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -64,7 +66,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -77,6 +79,7 @@ export interface Knob {
 }
 /** Panel layout. Groups are change IDs (newest work first) then base feel. */
 export const KNOBS: Knob[] = [
+  { key: 'preJumpMs', group: 'P-07 Trick just before take-off', label: 'Swipe-before-jump window (ms)', kind: 'slider', min: 0, max: 300, step: 10, hint: 'A trick swipe on the ground this close before you jump fires as you leave. 0 = off' },
   { key: 'trickBufferMs', group: 'P-04 Inputs that did nothing', label: 'Trick queue window (ms)', kind: 'slider', min: 0, max: 400, step: 10, hint: 'Swipe while a trick is finishing: it fires when the first one ends. 0 = off' },
   { key: 'coyoteMs', group: 'P-04 Inputs that did nothing', label: 'Late jump off a rail end (ms)', kind: 'slider', min: 0, max: 300, step: 10 },
   { key: 'allSlotsFromStart', group: 'P-04 Inputs that did nothing', label: 'A trick in every direction from level 1', kind: 'toggle' },

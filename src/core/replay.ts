@@ -90,6 +90,7 @@ function analyseNow(rec: Recording): Analysis {
   };
   const bump = (k: string) => { a.counts[k] = (a.counts[k] ?? 0) + 1; };
   const pendingJumps: { step: number; t: number; why: string }[] = [];
+  const groundSwipes: { step: number; t: number; dir: Dir }[] = [];
   let step = 0, leftGroundAt = -1, airByJump = false, grind: Analysis['grinds'][number] | null = null, lastBalIn = 0, balInSteps = 0;
 
   for (const input of inputsOf(rec)) {
@@ -98,7 +99,7 @@ function analyseNow(rec: Recording): Analysis {
     if (before === 'grind') { balInSteps++; if (Math.abs(input.balance) > 0.05) lastBalIn++; }
 
     // inputs that did nothing — the raw material for "it didn't respond"
-    if (input.jumpPressed && before !== 'ground' && before !== 'grind') {
+    if (input.jumpPressed && before !== 'ground' && before !== 'grind' && !(before === 'air' && s.coyote > 0)) {
       const sinceLeft = step - leftGroundAt;
       const why = before === 'bail' ? 'during a bail'
         : !airByJump && sinceLeft <= 12 ? `${ms(sinceLeft)} ms after rolling off an edge (coyote time would catch ≤ ~100 ms)`
@@ -107,7 +108,7 @@ function analyseNow(rec: Recording): Analysis {
     }
     if (input.trick) {
       let why = '';
-      if (before === 'ground') why = 'on the ground (tricks only work in the air or on a rail)';
+      if (before === 'ground') { if (CFG.preJumpMs > 0) groundSwipes.push({ step, t, dir: input.trick }); else why = 'on the ground (tricks only work in the air or on a rail)'; }
       else if (before === 'air' && hadTrick) { if (s.airTrick!.timeLeft * 1000 > CFG.trickBufferMs + 17) why = `while ${TRICKS[s.airTrick!.id].name} was still going (${Math.round(s.airTrick!.timeLeft * 1000)} ms left${CFG.trickBufferMs ? ', beyond the queue window' : ''})`; }
       else if (before === 'air' && !trickForSlot('air', input.trick, rec.playerLevel)) why = `no air trick unlocked for swipe ${input.trick} at level ${rec.playerLevel}`;
       else if (before === 'grind' && !trickForSlot('grind', input.trick, rec.playerLevel)) why = `no grind unlocked for swipe ${input.trick} at level ${rec.playerLevel}`;
@@ -120,6 +121,15 @@ function analyseNow(rec: Recording): Analysis {
     const events: SimEvent[] = sim.step(input);
     step++;
 
+    // ground swipes: fine if a take-off followed inside the window, otherwise they did nothing
+    if (groundSwipes.length) {
+      const took = events.some(e => e.type === 'jump' || e.type === 'launch');
+      for (let i = groundSwipes.length - 1; i >= 0; i--) {
+        const g = groundSwipes[i], age = (step - 1 - g.step) * CFG.dt * 1000;
+        if (took && age <= CFG.preJumpMs) groundSwipes.splice(i, 1);
+        else if (age > CFG.preJumpMs) { a.ignoredTricks.push({ t: g.t, kind: `swipe ${g.dir}`, detail: 'on the ground, no jump followed in time' }); bump('ignored trick swipes'); groundSwipes.splice(i, 1); }
+      }
+    }
     for (const e of events) {
       bump(e.type);
       const tag = 'trickId' in e ? TRICKS[e.trickId].name : e.type === 'bank' ? `+${e.points} (${e.count} tricks)` : e.type === 'bail' ? e.reason : '';

@@ -42,6 +42,8 @@ export interface SimState {
   queuedDir: Dir | null; queuedAge: number;
   /** Seconds left in which a jump still works after a rail ran out (P-04). */
   coyote: number;
+  /** Last trick swipe made on the ground and its age in seconds (P-07). */
+  groundSwipe: Dir | null; groundSwipeAge: number;
   combo: ComboEntry[]; comboTimer: number;
   score: number; bestCombo: number;
   lives: number; invuln: number; bailTimer: number;
@@ -87,7 +89,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedAge: 0, coyote: 0,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -124,6 +126,7 @@ export class Sim {
       case 'ground': {
         s.speed += (this.targetSpeed - s.speed) * Math.min(1, CFG.accel * dt);
         s.x += s.speed * dt;
+        if (CFG.preJumpMs > 0) { if (input.trick) { s.groundSwipe = input.trick; s.groundSwipeAge = 0; } else s.groundSwipeAge += dt; }
         const k = this.level.kickerAt(prevX);
         if (k && s.x >= k.x + k.w) {
           s.y = k.h; s.vy = CFG.kickerV * this.skater.air; s.mode = 'air';
@@ -131,6 +134,11 @@ export class Sim {
         } else {
           s.y = this.level.groundY(s.x);
           if (input.jumpPressed) { s.vy = CFG.jumpV * this.skater.air; s.mode = 'air'; ev.push({ type: 'jump' }); }
+        }
+        // P-07: a swipe made a moment before leaving the ground was meant for the air
+        if (s.mode === 'air' && s.groundSwipe) {
+          if (s.groundSwipeAge * 1000 <= CFG.preJumpMs) this.startAirTrick(s.groundSwipe, ev);
+          s.groundSwipe = null;
         }
         if (s.mode === 'ground' && s.combo.length) {
           s.comboTimer -= dt;
@@ -188,7 +196,7 @@ export class Sim {
             s.y = gy; s.vy = 0;
             this.graceLand(ev);
             if (s.airTrick) { this.bail('sketchy', ev); return ev; }
-            s.mode = 'ground'; s.comboTimer = CFG.comboGrace; this.clearAir();
+            s.mode = 'ground'; s.comboTimer = CFG.comboGrace; this.clearAir(); s.groundSwipe = null;
             ev.push({ type: 'land' });
           }
         }

@@ -167,6 +167,24 @@ describe('P-04 inputs that did nothing', () => {
   });
 });
 
+describe('P-07 trick just before take-off', () => {
+  it('a swipe 100 ms before jumping fires as the jump leaves', () => {
+    const sim = mk(1, 1);
+    for (let i = 0; i < 10; i++) sim.step(press({}));
+    sim.step(press({ trick: 'left' }));
+    for (let i = 0; i < 5; i++) sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    expect(sim.s.airTrick?.id).toBe('spin180');
+  });
+  it('a swipe 400 ms before jumping does not', () => {
+    const sim = mk(1, 1);
+    sim.step(press({ trick: 'left' }));
+    for (let i = 0; i < 24; i++) sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    expect(sim.s.airTrick).toBeNull();
+  });
+});
+
 describe('recording', () => {
   it('replays a recorded run exactly and survives a JSON round trip', () => {
     const sim = new Sim({ seed: 9, skater: SKATERS[1], playerLevel: 4 });
