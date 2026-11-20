@@ -16,14 +16,16 @@ export interface Input {
   balance: number;
   /** Push for a burst of speed (ground only). */
   push: boolean;
+  /** Turn round: forward ⇄ fakie (ground only). */
+  turn: boolean;
 }
-export const NO_INPUT: Input = { jumpPressed: false, jumpHeld: false, trick: null, balance: 0, push: false };
+export const NO_INPUT: Input = { jumpPressed: false, jumpHeld: false, trick: null, balance: 0, push: false, turn: false };
 
 export interface ComboEntry { trickId: string; name: string; points: number }
 export type SimEvent =
-  | { type: 'jump' } | { type: 'launch' } | { type: 'land' } | { type: 'push' }
-  | { type: 'grindStart'; trickId: string } | { type: 'switchUp'; trickId: string }
-  | { type: 'airTrickStart'; trickId: string } | { type: 'airTrickDone'; trickId: string }
+  | { type: 'jump' } | { type: 'launch' } | { type: 'land' } | { type: 'push' } | { type: 'turn'; fakie: boolean }
+  | { type: 'grindStart'; trickId: string; fakie?: boolean } | { type: 'switchUp'; trickId: string; fakie?: boolean }
+  | { type: 'airTrickStart'; trickId: string } | { type: 'airTrickDone'; trickId: string; fakie?: boolean }
   | { type: 'bank'; points: number; count: number }
   | { type: 'bail'; reason: 'obstacle' | 'balance' | 'sketchy' }
   | { type: 'over' };
@@ -35,7 +37,7 @@ export interface SimState {
   /** Seconds in the current stance (resets on lock-on and on every switch-up). */
   stanceTime: number;
   balance: number; balanceVel: number;
-  airTrick: { id: string; timeLeft: number; dir: Dir; age: number } | null;
+  airTrick: { id: string; timeLeft: number; dir: Dir; age: number; fakie: boolean } | null;
   /** Most recent trick swipe made in the air and how long ago (seconds); cleared on touchdown. */
   swipeDir: Dir | null; swipeAge: number;
   /** Direction of the last air trick completed during this airtime. */
@@ -48,6 +50,10 @@ export interface SimState {
   groundSwipe: Dir | null; groundSwipeAge: number;
   /** Seconds of push boost left, and seconds until the next push is allowed (P-05). */
   pushT: number; pushCd: number;
+  /** Rolling backwards (still travelling right). grindFakie = stance when the current grind was locked (P-06). */
+  fakie: boolean; grindFakie: boolean; turnCd: number;
+  /** Seconds since the last turn, for undoing one that was really a pre-jump swipe. */
+  turnAge: number;
   combo: ComboEntry[]; comboTimer: number;
   score: number; bestCombo: number;
   lives: number; invuln: number; bailTimer: number;
@@ -93,7 +99,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0, fakie: false, grindFakie: false, turnCd: 0, turnAge: 99,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -114,6 +120,7 @@ export class Sim {
     if (s.invuln > 0) s.invuln -= dt;
     if (s.pushT > 0) s.pushT -= dt;
     if (s.pushCd > 0) s.pushCd -= dt;
+    if (s.turnCd > 0) s.turnCd -= dt;
     const prevX = s.x, prevY = s.y;
 
     switch (s.mode) {
@@ -135,6 +142,9 @@ export class Sim {
         if (s.pushT > 0) s.speed += (this.targetSpeed * (1 + CFG.pushBoost) - s.speed) * Math.min(1, CFG.accel * 3 * dt);
         else s.speed += (this.targetSpeed - s.speed) * Math.min(1, CFG.accel * dt);
         s.x += s.speed * dt;
+        // P-06: turn round. Remember when, so a swipe that turns out to be a pre-jump trick can undo it.
+        s.turnAge += dt;
+        if (input.turn && CFG.fakieEnabled && s.turnCd <= 0) { s.fakie = !s.fakie; s.turnCd = 0.3; s.turnAge = 0; ev.push({ type: 'turn', fakie: s.fakie }); }
         if (CFG.preJumpMs > 0) { if (input.trick) { s.groundSwipe = input.trick; s.groundSwipeAge = 0; } else s.groundSwipeAge += dt; }
         const k = this.level.kickerAt(prevX);
         if (k && s.x >= k.x + k.w) {
@@ -146,7 +156,11 @@ export class Sim {
         }
         // P-07: a swipe made a moment before leaving the ground was meant for the air
         if (s.mode === 'air' && s.groundSwipe) {
-          if (s.groundSwipeAge * 1000 <= CFG.preJumpMs) this.startAirTrick(s.groundSwipe, ev);
+          if (s.groundSwipeAge * 1000 <= CFG.preJumpMs) {
+            // the same swipe may have turned us round a moment ago; it was meant as a trick, so turn back
+            if (s.turnAge <= s.groundSwipeAge + 1e-9 && s.turnAge * 1000 <= CFG.preJumpMs) { s.fakie = !s.fakie; s.turnCd = 0; }
+            this.startAirTrick(s.groundSwipe, ev);
+          }
           s.groundSwipe = null;
         }
         if (s.mode === 'ground' && s.combo.length) {
@@ -222,7 +236,8 @@ export class Sim {
         s.y = railY(f, s.x);
         // P-01: only part of a stance's difficulty speeds up the lean (EASIEST is the baseline stance)
         const hard = CFG.stanceHardness === 1 ? tr.difficulty : EASIEST + (tr.difficulty - EASIEST) * CFG.stanceHardness;
-        const k = (CFG.balanceInstability * hard * (1 + s.grindTime * CFG.balanceTimeRamp)) / this.skater.balance;
+        const k0 = (CFG.balanceInstability * hard * (1 + s.grindTime * CFG.balanceTimeRamp)) / this.skater.balance;
+        const k = s.grindFakie ? k0 * (1 + CFG.fakieBalance) : k0;   // P-06: fakie is a little less stable
         const noise = (this.rng.next() * 2 - 1) * CFG.balanceNoise * tr.difficulty;
         // P-01: steering scales with the stance so hard stances stay saveable; a fresh stance is calm for a moment
         const control = Math.max(CFG.balanceControl, (CFG.balanceControlScale * CFG.balanceInstability * hard) / this.skater.balance);
@@ -230,16 +245,16 @@ export class Sim {
         s.balanceVel += ((k * s.balance + noise) * settle + clamp(input.balance, -1, 1) * control) * dt;
         s.balanceVel *= 1 - CFG.balanceDamp * dt;
         s.balance += s.balanceVel * dt;
-        s.combo[s.combo.length - 1].points += tr.points * CFG.grindPointsRate * dt;
+        s.combo[s.combo.length - 1].points += tr.points * CFG.grindPointsRate * dt * this.fk(s.grindFakie);
         if (Math.abs(s.balance) > 1) { this.bail('balance', ev); return ev; }
         if (input.trick) {
           const nt = trickForSlot('grind', input.trick, this.playerLevel);
           if (nt && nt.id !== s.grindTrick) {
             s.grindTrick = nt.id;
-            s.combo.push({ trickId: nt.id, name: nt.name, points: nt.points });
+            s.combo.push(this.entry(nt, s.grindFakie, 1));
             s.balanceVel += (this.rng.next() < 0.5 ? -1 : 1) * CFG.switchUpKick * nt.difficulty; // switch-ups wobble you
             s.stanceTime = 0;
-            ev.push({ type: 'switchUp', trickId: nt.id });
+            ev.push({ type: 'switchUp', trickId: nt.id, fakie: s.grindFakie });
           }
         }
         if (input.jumpPressed) {
@@ -264,14 +279,21 @@ export class Sim {
     return ev;
   }
 
+  /** P-06: fakie tricks are named, scored and counted separately from their forward versions. */
+  private fk(fakie: boolean): number { return fakie ? 1 + CFG.fakieBonus : 1; }
+  private entry(tr: { id: string; name: string; points: number }, fakie: boolean, scale: number): ComboEntry {
+    return fakie ? { trickId: `fakie-${tr.id}`, name: `Fakie ${tr.name}`, points: tr.points * scale * this.fk(true) } : { trickId: tr.id, name: tr.name, points: tr.points * scale };
+  }
   private startAirTrick(dir: Dir, ev: SimEvent[]): void {
     const tr = trickForSlot('air', dir, this.playerLevel);
-    if (tr) { this.s.airTrick = { id: tr.id, timeLeft: tr.duration, dir, age: 0 }; ev.push({ type: 'airTrickStart', trickId: tr.id }); }
+    if (tr) { this.s.airTrick = { id: tr.id, timeLeft: tr.duration, dir, age: 0, fakie: this.s.fakie }; ev.push({ type: 'airTrickStart', trickId: tr.id }); }
   }
   private completeAirTrick(ev: SimEvent[]): void {
     const s = this.s, tr = TRICKS[s.airTrick!.id];
-    s.combo.push({ trickId: tr.id, name: tr.name, points: tr.points });
-    ev.push({ type: 'airTrickDone', trickId: tr.id });
+    s.combo.push(this.entry(tr, s.airTrick!.fakie, 1));
+    ev.push({ type: 'airTrickDone', trickId: tr.id, fakie: s.airTrick!.fakie });
+    // P-06: half-turns leave you facing the other way (180, 540 — not 360)
+    if (CFG.fakieEnabled && tr.id.startsWith('spin') && (Number(tr.id.slice(4)) / 180) % 2 === 1) s.fakie = !s.fakie;
     s.doneDir = s.airTrick!.dir;
     s.airTrick = null;
   }
@@ -287,8 +309,9 @@ export class Sim {
     this.clearAir();
     s.mode = 'grind'; s.grind = f; s.grindTrick = tr.id; s.grindTime = 0; s.stanceTime = 0; s.vy = 0;
     s.balance = (this.rng.next() * 2 - 1) * 0.15; s.balanceVel = 0;
-    s.combo.push({ trickId: tr.id, name: tr.name, points: tr.points * 0.5 });
-    ev.push({ type: 'grindStart', trickId: tr.id });
+    s.grindFakie = s.fakie;
+    s.combo.push(this.entry(tr, s.grindFakie, 0.5));
+    ev.push({ type: 'grindStart', trickId: tr.id, fakie: s.grindFakie });
   }
 
   private bank(ev: SimEvent[]): void {
@@ -303,7 +326,7 @@ export class Sim {
     const s = this.s;
     s.mode = 'bail'; s.combo = []; s.airTrick = null; s.grind = null; s.grindTrick = null; this.clearAir();
     s.lives -= 1; s.bailTimer = CFG.bailTime; s.invuln = CFG.bailTime + CFG.invulnTime;
-    s.speed *= CFG.bailSpeedFactor; s.vy = 0; s.pushT = 0;
+    s.speed *= CFG.bailSpeedFactor; s.vy = 0; s.pushT = 0; s.fakie = false;
     ev.push({ type: 'bail', reason });
   }
 }

@@ -205,6 +205,49 @@ describe('P-05 push', () => {
   });
 });
 
+describe('P-06 fakie', () => {
+  const air = (sim: Sim) => { sim.step(press({ jumpPressed: true })); };
+  const land = (sim: Sim) => { while (sim.s.mode === 'air') sim.step(press({})); };
+  it('turning round toggles fakie on the ground', () => {
+    const sim = mk(1, 1);
+    expect(sim.step(press({ turn: true })).some(e => e.type === 'turn')).toBe(true);
+    expect(sim.s.fakie).toBe(true);
+    for (let i = 0; i < 30; i++) sim.step(press({}));
+    sim.step(press({ turn: true }));
+    expect(sim.s.fakie).toBe(false);
+  });
+  it('a 180 leaves you fakie, a 360 does not', () => {
+    const a = mk(1, 1); air(a); a.step(press({ trick: 'left' })); land(a);
+    expect(a.s.fakie).toBe(true);
+    const b = mk(1, 2); air(b); b.step(press({ trick: 'left' })); land(b);       // level 2: left is the 360
+    expect(b.s.combo.map(c => c.trickId)).toEqual(['spin360']);
+    expect(b.s.fakie).toBe(false);
+  });
+  it('fakie tricks are named and scored separately', () => {
+    const sim = mk(1, 1);
+    sim.step(press({ turn: true }));
+    for (let i = 0; i < 30; i++) sim.step(press({}));
+    air(sim); sim.step(press({ trick: 'up' })); land(sim);
+    expect(sim.s.combo[0]).toEqual({ trickId: 'fakie-mute', name: 'Fakie Mute Grab', points: 150 * 1.25 });
+  });
+  it('a left swipe that turns you, then an immediate jump, is a trick — the turn is undone', () => {
+    const sim = mk(1, 2);
+    sim.step(press({ trick: 'left', turn: true }));
+    for (let i = 0; i < 3; i++) sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    expect(sim.s.airTrick?.id).toBe('spin360');
+    expect(sim.s.airTrick?.fakie).toBe(false);
+    expect(sim.s.fakie).toBe(false);
+  });
+  it('a bail puts you back to forward', () => {
+    const sim = mk(1, 1);
+    sim.step(press({ turn: true }));
+    sim.level.add('barrier', sim.s.x + 60, 12, 22);
+    for (let i = 0; i < 60; i++) sim.step(press({}));
+    expect(sim.s.fakie).toBe(false);
+  });
+});
+
 describe('recording', () => {
   it('replays a recorded run exactly and survives a JSON round trip', () => {
     const sim = new Sim({ seed: 9, skater: SKATERS[1], playerLevel: 4 });

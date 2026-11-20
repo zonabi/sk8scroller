@@ -28,9 +28,9 @@ export interface Recording {
 }
 
 const DIRS: (Dir | null)[] = [null, 'up', 'down', 'left', 'right'];
-// bit layout: 1 jumpPressed · 2 jumpHeld · 4-16 trick · 32 push  (new bits must be added above the old ones so old recordings still decode)
-const pack = (i: Input): number => (i.jumpPressed ? 1 : 0) | (i.jumpHeld ? 2 : 0) | (DIRS.indexOf(i.trick) << 2) | (i.push ? 32 : 0);
-const unpack = (flags: number, bal: number): Input => ({ jumpPressed: !!(flags & 1), jumpHeld: !!(flags & 2), trick: DIRS[(flags >> 2) & 7], balance: bal / 100, push: !!(flags & 32) });
+// bit layout: 1 jumpPressed · 2 jumpHeld · 4-16 trick · 32 push · 64 turn  (new bits must be added above the old ones so old recordings still decode)
+const pack = (i: Input): number => (i.jumpPressed ? 1 : 0) | (i.jumpHeld ? 2 : 0) | (DIRS.indexOf(i.trick) << 2) | (i.push ? 32 : 0) | (i.turn ? 64 : 0);
+const unpack = (flags: number, bal: number): Input => ({ jumpPressed: !!(flags & 1), jumpHeld: !!(flags & 2), trick: DIRS[(flags >> 2) & 7], balance: bal / 100, push: !!(flags & 32), turn: !!(flags & 64) });
 
 export class Recorder {
   private steps: number[] = [];
@@ -133,7 +133,7 @@ function analyseNow(rec: Recording): Analysis {
     }
     for (const e of events) {
       bump(e.type);
-      const tag = 'trickId' in e ? TRICKS[e.trickId].name : e.type === 'bank' ? `+${e.points} (${e.count} tricks)` : e.type === 'bail' ? e.reason : '';
+      const tag = 'trickId' in e ? ('fakie' in e && e.fakie ? 'Fakie ' : '') + TRICKS[e.trickId].name : e.type === 'turn' ? (e.fakie ? 'to fakie' : 'to forward') : e.type === 'bank' ? `+${e.points} (${e.count} tricks)` : e.type === 'bail' ? e.reason : '';
       a.log.push({ t: s.t, kind: e.type, detail: tag });
       if (e.type === 'jump' || e.type === 'launch') { airByJump = true; }
       if (e.type === 'land') {

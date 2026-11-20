@@ -60,6 +60,9 @@ Skate anatomy that the names depend on: the **soul plate** (flat sole edge of th
 - **Stalls** — pausing on coping or a ledge (soul stall, royale stall, backslide stall). Needs quarter pipes.
 - **Wallride**, **gap** (clearing a named distance), **disaster** (jumping a gap onto the grind), **stair bash**.
 
+## Fakie (✅ P-06)
+Rolling backwards while still travelling the same way. In the game every trick has a fakie version: turn round on the ground, or land a 180/540. Real-world naming is richer than a prefix (fakie approach vs. landing fakie, switch, alley-oop and truespin entries); those are the next layer if the simple version earns its place.
+
 ## Slot design
 Each swipe direction is a slot, separately for air and grind. Today the best unlocked trick fills the slot:
 

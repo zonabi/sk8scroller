@@ -47,6 +47,7 @@ export const ONE_SHOTS = {
   jump: (c, o, t) => { hiss(c, o, t, 'highpass', 1800, 4000, 0.7, 0.07, 0.22); tone(c, o, t, 'triangle', 190, 430, 0.09, 0.28); },
   launch: (c, o, t) => { hiss(c, o, t, 'bandpass', 350, 2400, 1.2, 0.32, 0.8); tone(c, o, t, 'triangle', 140, 520, 0.2, 0.22); },
   push: (c, o, t) => { hiss(c, o, t, 'bandpass', 500, 1400, 1.2, 0.2, 0.7); tone(c, o, t, 'sine', 120, 70, 0.1, 0.35); },
+  turn: (c, o, t) => { hiss(c, o, t, 'bandpass', 1800, 900, 2, 0.14, 0.7); },
   land: (c, o, t) => { tone(c, o, t, 'sine', 150, 52, 0.14, 0.7); hiss(c, o, t, 'lowpass', 1400, 300, 0.7, 0.09, 0.35); },
   grindStart: (c, o, t) => {                          // skate locks onto steel: clank + ring
     hiss(c, o, t, 'bandpass', 3000, 2200, 3, 0.06, 0.5);
@@ -120,6 +121,7 @@ class Sfx {
       case 'launch': this.play('launch'); break;
       case 'land': this.play('land'); break;
       case 'push': this.play('push'); break;
+      case 'turn': this.play('turn'); break;
       case 'grindStart': this.play('grindStart'); break;
       case 'switchUp': this.play('switchUp'); break;
       case 'airTrickStart': this.play('airTrick'); break;

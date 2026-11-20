@@ -92,8 +92,8 @@ export class MenuScene extends Phaser.Scene {
       g.fillStyle(0xf6e7a1, 0.95).fillRect(-t.textWidth / 2 - 1, -11, t.textWidth, 20);
     };
     tape(AW / 2 - 150, 318, 'LEFT THUMB  jump · hold = higher\non rails: drag to balance, tap to hop off', -1.5);
-    tape(AW / 2 + 150, 318, 'RIGHT THUMB  swipe = tricks · tap on the ground = push\non rails: swipe to switch up', 1.5);
-    graf(this, AW / 2, 348, 'keys: SPACE jump · WASD tricks · ← → balance on rails · → push · M mute', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
+    tape(AW / 2 + 150, 318, 'RIGHT THUMB  swipe = tricks · on rails: swipe to switch up\non the ground: tap = push · swipe left = turn fakie', 1.5);
+    graf(this, AW / 2, 348, 'keys: SPACE jump · WASD tricks · ← → balance on rails · on the ground → push, ← fakie · M mute', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
 
     const sound = graf(this, AW - 10, 44, '', { size: 9, fill: PAL.yellow }).setOrigin(1, 0);
     const showSound = () => sound.setText(`sound: ${this.save.mute ? 'off' : 'ON'}`);

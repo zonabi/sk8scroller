@@ -9,14 +9,15 @@ const SWIPE_PX = 16, TAP_MS = 220, BALANCE_PX = 38; // art units (640 wide)
  * Turns touch / keyboard / tilt into core `Input`.
  *   Left thumb  = body:   press to jump (hold = higher). While grinding: hold + drag sideways
  *                         to balance, quick tap to jump off.
- *   Right thumb = tricks: swipe a direction (tap = up). On the ground a tap is a push.
- *   Keyboard: SPACE jump, WASD tricks, ←/→ balance; on the ground → pushes.
+ *   Right thumb = tricks: swipe a direction (tap = up). On the ground a tap is a push and a left swipe turns you round (fakie).
+ *   Keyboard: SPACE jump, WASD tricks, ←/→ balance; on the ground → pushes and ← turns you round.
  */
 export class InputController {
   private jumpQueued = false;
   private jumpHeld = false;
   private trickQueued: Dir | null = null;
   private pushQueued = false;
+  private turnQueued = false;
   private touchBalance = 0;
   private tilt = 0;
   private left: { id: number; x: number; t: number; moved: boolean } | null = null;
@@ -41,6 +42,7 @@ export class InputController {
       const jump = () => { this.jumpQueued = true; };
       // arrows steer balance on a rail; on the ground → is a push
       this.keys.RIGHT.on('down', () => { if (this.getMode() === 'ground') this.pushQueued = true; });
+      this.keys.LEFT.on('down', () => { if (this.getMode() === 'ground') this.turnQueued = true; });
       this.keys.SPACE.on('down', jump); this.keys.UP.on('down', jump);
     }
     if (tilt) window.addEventListener('deviceorientation', this.onOrient);
@@ -73,6 +75,8 @@ export class InputController {
       const dx = p.worldX - this.right.x, dy = p.worldY - this.right.y;
       if (Math.hypot(dx, dy) > SWIPE_PX) {
         this.trickQueued = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
+        // on the ground a left swipe turns you round (the sim undoes it if a jump follows at once: then it was a trick)
+        if (this.trickQueued === 'left' && this.getMode() === 'ground') this.turnQueued = true;
         this.right.fired = true;
       }
     }
@@ -98,8 +102,9 @@ export class InputController {
       trick: this.trickQueued,
       balance: clamp(kb + this.touchBalance + this.tilt),
       push: this.pushQueued,
+      turn: this.turnQueued,
     };
-    this.jumpQueued = false; this.trickQueued = null; this.pushQueued = false;
+    this.jumpQueued = false; this.trickQueued = null; this.pushQueued = false; this.turnQueued = false;
     return input;
   }
 }

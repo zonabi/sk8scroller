@@ -18,6 +18,7 @@ import { Graf, Num, graf, num, uiPerf, warm, type GrafStyle } from './ui';
 import { AH, AW, APP_VERSION, GROUND, K, PAL, PLAYER_X, Z, Z_KEY } from './view';
 
 interface Spark { x: number; y: number; vx: number; vy: number; life: number; color: number; size: number }
+const TURN_SECS = 0.22;
 const BODY = 28; // art px from feet to the sprite's rotation centre
 const ROLL: PoseName[] = ['roll0', 'roll0', 'roll1', 'roll2', 'roll3', 'roll0', 'roll0', 'roll0'];
 /** Call-out styles. Fixed set so every trick name can be drawn before the run starts. */
@@ -55,6 +56,8 @@ export class GameScene extends Phaser.Scene {
   private airTrickTotal = 0;
   private landT = 0;
   private pushAnim = 0;
+  private turnAnim = 0; private turnTo = false;
+  private fakieTag!: Graf;
   private lastCombo = 0;
   private finished = false;
   private rec: Recorder | null = null;
@@ -104,7 +107,9 @@ export class GameScene extends Phaser.Scene {
     this.frame = 0; this.slowMs = 0; this.runMs = 0;
     this.fpsEl = q.has('fps') ? document.getElementById('fps') : null;
 
-    for (const t of TRICK_LIST) warm(this, t.name.toUpperCase(), CALL[t.type]);
+    for (const t of TRICK_LIST) { warm(this, t.name.toUpperCase(), CALL[t.type]); warm(this, `FAKIE ${t.name.toUpperCase()}`, CALL[t.type]); }
+    this.fakieTag = graf(this, 14, 52, 'FAKIE', { font: 'piece', size: 14, fill: [PAL.cyan, PAL.green], block: PAL.ink, angle: -5 });
+    this.fakieTag.img.setVisible(false);
     for (const t of Object.values(BAIL_TEXT)) warm(this, t, CALL.bail);
 
     this.ctl = new InputController(this, () => this.sim.s.mode, save.tilt);
@@ -132,6 +137,7 @@ export class GameScene extends Phaser.Scene {
       this.stepSparks();
       if (this.landT > 0) this.landT -= CFG.dt;
       if (this.pushAnim > 0) this.pushAnim -= CFG.dt;
+      if (this.turnAnim > 0) this.turnAnim -= CFG.dt;
     }
     const s = this.sim.s;
     sfx.frame(s.mode, s.speed, s.grind ? (s.grind.kind as 'rail' | 'ledge') : null, s.balance);
@@ -143,14 +149,15 @@ export class GameScene extends Phaser.Scene {
     const s = this.sim.s;
     sfx.event(e);
     switch (e.type) {
-      case 'grindStart': case 'switchUp': this.popup(TRICKS[e.trickId].name, 'grind'); break;
+      case 'grindStart': case 'switchUp': this.popup((e.fakie ? 'Fakie ' : '') + TRICKS[e.trickId].name, 'grind'); break;
       case 'airTrickStart': this.airTrickTotal = TRICKS[e.trickId].duration; break;
-      case 'airTrickDone': this.popup(TRICKS[e.trickId].name, 'air'); break;
+      case 'airTrickDone': this.popup((e.fakie ? 'Fakie ' : '') + TRICKS[e.trickId].name, 'air'); break;
       case 'bank': this.popup(`+${e.points}`, 'bank');
         // no full-screen flash (it read as a glitch and is unkind to photosensitive players): pop the score instead
         this.scoreText.setScale(1.35); this.tweens.add({ targets: this.scoreText, scale: 1, duration: 220, ease: 'Back.easeOut' });
         break;
       case 'land': this.landT = 0.12; this.burst(6, 0xd8d8e8, 3); break;
+      case 'turn': this.turnAnim = TURN_SECS; this.turnTo = e.fakie; break;
       case 'push': this.pushAnim = 0.36; this.burst(5, 0xd8d8e8, 2); break;
       case 'bail':
         this.popup(BAIL_TEXT[e.reason], 'bail');
@@ -191,13 +198,18 @@ export class GameScene extends Phaser.Scene {
       if (s.airTrick) {
         const id = s.airTrick.id;
         if (id.startsWith('spin')) {
-          // turnaround frames: the body actually rotates through side → back → side → front
+          // turnaround frames: the body actually rotates through side → back → side → front (started fakie = start facing left)
           const p = 1 - s.airTrick.timeLeft / (this.airTrickTotal || 1), turns = Number(id.slice(4)) / 360;
-          return `spin${Math.floor(p * turns * SPIN_FRAMES + 0.5) % SPIN_FRAMES}`;
+          return `spin${(Math.floor(p * turns * SPIN_FRAMES + 0.5) + (s.airTrick.fakie ? SPIN_FRAMES / 2 : 0)) % SPIN_FRAMES}`;
         }
         return (['mute', 'safety', 'stale', 'rocket', 'liukang'] as const).find(n => n === id) ?? 'jump';
       }
       return s.vy > 40 ? 'jump' : 'fall';
+    }
+    if (this.turnAnim > 0) {
+      // pivot through the turnaround frames: half a turn, starting from whichever way we were facing
+      const p = 1 - this.turnAnim / TURN_SECS, from = this.turnTo ? 0 : SPIN_FRAMES / 2;
+      return `spin${(from + Math.round(p * (SPIN_FRAMES / 2))) % SPIN_FRAMES}`;
     }
     if (this.landT > 0) return 'land';
     if (this.pushAnim > 0) return this.pushAnim > 0.24 ? 'roll1' : this.pushAnim > 0.1 ? 'roll2' : 'roll3';   // a real push stride
@@ -230,7 +242,12 @@ export class GameScene extends Phaser.Scene {
     else if (s.mode === 'air') rot = Phaser.Math.Clamp(-s.vy / 2600, -0.12, 0.16);
     const flip = !!s.airTrick && rot !== 0;
     // lean pivots at the feet; flips pivot at the body centre
-    this.player.setTexture(skaterTex(this, this.skater.id, this.pose())).setRotation(rot)
+    const frame = this.pose();
+    // fakie = the same sprites mirrored: facing left while still travelling right. Turnaround frames carry their own facing.
+    const backwards = s.mode === 'grind' ? s.grindFakie : s.airTrick ? s.airTrick.fakie : s.fakie;
+    this.player.setFlipX(backwards && !frame.startsWith('spin'));
+    this.fakieTag.img.setVisible(s.fakie && s.mode !== 'bail' && s.mode !== 'over');
+    this.player.setTexture(skaterTex(this, this.skater.id, frame)).setRotation(backwards ? -rot : rot)
       .setPosition(PLAYER_X + (flip ? 0 : Math.sin(rot) * BODY), feetY - (flip ? BODY : Math.cos(rot) * BODY));
     this.player.setAlpha(s.invuln > 0 && s.mode !== 'bail' && Math.floor(s.t * 14) % 2 ? 0.4 : 1);
     const floor = s.mode === 'grind' ? feetY : GROUND - Math.floor(this.sim.level.groundY(s.x) * K);

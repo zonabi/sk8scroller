@@ -60,6 +60,10 @@ const DEF = {
   pushBoost: 0.18,          // extra speed while a push lasts, as a fraction (0 = pushing disabled)
   pushSecs: 1.5,            // how long one push lasts
   pushCooldown: 2.2,        // seconds from one push to the next
+  // P-06 fakie: roll backwards, same direction
+  fakieEnabled: 1,          // turning round, and 180s/540s leaving you fakie
+  fakieBonus: 0.25,         // extra points for anything done fakie, as a fraction
+  fakieBalance: 0.15,       // how much faster a lean runs away when grinding fakie
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -70,7 +74,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -83,6 +87,9 @@ export interface Knob {
 }
 /** Panel layout. Groups are change IDs (newest work first) then base feel. */
 export const KNOBS: Knob[] = [
+  { key: 'fakieEnabled', group: 'P-06 Fakie', label: 'Fakie stance', kind: 'toggle', hint: 'Turn round on the ground; a 180 or 540 leaves you facing the other way' },
+  { key: 'fakieBonus', group: 'P-06 Fakie', label: 'Fakie points bonus', kind: 'slider', min: 0, max: 0.6, step: 0.05 },
+  { key: 'fakieBalance', group: 'P-06 Fakie', label: 'Extra balance difficulty when fakie', kind: 'slider', min: 0, max: 0.5, step: 0.05 },
   { key: 'pushBoost', group: 'P-05 Push', label: 'Push strength', kind: 'slider', min: 0, max: 0.45, step: 0.01, hint: 'Extra speed while a push lasts (0.18 = 18%). 0 = no pushing' },
   { key: 'pushSecs', group: 'P-05 Push', label: 'Push length (s)', kind: 'slider', min: 0.5, max: 3, step: 0.1 },
   { key: 'pushCooldown', group: 'P-05 Push', label: 'Time between pushes (s)', kind: 'slider', min: 0.5, max: 5, step: 0.1 },

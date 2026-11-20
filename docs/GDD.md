@@ -42,6 +42,8 @@ long line of grinds, switch-ups and air tricks. Short runs, big combos, loud col
 - **Bails:** hitting a cone/barrier/ledge face, losing balance, or landing mid-trick. 3 lives. Brief invulnerability after.
 - **Progression:** XP = score ÷ 20. Ten levels. Each of the 4 swipe directions is a slot (separately for air and grind);
   the best unlocked trick fills it.
+- **Push:** tap (or →) on the ground for a short burst of speed, with a cooldown.
+- **Fakie:** turn round on the ground (left swipe or ←), or land a 180/540, to roll backwards. Fakie tricks score 25% more and count as different tricks.
 - **Skaters:** four originals with speed / air / balance trade-offs.
 
 ## Where it should go (ordered by value)

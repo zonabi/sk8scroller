@@ -8,7 +8,7 @@ import { isGrindable } from './level';
  */
 export function botInput(sim: Sim): Input {
   const s = sim.s;
-  const input: Input = { jumpPressed: false, jumpHeld: true, trick: null, balance: 0, push: false };
+  const input: Input = { jumpPressed: false, jumpHeld: true, trick: null, balance: 0, push: false, turn: false };
   const next = sim.level.features.find(f => f.x > s.x && f.kind !== 'kicker');
   if (s.mode === 'ground') {
     if (next && !sim.level.kickerAt(s.x)) {
