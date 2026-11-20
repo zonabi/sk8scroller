@@ -18,8 +18,8 @@ export interface Pose {
   lean: number;            // torso tilt in degrees, + = forward
   footF: Foot; footB: Foot; // F = near-side limb (drawn on top), B = far side
   handF: [number, number]; handB: [number, number];
-  /** Force the near elbow to hang below the shoulder–hand line (relaxed balance arm) instead of the default bend. */
-  elbowF?: 'down';
+  /** Force the near elbow above ('up': upper arm out, forearm dropping to the hand) or below ('down') the shoulder–hand line. */
+  elbowF?: 'up' | 'down';
   head?: number;           // extra head tilt, degrees
 }
 
@@ -59,9 +59,10 @@ export type PoseName = keyof typeof POSES;
  */
 const FAKIE_TWEAKS: Partial<Record<PoseName, Partial<Pose>>> = {
   // forward jump tucks both hands up by the head; fakie wants them out for balance, like the roll before it
-  jump: { handF: [-13, 37], handB: [14, 37], elbowF: 'down' },
+  // leading arm: upper arm out toward travel, forearm dropping to the hand — the same shape as the fakie landing
+  jump: { handF: [-9, 32], handB: [14, 37], elbowF: 'up' },
   // falling: leading arm out and low toward travel, ready to catch the landing
-  fall: { handF: [-11, 35], handB: [11, 40], elbowF: 'down' },
+  fall: { handF: [-10, 35], handB: [11, 40], elbowF: 'up' },
 };
 /** Poses where a hand is on a skate: their arms can't be re-aimed for fakie. */
 const GRABS = new Set<PoseName>(['mute', 'safety', 'stale', 'rocket', 'liukang', 'makio', 'backslide', 'fishbrain']);
@@ -72,14 +73,14 @@ const THIGH = 9, SHIN = 9, TORSO = 13, UARM = 7, FARM = 6;
 const rad = (d: number) => (d * Math.PI) / 180;
 
 /** 2-bone IK. Returns the middle joint; `fwd` picks which way it bends. */
-function ik(ax: number, ay: number, bx: number, by: number, l1: number, l2: number, fwd: boolean | 'down'): [number, number, number, number] {
+function ik(ax: number, ay: number, bx: number, by: number, l1: number, l2: number, fwd: boolean | 'up' | 'down'): [number, number, number, number] {
   let dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy) || 0.001;
   const max = l1 + l2 - 0.2;
   if (d > max) { bx = ax + (dx / d) * max; by = ay + (dy / d) * max; dx = bx - ax; dy = by - ay; d = max; }
   const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
   const mx = ax + (dx * a) / d, my = ay + (dy * a) / d;
   const k1: [number, number] = [mx + (h * dy) / d, my - (h * dx) / d], k2: [number, number] = [mx - (h * dy) / d, my + (h * dx) / d];
-  const k = fwd === 'down' ? (k1[1] > k2[1] ? k1 : k2) : (k1[0] > k2[0]) === fwd ? k1 : k2;
+  const k = fwd === 'down' ? (k1[1] > k2[1] ? k1 : k2) : fwd === 'up' ? (k1[1] < k2[1] ? k1 : k2) : (k1[0] > k2[0]) === fwd ? k1 : k2;
   return [k[0], k[1], bx, by];
 }
 
@@ -184,7 +185,7 @@ export function drawSkater(sk: SkaterDef, pose: Pose, lookBack = false): Pix {
       }
     });
   };
-  const arm = (h: [number, number], far: boolean, bend: boolean | 'down' = false) => {
+  const arm = (h: [number, number], far: boolean, bend: boolean | 'up' | 'down' = false) => {
     const tr = far ? dim(top) : top, sr = far ? dim(skin) : skin, off = far ? 1.5 : -1.5;
     const [ex, ey, wx, wy] = ik(sx + off, sy + 1.5, X(h[0]), Y(h[1]), UARM, FARM, bend);
     p.part(q => {
@@ -294,7 +295,7 @@ export function drawFakie(sk: SkaterDef, frame: number): Pix {
     legs: [{ knee: [6 + f * 0.25, 19 + up, 5], foot: [1 + f, 0, 4.5], pitch: 0 }, { knee: [6 - f * 0.25, 19 + up, -5], foot: [1 - f, 0, -4.5], pitch: 0 }],
     // arms: [0] is the trailing arm (the skater's right, far side) reaching back along the way they came;
     //       [1] is the LEADING arm (their left, the shoulder they look over) reaching out toward travel for balance
-    arms: [{ elbow: [7.5, 29 + up, 7.5], hand: [11, 27 + up - sway, 7] }, { elbow: [-4, 29.5 + up, -9], hand: [-9, 31 + up + sway, -11] }],
+    arms: [{ elbow: [7.5, 29 + up, 7.5], hand: [11, 27 + up - sway, 7] }, { elbow: [-3.5, 32.5 + up, -9.5], hand: [-7.5, 28 + up + sway, -11] }],
   });
 }
 
