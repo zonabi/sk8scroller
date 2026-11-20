@@ -123,6 +123,24 @@ describe('P-02 rail landings', () => {
   });
 });
 
+describe('P-03 landing grace', () => {
+  const landWith = (msShort: number) => {
+    const sim = mk(1, 1);
+    sim.step(press({ jumpPressed: true }));
+    const probe = mk(1, 1); probe.step(press({ jumpPressed: true }));
+    let total = 0; while (probe.s.mode === 'air') { probe.step(press({})); total++; }
+    const startAt = total - Math.round((300 - msShort) / (1000 / 60));       // mute takes 300 ms
+    for (let i = 0; i < total + 2; i++) sim.step(press(i === startAt ? { trick: 'up' } : {}));
+    return sim;
+  };
+  it('a trick ~80 ms from finished lands clean', () => {
+    const sim = landWith(80);
+    expect(sim.s.lives).toBe(CFG.lives);
+    expect(sim.s.combo.map(c => c.trickId)).toEqual(['mute']);
+  });
+  it('a trick 200 ms from finished still slams', () => { expect(landWith(200).s.lives).toBe(CFG.lives - 1); });
+});
+
 describe('recording', () => {
   it('replays a recorded run exactly and survives a JSON round trip', () => {
     const sim = new Sim({ seed: 9, skater: SKATERS[1], playerLevel: 4 });

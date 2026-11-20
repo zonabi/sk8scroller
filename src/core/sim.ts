@@ -154,6 +154,7 @@ export class Sim {
               s.y = ry;
               // P-02: a swipe just before the rail was meant for the rail — it picks the stance, and the
               // air trick that same swipe started is dropped. An older unfinished trick still slams.
+              this.graceLand(ev);
               let dir: Dir | null = null;
               if (CFG.railIntentMs > 0 && s.swipeDir && s.swipeAge * 1000 <= CFG.railIntentMs) {
                 dir = s.swipeDir;
@@ -170,6 +171,7 @@ export class Sim {
           const gy = this.level.groundY(s.x);
           if (s.y <= gy) {
             s.y = gy; s.vy = 0;
+            this.graceLand(ev);
             if (s.airTrick) { this.bail('sketchy', ev); return ev; }
             s.mode = 'ground'; s.comboTimer = CFG.comboGrace; this.clearAir();
             ev.push({ type: 'land' });
@@ -240,6 +242,11 @@ export class Sim {
     ev.push({ type: 'airTrickDone', trickId: tr.id });
     s.doneDir = s.airTrick!.dir;
     s.airTrick = null;
+  }
+  /** P-03: a trick within a few frames of finishing when you touch down counts as landed. */
+  private graceLand(ev: SimEvent[]): void {
+    const t = this.s.airTrick;
+    if (t && CFG.landGraceMs > 0 && t.timeLeft * 1000 <= CFG.landGraceMs + 1e-6) this.completeAirTrick(ev);
   }
   private clearAir(): void { const s = this.s; s.swipeDir = null; s.swipeAge = 99; s.doneDir = null; }
 

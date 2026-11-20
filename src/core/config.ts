@@ -48,6 +48,8 @@ const DEF = {
   // P-02 rail landings: your swipe picks the grind
   railIntentMs: 100,        // a swipe this close before touching a rail means "grind in this stance", not an air trick
   railTrickPicksGrind: 1,   // a completed air trick's direction picks the stance you lock into
+  // P-03 near-miss landings count
+  landGraceMs: 100,         // a trick this close to finished when you touch down lands clean
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -58,7 +60,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -71,6 +73,7 @@ export interface Knob {
 }
 /** Panel layout. Groups are change IDs (newest work first) then base feel. */
 export const KNOBS: Knob[] = [
+  { key: 'landGraceMs', group: 'P-03 Near-miss landings', label: 'Landing forgiveness (ms)', kind: 'slider', min: 0, max: 250, step: 10, hint: 'A trick this close to finished when you touch down counts as landed. 0 = off' },
   { key: 'railIntentMs', group: 'P-02 Swipe picks the grind', label: 'Swipe-before-rail window (ms)', kind: 'slider', min: 0, max: 300, step: 10, hint: 'A swipe this close to touching a rail picks the stance instead of starting an air trick. 0 = off' },
   { key: 'railTrickPicksGrind', group: 'P-02 Swipe picks the grind', label: 'Finished air trick picks the stance', kind: 'toggle', hint: 'Land a trick, then a rail: you lock into the stance for that swipe direction' },
   { key: 'balanceControlScale', group: 'P-01 Balance you can save', label: 'Steering strength vs the stance', kind: 'slider', min: 0, max: 1.3, step: 0.05, hint: 'Higher = a lean can be pulled back from further over' },
