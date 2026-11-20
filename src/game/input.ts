@@ -9,13 +9,14 @@ const SWIPE_PX = 16, TAP_MS = 220, BALANCE_PX = 38; // art units (640 wide)
  * Turns touch / keyboard / tilt into core `Input`.
  *   Left thumb  = body:   press to jump (hold = higher). While grinding: hold + drag sideways
  *                         to balance, quick tap to jump off.
- *   Right thumb = tricks: swipe a direction (tap = up).
- *   Keyboard: SPACE jump, WASD tricks, ←/→ balance.
+ *   Right thumb = tricks: swipe a direction (tap = up). On the ground a tap is a push.
+ *   Keyboard: SPACE jump, WASD tricks, ←/→ balance; on the ground → pushes.
  */
 export class InputController {
   private jumpQueued = false;
   private jumpHeld = false;
   private trickQueued: Dir | null = null;
+  private pushQueued = false;
   private touchBalance = 0;
   private tilt = 0;
   private left: { id: number; x: number; t: number; moved: boolean } | null = null;
@@ -38,6 +39,8 @@ export class InputController {
       const trick = (k: string, d: Dir) => this.keys[k].on('down', () => { this.trickQueued = d; });
       trick('W', 'up'); trick('A', 'left'); trick('S', 'down'); trick('D', 'right');
       const jump = () => { this.jumpQueued = true; };
+      // arrows steer balance on a rail; on the ground → is a push
+      this.keys.RIGHT.on('down', () => { if (this.getMode() === 'ground') this.pushQueued = true; });
       this.keys.SPACE.on('down', jump); this.keys.UP.on('down', jump);
     }
     if (tilt) window.addEventListener('deviceorientation', this.onOrient);
@@ -79,7 +82,8 @@ export class InputController {
       if (this.getMode() === 'grind' && !this.left.moved && this.scene.time.now - this.left.t < TAP_MS) this.jumpQueued = true;
       this.left = null; this.jumpHeld = false; this.touchBalance = 0;
     } else if (this.right?.id === p.id) {
-      if (!this.right.fired) this.trickQueued = 'up';
+      // a tap: on the ground it is a push (and still counts as an 'up' swipe if a jump follows straight away); in the air it is the up trick
+      if (!this.right.fired) { this.trickQueued = 'up'; if (this.getMode() === 'ground') this.pushQueued = true; }
       this.right = null;
     }
   }
@@ -93,8 +97,9 @@ export class InputController {
       jumpHeld: this.jumpHeld || !!k.SPACE?.isDown || !!k.UP?.isDown,
       trick: this.trickQueued,
       balance: clamp(kb + this.touchBalance + this.tilt),
+      push: this.pushQueued,
     };
-    this.jumpQueued = false; this.trickQueued = null;
+    this.jumpQueued = false; this.trickQueued = null; this.pushQueued = false;
     return input;
   }
 }

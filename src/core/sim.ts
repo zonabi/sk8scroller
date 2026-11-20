@@ -14,12 +14,14 @@ export interface Input {
   trick: Dir | null;
   /** -1..1, pushes the grind balance left/right. */
   balance: number;
+  /** Push for a burst of speed (ground only). */
+  push: boolean;
 }
-export const NO_INPUT: Input = { jumpPressed: false, jumpHeld: false, trick: null, balance: 0 };
+export const NO_INPUT: Input = { jumpPressed: false, jumpHeld: false, trick: null, balance: 0, push: false };
 
 export interface ComboEntry { trickId: string; name: string; points: number }
 export type SimEvent =
-  | { type: 'jump' } | { type: 'launch' } | { type: 'land' }
+  | { type: 'jump' } | { type: 'launch' } | { type: 'land' } | { type: 'push' }
   | { type: 'grindStart'; trickId: string } | { type: 'switchUp'; trickId: string }
   | { type: 'airTrickStart'; trickId: string } | { type: 'airTrickDone'; trickId: string }
   | { type: 'bank'; points: number; count: number }
@@ -44,6 +46,8 @@ export interface SimState {
   coyote: number;
   /** Last trick swipe made on the ground and its age in seconds (P-07). */
   groundSwipe: Dir | null; groundSwipeAge: number;
+  /** Seconds of push boost left, and seconds until the next push is allowed (P-05). */
+  pushT: number; pushCd: number;
   combo: ComboEntry[]; comboTimer: number;
   score: number; bestCombo: number;
   lives: number; invuln: number; bailTimer: number;
@@ -89,7 +93,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -108,6 +112,8 @@ export class Sim {
     s.t += dt;
     this.level.ensure(s.x + 1500, s.x);
     if (s.invuln > 0) s.invuln -= dt;
+    if (s.pushT > 0) s.pushT -= dt;
+    if (s.pushCd > 0) s.pushCd -= dt;
     const prevX = s.x, prevY = s.y;
 
     switch (s.mode) {
@@ -124,7 +130,10 @@ export class Sim {
         return ev;
       }
       case 'ground': {
-        s.speed += (this.targetSpeed - s.speed) * Math.min(1, CFG.accel * dt);
+        // P-05: a push lifts the target speed for a moment and gets there quickly; it fades at the normal rate
+        if (input.push && CFG.pushBoost > 0 && s.pushCd <= 0) { s.pushT = CFG.pushSecs; s.pushCd = CFG.pushCooldown; ev.push({ type: 'push' }); }
+        if (s.pushT > 0) s.speed += (this.targetSpeed * (1 + CFG.pushBoost) - s.speed) * Math.min(1, CFG.accel * 3 * dt);
+        else s.speed += (this.targetSpeed - s.speed) * Math.min(1, CFG.accel * dt);
         s.x += s.speed * dt;
         if (CFG.preJumpMs > 0) { if (input.trick) { s.groundSwipe = input.trick; s.groundSwipeAge = 0; } else s.groundSwipeAge += dt; }
         const k = this.level.kickerAt(prevX);
@@ -294,7 +303,7 @@ export class Sim {
     const s = this.s;
     s.mode = 'bail'; s.combo = []; s.airTrick = null; s.grind = null; s.grindTrick = null; this.clearAir();
     s.lives -= 1; s.bailTimer = CFG.bailTime; s.invuln = CFG.bailTime + CFG.invulnTime;
-    s.speed *= CFG.bailSpeedFactor; s.vy = 0;
+    s.speed *= CFG.bailSpeedFactor; s.vy = 0; s.pushT = 0;
     ev.push({ type: 'bail', reason });
   }
 }

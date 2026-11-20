@@ -54,6 +54,7 @@ export class GameScene extends Phaser.Scene {
   private sparks: Spark[] = [];
   private airTrickTotal = 0;
   private landT = 0;
+  private pushAnim = 0;
   private lastCombo = 0;
   private finished = false;
   private rec: Recorder | null = null;
@@ -130,6 +131,7 @@ export class GameScene extends Phaser.Scene {
       for (const e of this.sim.step(input)) this.onEvent(e);
       this.stepSparks();
       if (this.landT > 0) this.landT -= CFG.dt;
+      if (this.pushAnim > 0) this.pushAnim -= CFG.dt;
     }
     const s = this.sim.s;
     sfx.frame(s.mode, s.speed, s.grind ? (s.grind.kind as 'rail' | 'ledge') : null, s.balance);
@@ -149,6 +151,7 @@ export class GameScene extends Phaser.Scene {
         this.scoreText.setScale(1.35); this.tweens.add({ targets: this.scoreText, scale: 1, duration: 220, ease: 'Back.easeOut' });
         break;
       case 'land': this.landT = 0.12; this.burst(6, 0xd8d8e8, 3); break;
+      case 'push': this.pushAnim = 0.36; this.burst(5, 0xd8d8e8, 2); break;
       case 'bail':
         this.popup(BAIL_TEXT[e.reason], 'bail');
         this.cameras.main.shake(200, 0.01); this.burst(14, PAL.pink, 3);
@@ -197,6 +200,7 @@ export class GameScene extends Phaser.Scene {
       return s.vy > 40 ? 'jump' : 'fall';
     }
     if (this.landT > 0) return 'land';
+    if (this.pushAnim > 0) return this.pushAnim > 0.24 ? 'roll1' : this.pushAnim > 0.1 ? 'roll2' : 'roll3';   // a real push stride
     return ROLL[Math.floor(s.t * 9) % ROLL.length];
   }
 

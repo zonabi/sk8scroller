@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Sim, comboValue, NO_INPUT, type Input } from '../src/core/sim';
 import { botInput, runBot } from '../src/core/bot';
-import { Recorder, analyse, report } from '../src/core/replay';
+import { Recorder, analyse, inputsOf, report } from '../src/core/replay';
 import { SKATERS } from '../src/core/skaters';
 import { levelForXp, xpForLevel } from '../src/core/progression';
 import { trickForSlot } from '../src/core/tricks';
@@ -182,6 +182,26 @@ describe('P-07 trick just before take-off', () => {
     for (let i = 0; i < 24; i++) sim.step(press({}));
     sim.step(press({ jumpPressed: true }));
     expect(sim.s.airTrick).toBeNull();
+  });
+});
+
+describe('P-05 push', () => {
+  it('lifts speed for a moment, then it fades, and has a cooldown', () => {
+    const sim = mk(1, 1), cruise = () => sim.s.speed / sim.targetSpeed;
+    for (let i = 0; i < 60; i++) sim.step(press({}));
+    expect(cruise()).toBeCloseTo(1, 1);
+    expect(sim.step(press({ push: true })).some(e => e.type === 'push')).toBe(true);
+    for (let i = 0; i < 40; i++) sim.step(press({}));
+    expect(cruise()).toBeGreaterThan(1.14);
+    expect(sim.step(press({ push: true })).some(e => e.type === 'push')).toBe(false);     // still cooling down
+    for (let i = 0; i < 200; i++) sim.step(press({}));
+    expect(cruise()).toBeLessThan(1.03);
+  });
+  it('survives a recording round trip', () => {
+    const sim = mk(1, 1), rec = new Recorder();
+    for (let i = 0; i < 120; i++) sim.step(rec.push({ ...NO_INPUT, jumpHeld: true, push: i === 30 }));
+    const saved = JSON.parse(JSON.stringify(rec.finish({ app: 't', device: 't', seed: 1, skaterId: 'rio', playerLevel: 1, longRail: false }, sim)));
+    expect([...inputsOf(saved)].filter(i => i.push).length).toBe(1);
   });
 });
 

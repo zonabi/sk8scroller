@@ -28,8 +28,9 @@ export interface Recording {
 }
 
 const DIRS: (Dir | null)[] = [null, 'up', 'down', 'left', 'right'];
-const pack = (i: Input): number => (i.jumpPressed ? 1 : 0) | (i.jumpHeld ? 2 : 0) | (DIRS.indexOf(i.trick) << 2);
-const unpack = (flags: number, bal: number): Input => ({ jumpPressed: !!(flags & 1), jumpHeld: !!(flags & 2), trick: DIRS[flags >> 2], balance: bal / 100 });
+// bit layout: 1 jumpPressed · 2 jumpHeld · 4-16 trick · 32 push  (new bits must be added above the old ones so old recordings still decode)
+const pack = (i: Input): number => (i.jumpPressed ? 1 : 0) | (i.jumpHeld ? 2 : 0) | (DIRS.indexOf(i.trick) << 2) | (i.push ? 32 : 0);
+const unpack = (flags: number, bal: number): Input => ({ jumpPressed: !!(flags & 1), jumpHeld: !!(flags & 2), trick: DIRS[(flags >> 2) & 7], balance: bal / 100, push: !!(flags & 32) });
 
 export class Recorder {
   private steps: number[] = [];

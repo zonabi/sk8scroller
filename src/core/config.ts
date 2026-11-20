@@ -56,6 +56,10 @@ const DEF = {
   allSlotsFromStart: 1,     // every swipe direction has a trick from level 1
   // P-07 trick pressed just before take-off
   preJumpMs: 140,           // a swipe on the ground this close before a jump fires as the jump leaves
+  // P-05 push for a burst of speed
+  pushBoost: 0.18,          // extra speed while a push lasts, as a fraction (0 = pushing disabled)
+  pushSecs: 1.5,            // how long one push lasts
+  pushCooldown: 2.2,        // seconds from one push to the next
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -66,7 +70,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -79,6 +83,9 @@ export interface Knob {
 }
 /** Panel layout. Groups are change IDs (newest work first) then base feel. */
 export const KNOBS: Knob[] = [
+  { key: 'pushBoost', group: 'P-05 Push', label: 'Push strength', kind: 'slider', min: 0, max: 0.45, step: 0.01, hint: 'Extra speed while a push lasts (0.18 = 18%). 0 = no pushing' },
+  { key: 'pushSecs', group: 'P-05 Push', label: 'Push length (s)', kind: 'slider', min: 0.5, max: 3, step: 0.1 },
+  { key: 'pushCooldown', group: 'P-05 Push', label: 'Time between pushes (s)', kind: 'slider', min: 0.5, max: 5, step: 0.1 },
   { key: 'preJumpMs', group: 'P-07 Trick just before take-off', label: 'Swipe-before-jump window (ms)', kind: 'slider', min: 0, max: 300, step: 10, hint: 'A trick swipe on the ground this close before you jump fires as you leave. 0 = off' },
   { key: 'trickBufferMs', group: 'P-04 Inputs that did nothing', label: 'Trick queue window (ms)', kind: 'slider', min: 0, max: 400, step: 10, hint: 'Swipe while a trick is finishing: it fires when the first one ends. 0 = off' },
   { key: 'coyoteMs', group: 'P-04 Inputs that did nothing', label: 'Late jump off a rail end (ms)', kind: 'slider', min: 0, max: 300, step: 10 },
