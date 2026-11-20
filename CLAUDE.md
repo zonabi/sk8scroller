@@ -43,8 +43,20 @@ Why: core can be tested and bot-played in milliseconds with no browser. That is 
 | Scenery, rails, obstacles | `src/game/art/world.ts` |
 | Any text or UI | `graf()` in `src/game/ui.ts` — never raw `scene.add.text` with a system font |
 | HUD, layout | `src/game/` scenes — palette is `PAL` in `view.ts`, stay inside it |
+| Run recording / analysis | `src/core/replay.ts` (pure), `src/game/recording.ts`, collector in `vite.config.ts`, CLI in `tools/replay.ts` |
 | Sounds | `src/game/audio.ts` — add a recipe to `ONE_SHOTS`, trigger it from `event()`. Synthesised only, no audio files yet |
 | Controls | `src/game/input.ts` (must keep producing the core `Input` shape) |
+
+## Playtest recordings — investigate feedback, don't guess
+
+Every human run is recorded (inputs per step; the sim is deterministic) and, while the dev server is running, saved to `runs/` on the dev machine — phone runs over Wi-Fi included. `runs/` is git-ignored.
+
+- `npm run replay` — report for the newest run: bails with their cause, **jump presses and trick swipes that did nothing** (and whether a jump buffer or coyote time would have caught them), every grind, and the moments the player flagged.
+- `npm run replay -- --all` — one line per run plus totals. Start here when handed a batch of feedback.
+- `?replay=latest` (or a file name) plays a run back in the game; add `&at=12.5` to jump to that second and hold the frame. Use with a screenshot to *see* a moment.
+- The player can flag "that felt wrong" mid-run (flag button top centre, or F). Flags appear in the report with the 3 seconds before them.
+
+When working through playtest feedback: find the note in the recordings first, state it as something countable ("7 of 31 jump presses ignored within 150 ms of landing"), change one thing, and re-run the same recordings' numbers where possible. A recording only replays exactly on the code and tuning that made it — the report says when it no longer matches.
 
 ## Performance — the game has to feel buttery
 

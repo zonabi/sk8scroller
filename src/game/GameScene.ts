@@ -3,17 +3,19 @@ import { botInput } from '../core/bot';
 import { CFG } from '../core/config';
 import type { Feature } from '../core/level';
 import { levelForXp, unlocksAt, xpFromRun } from '../core/progression';
-import { Sim, comboValue, type SimEvent } from '../core/sim';
+import { Recorder, inputsOf, simFor } from '../core/replay';
+import { Sim, comboValue, type Input, type SimEvent } from '../core/sim';
 import { skaterById, type SkaterDef } from '../core/skaters';
 import { TRICKS, TRICK_LIST } from '../core/tricks';
 import { SPIN_FRAMES, type PoseName } from './art/skater';
 import { sfx } from './audio';
 import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
+import { bindFlag, downloadLastRun, playback, saveRun } from './recording';
 import { loadSave, writeSave } from './storage';
 import { SPRITE, dropFeatureTexture, featureTexture, skaterTex, warmSkater, type SkaterFrame } from './textures';
 import { Graf, Num, graf, num, uiPerf, warm, type GrafStyle } from './ui';
-import { AH, AW, GROUND, K, PAL, PLAYER_X, Z, Z_KEY } from './view';
+import { AH, AW, APP_VERSION, GROUND, K, PAL, PLAYER_X, Z, Z_KEY } from './view';
 
 interface Spark { x: number; y: number; vx: number; vy: number; life: number; color: number; size: number }
 const BODY = 28; // art px from feet to the sprite's rotation centre
@@ -54,6 +56,10 @@ export class GameScene extends Phaser.Scene {
   private landT = 0;
   private lastCombo = 0;
   private finished = false;
+  private rec: Recorder | null = null;
+  private seed = 0;
+  private replayIn: Generator<Input> | null = null;
+  private frozen = false;
   private popN = 0;
 
   constructor() { super('game'); }
@@ -64,7 +70,17 @@ export class GameScene extends Phaser.Scene {
     this.skater = skaterById(save.skaterId);
     this.bot = q.has('bot');
     const seed = q.has('seed') ? Number(q.get('seed')) : (Math.random() * 2 ** 32) >>> 0;
+    this.seed = seed; this.frozen = false;
     this.sim = new Sim({ seed, skater: this.skater, playerLevel: levelForXp(save.xp), longRail: q.has('rail') });
+    // every human run is recorded (see core/replay.ts); ?replay=<file> plays one back instead
+    this.rec = this.bot || playback ? null : new Recorder();
+    this.replayIn = null;
+    if (playback) {
+      this.skater = skaterById(playback.skaterId); this.sim = simFor(playback); this.replayIn = inputsOf(playback);
+      // ?at=12.5 jumps straight to that second and holds the frame, for looking at one moment
+      const at = Number(q.get('at'));
+      if (at > 0) { while (this.sim.s.t < at) { const n = this.replayIn.next(); if (n.done) break; this.sim.step(n.value); } this.frozen = true; }
+    }
     this.acc = 0; this.sparks = []; this.finished = false; this.lives = []; this.feats = new Map(); this.landT = 0; this.lastCombo = 0;
 
     this.bg = new World(this);
@@ -88,7 +104,9 @@ export class GameScene extends Phaser.Scene {
 
     this.ctl = new InputController(this, () => this.sim.s.mode, save.tilt);
     this.input.keyboard?.on('keydown-ESC', () => this.scene.start('menu'));
-    this.events.once('shutdown', () => { sfx.hush(); for (const { f } of this.feats.values()) dropFeatureTexture(this, f); });
+    this.input.keyboard?.on('keydown-F', () => this.rec?.mark());
+    bindFlag(this.rec ? () => this.rec?.mark() : null);
+    this.events.once('shutdown', () => { sfx.hush(); bindFlag(null); if (!this.finished && this.rec && this.rec.length > 180) void saveRun(this.snapshot()); for (const { f } of this.feats.values()) dropFeatureTexture(this, f); });
     this.input.keyboard?.on('keydown-M', () => { const sv = loadSave(); sv.mute = !sv.mute; writeSave(sv); sfx.setMuted(sv.mute); });
   }
 
@@ -101,7 +119,10 @@ export class GameScene extends Phaser.Scene {
     this.acc += Math.min(deltaMs, 100) / 1000;
     while (this.acc >= CFG.dt) {
       this.acc -= CFG.dt;
-      const input = this.bot ? botInput(this.sim) : this.ctl.sample();
+      if (this.frozen) { this.acc = 0; break; }
+      let input: Input;
+      if (this.replayIn) { const n = this.replayIn.next(); if (n.done) { this.frozen = true; break; } input = n.value; }
+      else input = this.bot ? botInput(this.sim) : this.rec!.push(this.ctl.sample());
       for (const e of this.sim.step(input)) this.onEvent(e);
       this.stepSparks();
       if (this.landT > 0) this.landT -= CFG.dt;
@@ -241,12 +262,27 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ---- end of run -----------------------------------------------------------
+  private snapshot() {
+    return this.rec!.finish({ app: APP_VERSION, device: `${navigator.userAgent} · ${screen.width}x${screen.height}@${devicePixelRatio} · Z${Z}`, seed: this.seed, skaterId: this.skater.id, playerLevel: levelForXp(loadSave().xp), longRail: new URLSearchParams(location.search).has('rail') }, this.sim);
+  }
+
   private finish(): void {
     if (this.finished) return;
     this.finished = true;
+    bindFlag(null);
+    if (this.rec) {
+      // snapshot BEFORE xp is added below, so the recorded level is the one the run was played at
+      const rec = this.snapshot();
+      void saveRun(rec).then(file => {
+        if (!this.scene.isActive()) return;
+        const note = graf(this, AW / 2, AH - 14, file ? `run recorded${rec.marks.length ? ` · ${rec.marks.length} flag${rec.marks.length > 1 ? 's' : ''}` : ''}` : 'tap to save this run to a file', { size: 8, fill: PAL.steel, ephemeral: true }).setOrigin(0.5);
+        if (!file) note.button(downloadLastRun);
+      });
+    }
     const save = loadSave(), total = this.sim.totalScore, before = levelForXp(save.xp);
-    const gained = this.bot ? 0 : xpFromRun(total);
-    save.xp += gained; save.best = Math.max(save.best, this.bot ? 0 : total);
+    const real = !this.bot && !playback;
+    const gained = real ? xpFromRun(total) : 0;
+    save.xp += gained; save.best = Math.max(save.best, real ? total : 0);
     writeSave(save);
     const after = levelForXp(save.xp);
     // couldn't hold 60fps for a good part of a real run → render one zoom step lower from the next launch

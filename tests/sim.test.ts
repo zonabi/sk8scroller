@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Sim, comboValue, NO_INPUT, type Input } from '../src/core/sim';
-import { runBot } from '../src/core/bot';
+import { botInput, runBot } from '../src/core/bot';
+import { Recorder, analyse, report } from '../src/core/replay';
 import { SKATERS } from '../src/core/skaters';
 import { levelForXp, xpForLevel } from '../src/core/progression';
 import { trickForSlot } from '../src/core/tricks';
@@ -88,6 +89,38 @@ describe('practice rail', () => {
     expect(long.length).toBe(1);
     expect(long[0].x / CFG.baseSpeed).toBeGreaterThan(9);
     expect(long[0].x / CFG.baseSpeed).toBeLessThan(13);
+  });
+});
+
+describe('recording', () => {
+  it('replays a recorded run exactly and survives a JSON round trip', () => {
+    const sim = new Sim({ seed: 9, skater: SKATERS[1], playerLevel: 4 });
+    const rec = new Recorder();
+    for (let i = 0; i < 60 * 40 && sim.s.mode !== 'over'; i++) {
+      const input = botInput(sim);
+      input.balance += Math.sin(i * 0.37) * 0.013;       // un-round values, as touch input would give
+      sim.step(rec.push(input));
+    }
+    rec.mark();
+    const saved = JSON.parse(JSON.stringify(rec.finish({ app: 't', device: 't', seed: 9, skaterId: SKATERS[1].id, playerLevel: 4, longRail: false }, sim)));
+    const a = analyse(saved);
+    expect(a.exact).toBe(true);
+    expect(a.score).toBe(sim.totalScore);
+    expect(a.grinds.length).toBeGreaterThan(0);
+    expect(a.marks.length).toBe(1);
+    expect(report(saved, a)).toContain('exact match');
+  });
+  it('flags a jump pressed just before landing', () => {
+    const sim = new Sim({ seed: 1, skater: SKATERS[0], playerLevel: 1 });
+    sim.level.features.length = 0;
+    const rec = new Recorder(), go = (p: Partial<Input>) => sim.step(rec.push({ ...NO_INPUT, jumpHeld: true, ...p }));
+    go({ jumpPressed: true });
+    while (sim.s.mode === 'air' && !(sim.s.vy < 0 && sim.s.y < 6)) go({});
+    go({ jumpPressed: true });                             // too early: still airborne
+    for (let i = 0; i < 30; i++) go({});
+    const a = analyse(rec.finish({ app: 't', device: 't', seed: 1, skaterId: 'rio', playerLevel: 1, longRail: false }, sim));
+    expect(a.ignoredJumps.length).toBe(1);
+    expect(a.ignoredJumps[0].detail).toContain('jump buffer');
   });
 });
 

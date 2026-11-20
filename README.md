@@ -33,6 +33,12 @@ Score becomes XP, levels unlock tricks.
 
 Debug URLs: `?seed=7` fixes the level, `?bot` lets the bot play, `?fps` shows fps / frame ms / boot time, `?z=2` forces a lower render zoom, `?hold` freezes on the loading screen, `?rail` adds one very long rail about 10 seconds in (grind practice / sound testing).
 
+## Playtest recording
+
+While `npm run dev` is running, every run you play (phone included) is saved to `runs/`. Tap the flag at the top of the
+screen (or press F) when something feels wrong; it marks that moment. `npm run replay` turns a run into a report, and
+`?replay=latest` plays it back.
+
 ## Commands
 
 | Command | What it does |
@@ -40,6 +46,7 @@ Debug URLs: `?seed=7` fixes the level, `?bot` lets the bot play, `?fps` shows fp
 | `npm run dev` | dev server with hot reload |
 | `npm run check` | typecheck + unit tests + bot fairness sim — **run before every commit** |
 | `npm run perf` | load time, CPU per frame, text budget — fails if over |
+| `npm run replay` | playtest report from the newest recorded run (`-- --all` for every run) |
 | `npm run sprites` | skater pose contact sheet → `shots/sprites.png` |
 | `npm run shots` | build, then headless screenshots into `shots/` (needs Chrome) |
 | `npm run build` | production build in `dist/` |

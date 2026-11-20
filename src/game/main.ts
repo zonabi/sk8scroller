@@ -8,6 +8,7 @@ import { initFullscreen } from './fullscreen';
 import { GameScene } from './GameScene';
 import { bootMark, loading } from './loading';
 import { MenuScene } from './MenuScene';
+import { initFlag, loadPlayback } from './recording';
 import { loadSave } from './storage';
 import { uiPerf } from './ui';
 import { AH, AW, FONT, PAL, Z } from './view';
@@ -16,7 +17,9 @@ bootMark('code');   // page load → scripts downloaded, parsed and running
 // Fonts must be ready before any text or wall graffiti is rasterised.
 await Promise.all([FONT.piece, FONT.marker, FONT.spray].map(f => document.fonts.load(`32px ${f}`, 'SK8 scroller 0123')));
 
+await loadPlayback();
 bootMark('fonts');
+initFlag();
 initFullscreen();
 sfx.init(loadSave().mute);
 (window as unknown as { __sk8audio: unknown }).__sk8audio = sfx;

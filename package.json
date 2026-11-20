@@ -1,7 +1,7 @@
 {
   "name": "sk8scroller",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -11,6 +11,7 @@
     "test": "vitest run",
     "sim": "tsx tools/sim.ts",
     "sprites": "tsx tools/sprites.ts",
+    "replay": "tsx tools/replay.ts",
     "check": "npm run typecheck && npm run test && npm run sim",
     "shots": "npm run build && node tools/shot.mjs",
     "perf": "npm run build && node tools/perf.mjs"

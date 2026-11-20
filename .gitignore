@@ -1,6 +1,7 @@
 node_modules
 dist
 shots
+runs
 ios/App/App/public
 .DS_Store
 *.log

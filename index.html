@@ -65,6 +65,14 @@
     background: #f6e7a1; color: #1a1026; font: 400 14px/1.25 "Permanent Marker", system-ui, sans-serif; transform: rotate(1deg) scale(.9); transform-origin: right bottom;
     box-shadow: 2px 3px 0 rgba(0,0,0,.4); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
   #fs-toast.show { opacity: 1; transform: rotate(1deg) scale(1); }
+  /* "that felt wrong" flag: tap during a run to mark the moment in the recording */
+  #flag { position: fixed; z-index: 4; left: 50%; top: calc(6px + env(safe-area-inset-top)); width: 44px; height: 38px; margin-left: -22px; padding: 0; display: none;
+    align-items: center; justify-content: center; border: 3px solid #1a1026; border-radius: 10px; background: #ff3d6e; color: #1a1026; opacity: .55;
+    box-shadow: 2px 3px 0 #1a1026; transform: rotate(3deg); touch-action: none; -webkit-tap-highlight-color: transparent; }
+  body.in-game #flag { display: flex; }
+  #flag svg { width: 20px; height: 20px; }
+  #flag.hit { animation: flagged .5s ease-out; }
+  @keyframes flagged { 0% { transform: rotate(3deg) scale(1.5); opacity: 1; background: #ffd23f; } 100% { transform: rotate(3deg) scale(1); opacity: .55; } }
   #fps { position: fixed; left: 4px; bottom: 4px; color: #3dff8f; font: 12px monospace; z-index: 6; pointer-events: none; }
   @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
 </style>
@@ -96,6 +104,7 @@
   <svg class="exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>
 </button>
 <div id="fs-toast">iPhone: tap Share, then “Add to Home Screen” — it opens full screen from there.</div>
+<button id="flag" aria-label="Flag this moment"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2h2v20H5zM8 3h11l-3 4.5 3 4.5H8z"/></svg></button>
 <div id="fps"></div>
 <div id="rotate">ROTATE YOUR PHONE<br/>↻ landscape</div>
 <script type="module" src="/src/game/main.ts"></script>

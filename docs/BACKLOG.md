@@ -16,6 +16,12 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - Full-screen button untested on Android/iPad; iPhone route is Add to Home Screen.
 - Spin turnaround (8 frames) not yet judged at full speed; flips still rotate the side-view sprite.
 
+## Tooling done
+
+- [x] **Run recording + replay analysis** (2026-11-19). `npm run replay`, `?replay=`, flag button.
+- [ ] **Live tuning panel.** Sliders over `config.ts` values, adjustable on the phone mid-session; values saved into the recording.
+- [ ] **Playtest triage skill.** Write after the first real feedback batch has been worked through by hand.
+
 ## M1 — Feel
 
 - [ ] **T-01 [H] Device playtest + tuning pass.** Play 20 runs on a phone. Adjust only `config.ts`. Record before/after values and why in DECISIONS.md.

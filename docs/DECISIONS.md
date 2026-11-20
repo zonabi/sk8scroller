@@ -2,6 +2,12 @@
 
 Newest first. Keep entries to a few lines: what, why, what would change our mind.
 
+## 2026-11-19 — Record every run; analyse feedback from replays
+Feel feedback ("jumps don't register") can't be acted on from a description. Since the sim is deterministic, inputs
+alone reproduce a run exactly, so each run is recorded and the dev server collects them into `runs/`. The analyser
+lists ignored inputs and bail causes. Recordings break when tuning changes; that is accepted — they are evidence for
+the build they were played on, and the report says when they no longer match.
+
 ## 2026-11-18 — Lettering outlines are built from blits, not strokeText
 The user's Mac spent 5.1 s of a 5.3 s boot building the menu; the boot timeline (`?fps`) pinned it there. Headless
 Linux did the same work in ~0.2 s, so the suspect was canvas `strokeText` with a very wide round-joined stroke on

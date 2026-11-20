@@ -33,6 +33,8 @@ export const PAL = {
   yellow: 0xffd23f, pink: 0xff3d6e, cyan: 0x00d9ff, green: 0x3dff8f, white: 0xf5f5f5,
   paper: 0xf2ead8, steel: 0xb8c2d8,
 } as const;
+/** Shown in recordings so a run can be tied to the build that made it. */
+export const APP_VERSION: string = import.meta.env.VITE_APP_VERSION ?? 'dev';
 export const hex = (n: number): string => '#' + n.toString(16).padStart(6, '0');
 
 export const FONT = {
