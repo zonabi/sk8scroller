@@ -7,7 +7,7 @@ import { Recorder, inputsOf, simFor } from '../core/replay';
 import { Sim, comboValue, type Input, type SimEvent } from '../core/sim';
 import { skaterById, type SkaterDef } from '../core/skaters';
 import { TRICKS, TRICK_LIST } from '../core/tricks';
-import { SPIN_FRAMES, type PoseName } from './art/skater';
+import { FAKIE_FRAMES, SPIN_FRAMES, type PoseName } from './art/skater';
 import { sfx } from './audio';
 import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
@@ -211,7 +211,9 @@ export class GameScene extends Phaser.Scene {
       const p = 1 - this.turnAnim / TURN_SECS, from = this.turnTo ? 0 : SPIN_FRAMES / 2;
       return `spin${(from + Math.round(p * (SPIN_FRAMES / 2))) % SPIN_FRAMES}`;
     }
-    if (this.landT > 0) return 'land';
+    if (this.landT > 0 && !s.fakie) return 'land';
+    // rolling fakie has its own frames (crouched, hips back, looking over the shoulder) — not a mirrored forward roll
+    if (s.fakie) return `fk${Math.floor(s.t * (this.pushAnim > 0 ? 12 : 5)) % FAKIE_FRAMES}`;
     if (this.pushAnim > 0) return this.pushAnim > 0.24 ? 'roll1' : this.pushAnim > 0.1 ? 'roll2' : 'roll3';   // a real push stride
     return ROLL[Math.floor(s.t * 9) % ROLL.length];
   }
@@ -245,7 +247,7 @@ export class GameScene extends Phaser.Scene {
     const frame = this.pose();
     // fakie = the same sprites mirrored: facing left while still travelling right. Turnaround frames carry their own facing.
     const backwards = s.mode === 'grind' ? s.grindFakie : s.airTrick ? s.airTrick.fakie : s.fakie;
-    this.player.setFlipX(backwards && !frame.startsWith('spin'));
+    this.player.setFlipX(backwards && !frame.startsWith('spin') && !frame.startsWith('fk'));
     this.fakieTag.img.setVisible(s.fakie && s.mode !== 'bail' && s.mode !== 'over');
     this.player.setTexture(skaterTex(this, this.skater.id, frame)).setRotation(backwards ? -rot : rot)
       .setPosition(PLAYER_X + (flip ? 0 : Math.sin(rot) * BODY), feetY - (flip ? BODY : Math.cos(rot) * BODY));

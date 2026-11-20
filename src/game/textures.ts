@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Feature } from '../core/level';
 import { Rng } from '../core/rng';
 import { INK, Pix, mix } from './art/pixel';
-import { FRAME, GY, OX, POSES, POSE_NAMES, SPIN_FRAMES, drawSkater, drawSpin, type PoseName } from './art/skater';
+import { FAKIE_FRAMES, FRAME, GY, OX, POSES, POSE_NAMES, SPIN_FRAMES, drawFakie, drawSkater, drawSpin, type PoseName } from './art/skater';
 import { skaterById } from '../core/skaters';
 import { featureSprite, shadow, sky, skyline, street, wall, wheelIcon } from './art/world';
 import { AH, AW, FONT, GROUND, STREET_TOP } from './view';
@@ -83,13 +83,15 @@ function graffitiWall(): Pix {
   return pix;
 }
 
-export type SkaterFrame = PoseName | `spin${number}`;
+export type SkaterFrame = PoseName | `spin${number}` | `fk${number}`;
 /** Texture key for one skater frame, drawn the first time it is asked for. */
 export function skaterTex(scene: Phaser.Scene, id: string, frame: SkaterFrame): string {
   const key = `sk-${id}-${frame}`;
   if (!scene.textures.exists(key)) {
     const sk = skaterById(id);
-    pixTex(scene, key, frame.startsWith('spin') ? drawSpin(sk, (Number(frame.slice(4)) * 360) / SPIN_FRAMES) : drawSkater(sk, POSES[frame as PoseName]));
+    pixTex(scene, key, frame.startsWith('spin') ? drawSpin(sk, (Number(frame.slice(4)) * 360) / SPIN_FRAMES)
+      : frame.startsWith('fk') ? drawFakie(sk, Number(frame.slice(2)))
+      : drawSkater(sk, POSES[frame as PoseName]));
   }
   return key;
 }
@@ -97,6 +99,7 @@ export function skaterTex(scene: Phaser.Scene, id: string, frame: SkaterFrame): 
 export function warmSkater(scene: Phaser.Scene, id: string): void {
   for (const n of POSE_NAMES) skaterTex(scene, id, n);
   for (let i = 0; i < SPIN_FRAMES; i++) skaterTex(scene, id, `spin${i}`);
+  for (let i = 0; i < FAKIE_FRAMES; i++) skaterTex(scene, id, `fk${i}`);
 }
 
 const featCache = new Map<number, { ox: number; oy: number }>();

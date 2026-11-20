@@ -63,6 +63,37 @@ Skate anatomy that the names depend on: the **soul plate** (flat sole edge of th
 ## Fakie (✅ P-06)
 Rolling backwards while still travelling the same way. In the game every trick has a fakie version: turn round on the ground, or land a 180/540. Real-world naming is richer than a prefix (fakie approach vs. landing fakie, switch, alley-oop and truespin entries); those are the next layer if the simple version earns its place.
 
+## Naming model (proposed for P-08 — awaiting the player's decisions)
+
+What the sources agree on:
+- **Fakie** — approaching (or rolling) backwards. Often you spin 180 into the grind from fakie.
+- **Half cab** — a fakie 180. *Half cab soul* = fakie, 180 onto a soul. **Full cab** = fakie 360.
+- **Zerospin** — approach fakie, do the grind, land fakie, without spinning.
+- **Alley-oop** — a spin into a backwards grind where you can see the obstacle the whole way round. **Truespin** — the same but spinning the blind way; harder.
+- **Rewind** — spinning out the opposite way to the way you spun in.
+- **Switch** / **unnatural** — a trick done on your non-natural side. It is *not* a word for rolling backwards.
+
+What they disagree on (One Blade Mag has run several pieces on it): whether alley-oop/truespin name the *spin direction* or the *backwards grind*; whether they apply to groove tricks (frontside, royale, unity) at all; and what inspin/outspin mean.
+
+Proposed mapping to what the game can actually tell apart — how you left the ground and what you spun before the rail:
+
+| Took off | Spin before the rail | Called | Grinding |
+|---|---|---|---|
+| forward | none | Soul | forwards |
+| forward | 180 | Alley-oop Soul | backwards |
+| forward | 360 | 360 Soul | forwards |
+| forward | 540 | Alley-oop 540 Soul | backwards |
+| fakie | none | Zerospin Soul | backwards |
+| fakie | 180 | Half Cab Soul | forwards |
+| fakie | 360 | Full Cab Soul | backwards |
+| fakie | 540 | Fakie 540 Soul | forwards |
+
+Air: from fakie a 180 is a **Half Cab**, a 360 a **Full Cab**, a 540 a **Fakie 540**; grabs and flips keep the **Fakie** prefix. The spin-in would be folded into the grind's name and score, not listed as a separate "180".
+
+Open decisions: (1) truespin needs a spin *direction*, which the game doesn't have yet; (2) switch needs a *natural side* per skater; (3) whether groove tricks take the alley-oop naming or stay "Fakie Royale" etc.
+
+Sources: toxboe.net grind variations and 1997 dictionary; Grindhouse trick guide basics; One Blade Mag — "The Truespin On 'Alley-Oop' History" and related blogs.
+
 ## Slot design
 Each swipe direction is a slot, separately for air and grind. Today the best unlocked trick fills the slot:
 

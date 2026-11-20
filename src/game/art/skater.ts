@@ -186,36 +186,76 @@ export function drawSkater(sk: SkaterDef, pose: Pose): Pix {
 /** Number of turnaround frames for spins (360° / SPIN_FRAMES per frame). */
 export const SPIN_FRAMES = 8;
 
+type V = [number, number, number];
 /**
- * Turnaround frame for spins: a tucked skater posed in 3D, rotated about the vertical axis and
- * drawn back-to-front. yaw 0 = facing right, 90 = back to camera, 180 = facing left, 270 = facing camera.
- * This is what makes a 360 read as a body turning rather than a flat sprite flipping.
+ * A pose in 3D for views the side-on rig can't do: turnarounds, and rolling fakie where the hips
+ * face one way and the head looks back the other. Coordinates are body-local: x forward (the way
+ * the hips face), y up from the ground, z toward the skater's near side. `yaw` turns the whole
+ * body about the vertical axis (0 = facing right, 90 = back to camera, 180 = facing left,
+ * 270 = facing camera); `torsoYaw` and `headYaw` twist the shoulders and head independently.
+ * Index 0 of legs/arms is the near (+z) limb.
  */
-export function drawSpin(sk: SkaterDef, yawDeg: number): Pix {
+export interface Pose3 {
+  yaw: number; torsoYaw?: number; headYaw?: number;
+  hip: [number, number]; chest: [number, number]; head: [number, number];
+  legs: [{ knee: V; foot: V; pitch?: number }, { knee: V; foot: V; pitch?: number }];
+  arms: [{ elbow: V; hand: V }, { elbow: V; hand: V }];
+}
+const TUCK: Omit<Pose3, 'yaw'> = {
+  hip: [0, 27], chest: [2, 39], head: [3, 48],
+  legs: [{ knee: [7, 20, 5.5], foot: [4, 8, 4.5], pitch: 10 }, { knee: [5, 21, -5.5], foot: [-2, 10, -4.5], pitch: 10 }],
+  arms: [{ elbow: [1, 31, 8.5], hand: [7, 32, 6] }, { elbow: [1, 31, -8.5], hand: [7, 32, -6] }],
+};
+/** Turnaround frame for spins: the tucked pose at a given yaw. This is what makes a 360 read as a body turning. */
+export const drawSpin = (sk: SkaterDef, yawDeg: number): Pix => drawPose3(sk, { ...TUCK, yaw: yawDeg });
+
+/**
+ * Rolling fakie (backwards, still travelling right): hips face left, deep seated crouch with the
+ * hips pushed back toward the direction of travel, shoulders opened toward the camera, head turned
+ * to look over the shoulder at where you're going, hands low in front for balance. Four frames of
+ * the feet scissoring, as in a backward stride.
+ */
+export const FAKIE_FRAMES = 4;
+export function drawFakie(sk: SkaterDef, frame: number): Pix {
+  const f = [4, 1.5, -4, -1.5][frame % 4], up = frame % 2 ? 1 : 0, sway = frame % 2 ? 0 : (frame === 0 ? 1 : -1);
+  return drawPose3(sk, {
+    yaw: 180, torsoYaw: 222, headYaw: 318,
+    hip: [-5, 23 + up], chest: [2.5 + sway * 0.5, 34 + up], head: [3.5, 43 + up],
+    legs: [{ knee: [6 + f * 0.25, 19 + up, 5], foot: [1 + f, 0, 4.5], pitch: 0 }, { knee: [6 - f * 0.25, 19 + up, -5], foot: [1 - f, 0, -4.5], pitch: 0 }],
+    arms: [{ elbow: [6, 28 + up, 8], hand: [11, 25 + up + sway, 7] }, { elbow: [4, 28 + up, -8.5], hand: [9, 24 + up - sway, -8] }],
+  });
+}
+
+/** Renders a Pose3: every part is projected, then drawn back-to-front. */
+export function drawPose3(sk: SkaterDef, P: Pose3): Pix {
+  const yawDeg = P.yaw, tYaw = P.torsoYaw ?? P.yaw, hYaw = P.headYaw ?? tYaw;
   const p = new Pix(FRAME, FRAME), C = sk.colors, cy = Math.cos(rad(yawDeg)), sy = Math.sin(rad(yawDeg));
   const top = ramp(C.top), pants = ramp(C.pants), skin = skinRamp(C.skin), boot = ramp(C.skate), hair = ramp(C.hair);
-  type V = [number, number, number];
   /** model (x fwd, y up, z toward camera) → [screen x, screen y, depth] */
   const R = (v: V): V => [OX + v[0] * cy + v[2] * sy, GY - v[1], -v[0] * sy + v[2] * cy];
-  const side = Math.abs(cy), front = Math.abs(sy);
+  // the torso can be twisted relative to the hips: rotate about the chest instead
+  const ct = Math.cos(rad(tYaw)), st = Math.sin(rad(tYaw)), chestW = R([P.chest[0], P.chest[1], 0]);
+  const RT = (v: V): V => tYaw === yawDeg ? R(v) : [chestW[0] + (v[0] - P.chest[0]) * ct + v[2] * st, GY - v[1], chestW[2] - (v[0] - P.chest[0]) * st + v[2] * ct];
+  const side = Math.abs(cy), front = Math.abs(st);
   const parts: { z: number; draw: () => void }[] = [];
   const shade = <T extends Ramp>(r: T, z: number): Ramp => (z < -1.5 ? dim(r) : r);
 
-  const hip = R([0, 27, 0]), sh = R([2, 39, 0]), hd = R([3, 48, 0]);
+  const hip = R([P.hip[0], P.hip[1], 0]), sh = chestW, hd = RT([P.head[0], P.head[1], 0]);
   parts.push({ z: 0, draw: () => p.part(q => {
     q.capsule(hip[0], hip[1], sh[0], sh[1], 4.6 + front * 1.2, 5.6 + front * 1.6, top);
     for (let t = -8; t <= 8; t += 0.5) { const y = hip[1] + (sh[1] - hip[1]) * 0.62; if (q.get((sh[0] + t) | 0, y | 0) !== -1) q.set(sh[0] + t, y, C.hair); }
   }) });
 
   for (const s of [1, -1]) {
-    const hj = R([0, 27, 3 * s]), kn = R([s > 0 ? 7 : 5, s > 0 ? 20 : 21, 5.5 * s]), ft = R([s > 0 ? 4 : -2, s > 0 ? 8 : 10, 4.5 * s]);
+    const L = P.legs[s > 0 ? 0 : 1], A = P.arms[s > 0 ? 0 : 1];
+    const hj = R([P.hip[0], P.hip[1], 3 * s]), kn = R(L.knee), ft = R(L.foot);
     const zl = (kn[2] + ft[2]) / 2;
     parts.push({ z: zl + (s > 0 ? 0.01 : 0), draw: () => {
       let ankle: [number, number] = [0, 0];
-      const far = zl < -1.5;
+      const far = zl < -1.5, pitch = L.pitch ?? 0;
       p.part(q => {
         ankle = side > 0.5
-          ? skate(q, ft[0], ft[1], cy > 0 ? 10 : -10, 'side', far ? dim(boot) : boot, far ? mix(C.wheel, INK, 0.3) : C.wheel, Math.sign(cy) * Math.max(0.62, side))
+          ? skate(q, ft[0], ft[1], cy > 0 ? pitch : -pitch, 'side', far ? dim(boot) : boot, far ? mix(C.wheel, INK, 0.3) : C.wheel, Math.sign(cy) * Math.max(0.62, side))
           : skate(q, ft[0], ft[1], 0, 'front', far ? dim(boot) : boot, far ? mix(C.wheel, INK, 0.3) : C.wheel);
       });
       p.part(q => {
@@ -224,7 +264,7 @@ export function drawSpin(sk: SkaterDef, yawDeg: number): Pix {
         else { q.capsule(hj[0], hj[1], kn[0], kn[1], 3.9, 3.3, pr); q.capsule(kn[0], kn[1], ankle[0], ankle[1], 3.2, 4, pr); }
       });
     } });
-    const sj = R([2, 38, 5.8 * s]), el = R([1, 31, 8.5 * s]), ha = R([7, 32, 6 * s]);
+    const sj = RT([P.chest[0], P.chest[1] - 1, 5.8 * s]), el = RT(A.elbow), ha = RT(A.hand);
     const za = (el[2] + ha[2]) / 2;
     parts.push({ z: za + (s > 0 ? 0.02 : 0), draw: () => p.part(q => {
       const tr = shade(top, za), sr = shade(skin, za);
@@ -235,6 +275,8 @@ export function drawSpin(sk: SkaterDef, yawDeg: number): Pix {
   }
 
   parts.push({ z: 0.5, draw: () => p.part(q => {
+    // the head has its own yaw; inside this block cy/sy/side mean the HEAD's
+    const cy = Math.cos(rad(hYaw)), sy = Math.sin(rad(hYaw)), side = Math.abs(cy);
     const hx = Math.round(hd[0]), hy = Math.round(hd[1]), look = sk.look.head;
     const faceZ = -sy;                      // +1 facing camera, -1 facing away
     const pt = (x: number, y: number, z: number): V => [hx + x * cy + z * sy, hy - y, -x * sy + z * cy];
