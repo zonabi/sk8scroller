@@ -56,10 +56,11 @@ export type PoseName = keyof typeof POSES;
  * so F (near) limbs end up on the screen-left side, trailing the direction of travel.
  */
 const FAKIE_TWEAKS: Partial<Record<PoseName, Partial<Pose>>> = {
-  // forward jump tucks both hands up by the head; fakie that left an arm folded against the face.
-  // Carry the arms out from the fakie roll instead: near arm reaching out and a little up, far arm out the other way.
-  jump: { handF: [16, 39], handB: [-12, 42] },
+  // forward jump tucks both hands up by the head; fakie wants them out for balance, like the roll before it
+  jump: { handF: [-14, 41], handB: [14, 37] },
 };
+/** Poses where a hand is on a skate: their arms can't be re-aimed for fakie. */
+const GRABS = new Set<PoseName>(['mute', 'safety', 'stale', 'rocket', 'liukang', 'makio', 'backslide', 'fishbrain']);
 const poseName = (p: Pose): PoseName => (Object.keys(POSES) as PoseName[]).find(k => POSES[k] === p)!;
 export const POSE_NAMES = Object.keys(POSES) as PoseName[];
 
@@ -147,7 +148,13 @@ function head(p: Pix, cx: number, cy: number, sk: SkaterDef): void {
  */
 export function drawSkater(sk: SkaterDef, pose: Pose, lookBack = false): Pix {
   // a touch more upright, chest opened — plus per-pose adjustments where the forward arms look wrong with the head turned
-  if (lookBack) pose = { ...pose, lean: pose.lean - 5, head: (pose.head ?? 0) * 0.3, ...FAKIE_TWEAKS[poseName(pose)] };
+  if (lookBack) {
+    // Rolling backwards, the shoulder nearest the camera is the one LEADING toward travel (the skater looks over it).
+    // So that near arm reaches out toward travel for balance and the far arm trails the other way — the opposite of
+    // the forward pose, where the near arm reaches ahead of the chest. Hence the hand targets swap (grabs excepted).
+    const name = poseName(pose), swap = !GRABS.has(name);
+    pose = { ...pose, lean: pose.lean - 5, head: (pose.head ?? 0) * 0.3, ...(swap ? { handF: pose.handB, handB: pose.handF } : {}), ...FAKIE_TWEAKS[name] };
+  }
   const p = new Pix(FRAME, FRAME), C = sk.colors;
   const top = ramp(C.top), pants = ramp(C.pants), skin = skinRamp(C.skin), boot = ramp(C.skate);
   const X = (x: number) => OX + x, Y = (y: number) => GY - y;
@@ -281,7 +288,9 @@ export function drawFakie(sk: SkaterDef, frame: number): Pix {
     yaw: 180, torsoYaw: 222, headYaw: 318,
     hip: [-5, 23 + up], chest: [2.5 + sway * 0.5, 34 + up], head: [3.5, 43 + up],
     legs: [{ knee: [6 + f * 0.25, 19 + up, 5], foot: [1 + f, 0, 4.5], pitch: 0 }, { knee: [6 - f * 0.25, 19 + up, -5], foot: [1 - f, 0, -4.5], pitch: 0 }],
-    arms: [{ elbow: [6, 28 + up, 8], hand: [11, 25 + up + sway, 7] }, { elbow: [4, 28 + up, -8.5], hand: [9, 24 + up - sway, -8] }],
+    // arms: [0] is the trailing arm (the skater's right, far side) reaching back along the way they came;
+    //       [1] is the LEADING arm (their left, the shoulder they look over) reaching out toward travel for balance
+    arms: [{ elbow: [7.5, 29 + up, 7.5], hand: [11, 27 + up - sway, 7] }, { elbow: [-1.5, 31 + up, -8.5], hand: [-5.5, 32 + up + sway, -9] }],
   });
 }
 
