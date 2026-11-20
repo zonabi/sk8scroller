@@ -21,7 +21,8 @@ export class MenuScene extends Phaser.Scene {
   create(): void {
     setupCamera(this);
     showFullscreenButton(true);
-    this.events.once('shutdown', () => showFullscreenButton(false));
+    // if the player starts before the menu's second frame, the loading screen must still go away
+    this.events.once('shutdown', () => { showFullscreenButton(false); loading.done(); });
     this.save = loadSave();
     this.frames = 0;
     this.bg = new World(this);
