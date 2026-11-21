@@ -1,6 +1,6 @@
 # Handoff — where the project stands
 
-Updated 2026-11-19, version 0.7.0. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
+Updated 2026-11-20, version 0.7.1. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
 
 ## State in one paragraph
 
@@ -11,13 +11,14 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 - Art style (Genesis/SNES, "think Sonic") and graffiti lettering.
 - Performance on Mac ("still feels really good and buttery").
 - Feel after P-01…P-04 ("It feels much better now!").
+- Push (P-05): "I can notice it and it feels good to boost the player."
+- Sound: "good enough for the feel" — no further sound work wanted for now.
 - Fakie mechanic and all fakie sprites (P-06, P-06a…h): "approved here on that fakie addition".
 
 ## On trial (shipped, no verdict yet)
 
-- P-05 push — used only 10 times in the last session; ask whether it's noticeable enough.
+- P-05a push strength raised 18% → 22% at his request ("slightly more push"). Not yet played.
 - P-07 pre-jump trick buffer.
-- Sound — played with for a day, no comment either way.
 
 ## Parked by the user
 

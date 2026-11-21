@@ -12,11 +12,11 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - Grind stances in `art/skater.ts` are side-view approximations; check each reads as the right trick.
 - Art style approved by the user on a Mac retina display (2026-11-18). Not yet judged on a phone.
 - Performance verified on the user's Mac only: 60 fps at zoom Z4, boot 551 ms. **Phone `?fps` readout still needed** (fps, frame ms, zoom, boot timeline) — that is the device that matters.
-- **Sound has had no feedback.** The user has played with it since 2026-11-18 without comment; ask. Levels were balanced by measured loudness only. Needs a listen on phone speaker and headphones: is anything harsh, too loud, too quiet, or annoying on repeat (roll loop, grind scrape)? Does audio start on iPhone after the first tap?
+- **Sound accepted on Mac** (2026-11-20: "good enough for the feel"). Still unheard on a phone. Levels were balanced by measured loudness only. Needs a listen on phone speaker and headphones: is anything harsh, too loud, too quiet, or annoying on repeat (roll loop, grind scrape)? Does audio start on iPhone after the first tap?
 - Full-screen button untested on Android/iPad; iPhone route is Add to Home Screen.
 - Spin turnaround approved in play; flips still rotate the side-view sprite.
 - Fakie sprites (roll, jump, fall, landing, grinds, air tricks) approved 2026-11-19 from stills and play on Mac.
-- Push (P-05) and the pre-jump trick buffer (P-07) are on trial with no direct comment yet.
+- Push approved; strength raised to 22% (P-05a) and awaiting a play. The pre-jump trick buffer (P-07) is on trial with no direct comment yet.
 
 ## Tooling done
 
