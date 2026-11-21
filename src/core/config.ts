@@ -67,6 +67,12 @@ const DEF = {
   // P-12 turn round in the air; jump on the very last frame of a rail
   airTurn: 1,               // the turn input in the air does a 180 (always available, whatever the left trick slot holds)
   railEndJump: 1,           // a jump pressed on the frame the rail runs out still jumps
+  // P-13 touch controls that mirror the keyboard (read by game/input.ts and game/pads.ts; the sim never looks at these)
+  touchLayout: 1,           // 0 = thumb zones and swipes · 1 = two on-screen button pads (left = arrow keys, right = W A S D)
+  padAlpha: 0.22,           // how visible the pads are (0 = invisible, 1 = solid)
+  padY: 0.38,               // height of the pads' centre as a fraction of the screen, from the top
+  padSize: 44,              // button diameter, art px (the screen is 640 wide)
+  padInset: 14,             // gap from the side of the screen to the pad, art px
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -77,7 +83,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0, airTurn: 0, railEndJump: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0, airTurn: 0, railEndJump: 0, touchLayout: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -90,6 +96,11 @@ export interface Knob {
 }
 /** Panel layout. Groups are change IDs (newest work first) then base feel. */
 export const KNOBS: Knob[] = [
+  { key: 'touchLayout', group: 'P-13 Touch controls', label: 'Touch layout', kind: 'slider', min: 0, max: 1, step: 1, hint: '0 = thumb zones and swipes (before) · 1 = button pads: left is the arrow keys (jump, turn, push), right is W A S D (tricks)' },
+  { key: 'padAlpha', group: 'P-13 Touch controls', label: 'Pad visibility', kind: 'slider', min: 0.05, max: 0.8, step: 0.01, hint: 'Lower = fainter' },
+  { key: 'padY', group: 'P-13 Touch controls', label: 'Pad height on screen', kind: 'slider', min: 0.2, max: 0.8, step: 0.01, hint: '0.5 = centred, lower numbers = nearer the top' },
+  { key: 'padSize', group: 'P-13 Touch controls', label: 'Button size', kind: 'slider', min: 30, max: 64, step: 1 },
+  { key: 'padInset', group: 'P-13 Touch controls', label: 'Gap from the screen edge', kind: 'slider', min: 0, max: 80, step: 2 },
   { key: 'fakieEnabled', group: 'P-06 Fakie', label: 'Fakie stance', kind: 'toggle', hint: 'Turn round on the ground; a 180 or 540 leaves you facing the other way' },
   { key: 'fakieBonus', group: 'P-06 Fakie', label: 'Fakie points bonus', kind: 'slider', min: 0, max: 0.6, step: 0.05 },
   { key: 'fakieBalance', group: 'P-06 Fakie', label: 'Extra balance difficulty when fakie', kind: 'slider', min: 0, max: 0.5, step: 0.05 },

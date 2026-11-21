@@ -298,7 +298,7 @@ export class GameScene extends Phaser.Scene {
   private finish(): void {
     if (this.finished) return;
     this.finished = true;
-    bindFlag(null);
+    bindFlag(null); this.ctl.hidePads();
     if (this.rec) {
       // snapshot BEFORE xp is added below, so the recorded level is the one the run was played at
       const rec = this.snapshot();

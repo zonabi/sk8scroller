@@ -24,6 +24,12 @@ for (const [name, ms] of [['run-1', 2500], ['run-2', 3000], ['run-3', 4000], ['r
   await wait(ms);
   await page.screenshot({ path: `${out}/${name}.png` });
 }
+// P-13: the touch button pads (?pads shows them without a touch screen)
+await page.goto('http://localhost:4179/?bot&seed=7&pads');
+await wait(1200);
+await page.keyboard.press('Space');
+await wait(2500);
+await page.screenshot({ path: `${out}/pads.png` });
 // no-input run: the skater slams until the run ends, to capture the results screen
 await page.goto('http://localhost:4179/?seed=7');
 await wait(1200);

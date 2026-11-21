@@ -2,12 +2,19 @@ import Phaser from 'phaser';
 import type { Dir, Input, Mode } from '../core/sim';
 import { AW } from './view';
 import { CFG } from '../core/config';
+import { PAD_LEFT, PAD_RIGHT, PAD_UP, PadView, padHit, padsActive } from './pads';
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 const SWIPE_PX = 16, TAP_MS = 220, BALANCE_PX = 38; // art units (640 wide)
+const PAD_TRICK: Dir[] = ['up', 'right', 'down', 'left'];
 
 /**
  * Turns touch / keyboard / tilt into core `Input`.
+ *
+ * Touch has two layouts, chosen by CFG.touchLayout (P-13, see pads.ts):
+ *   1 = button pads that mirror the keyboard. Left pad is the arrow keys (↑ jump, ← turn / lean left,
+ *       → push / lean right), right pad is W A S D (tricks). Each button means exactly what its key means.
+ *   0 = thumb zones and swipes, as before:
  *   Left thumb  = body:   press to jump (hold = higher). While grinding: hold + drag sideways
  *                         to balance, quick tap to jump off.
  *   Right thumb = tricks: swipe a direction (tap = up). On the ground a tap is a push and a left swipe turns you round (fakie).
@@ -23,6 +30,10 @@ export class InputController {
   private tilt = 0;
   private left: { id: number; x: number; t: number; moved: boolean } | null = null;
   private right: { id: number; x: number; y: number; fired: boolean } | null = null;
+  private pads: PadView | null = null;
+  private padL = { id: -1, btn: -1 };
+  private padR = { id: -1, btn: -1 };
+  private padBalance = 0;
   private keys: Record<string, Phaser.Input.Keyboard.Key> = {};
   private onOrient = (e: DeviceOrientationEvent) => {
     const angle = (screen.orientation?.angle ?? (window as { orientation?: number }).orientation ?? 0) as number;
@@ -32,6 +43,7 @@ export class InputController {
 
   constructor(private scene: Phaser.Scene, private getMode: () => Mode, tilt: boolean) {
     scene.input.addPointer(2);
+    if (padsActive()) this.pads = new PadView(scene);
     scene.input.on('pointerdown', this.down, this);
     scene.input.on('pointermove', this.move, this);
     scene.input.on('pointerup', this.up, this);
@@ -58,7 +70,45 @@ export class InputController {
     try { return (await D.requestPermission()) === 'granted'; } catch { return false; }
   }
 
+  /** The run is over: take the pads off the results screen. */
+  hidePads(): void { this.pads?.hide(); }
+
+  // ---- layout 1: button pads. Each handler does what the matching key's handler does. ----
+  private holdLeft(btn: number): void {
+    this.padL.btn = btn; this.pads!.press(btn, true);
+    const m = this.getMode();
+    if (btn === PAD_UP) { this.jumpHeld = true; this.jumpQueued = true; }
+    else if (btn === PAD_RIGHT) { this.padBalance = 1; if (m === 'ground') this.pushQueued = true; }
+    else if (btn === PAD_LEFT) { this.padBalance = -1; if (m === 'ground' || (m === 'air' && CFG.airTurn)) this.turnQueued = true; }
+  }
+  private dropLeft(): void {
+    if (this.padL.btn >= 0) this.pads!.press(this.padL.btn, false);
+    this.padL.btn = -1; this.jumpHeld = false; this.padBalance = 0;
+  }
+  private padDown(p: Phaser.Input.Pointer): void {
+    const b = padHit(p.worldX, p.worldY);
+    if (b < 0) return;
+    if (b < 4) { this.dropLeft(); this.padL.id = p.id; this.holdLeft(b); }
+    else {
+      if (this.padR.btn >= 0) this.pads!.press(this.padR.btn, false);
+      this.padR.id = p.id; this.padR.btn = b; this.pads!.press(b, true);
+      this.trickQueued = PAD_TRICK[b - 4];
+    }
+  }
+  /** Sliding the left thumb onto another button is letting go of one key and pressing the next (how you rock ← → on a rail). */
+  private padMove(p: Phaser.Input.Pointer): void {
+    if (p.id !== this.padL.id || this.padL.btn < 0) return;
+    const b = padHit(p.worldX, p.worldY);
+    if (b >= 0 && b < 4 && b !== this.padL.btn) { this.dropLeft(); this.holdLeft(b); }
+  }
+  private padUp(p: Phaser.Input.Pointer): void {
+    if (p.id === this.padL.id) { this.dropLeft(); this.padL.id = -1; }
+    else if (p.id === this.padR.id) { if (this.padR.btn >= 0) this.pads!.press(this.padR.btn, false); this.padR.id = -1; this.padR.btn = -1; }
+  }
+
+  // ---- layout 0: thumb zones and swipes ----
   private down(p: Phaser.Input.Pointer): void {
+    if (this.pads) { this.padDown(p); return; }
     if (p.worldX < AW / 2) {
       this.left = { id: p.id, x: p.worldX, t: this.scene.time.now, moved: false };
       this.jumpHeld = true;
@@ -68,6 +118,7 @@ export class InputController {
     }
   }
   private move(p: Phaser.Input.Pointer): void {
+    if (this.pads) { this.padMove(p); return; }
     if (this.left?.id === p.id) {
       const dx = p.worldX - this.left.x;
       if (Math.abs(dx) > 6) this.left.moved = true;
@@ -83,6 +134,7 @@ export class InputController {
     }
   }
   private up(p: Phaser.Input.Pointer): void {
+    if (this.pads) { this.padUp(p); return; }
     if (this.left?.id === p.id) {
       if (this.getMode() === 'grind' && !this.left.moved && this.scene.time.now - this.left.t < TAP_MS) this.jumpQueued = true;
       this.left = null; this.jumpHeld = false; this.touchBalance = 0;
@@ -106,7 +158,7 @@ export class InputController {
       jumpPressed: this.jumpQueued,
       jumpHeld: this.jumpHeld || !!k.SPACE?.isDown || !!k.UP?.isDown,
       trick: this.trickQueued,
-      balance: clamp(kb + this.touchBalance + this.tilt),
+      balance: clamp(kb + this.touchBalance + this.padBalance + this.tilt),
       push: this.pushQueued,
       turn: this.turnQueued,
     };
