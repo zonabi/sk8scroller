@@ -17,6 +17,7 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - Spin turnaround approved in play; flips still rotate the side-view sprite.
 - Fakie sprites (roll, jump, fall, landing, grinds, air tricks) approved 2026-11-19 from stills and play on Mac.
 - P-12: touch tap in the air now turns you round instead of doing the up trick — needs judging on a phone.
+- **P-13 touch button pads** (left = arrow keys, right = W A S D) are the default on touch from 0.8.0. Never touched by a real thumb: check button size, reach from a natural grip, whether the pads cover anything, and what the left pad's ↓ should do. Position, size and faintness are sliders in the tuning panel.
 - Push approved; strength raised to 22% (P-05a) and awaiting a play. The pre-jump trick buffer (P-07) is on trial with no direct comment yet.
 
 ## Tooling done

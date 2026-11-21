@@ -60,7 +60,7 @@ long line of grinds, switch-ups and air tricks. Short runs, big combos, loud col
 ## Controls — design notes
 
 - Tilt-to-balance is **optional**, off by default. It's fun but excludes people lying down, on transit, or with motion sensitivity. Drag-to-balance must always be enough.
-- No on-screen buttons. Whole left half / right half, so thumbs never miss.
+- ~~No on-screen buttons. Whole left half / right half, so thumbs never miss.~~ On trial since 2026-11-20 (P-13): two faint button pads that mirror the keyboard, because the first phone session showed the gesture controls bailing far more than the keys. The zones-and-swipes layout is still there as touch layout 0.
 - Tap on the right = the "up" trick, so a new player who mashes still does something cool.
 - Open question for playtest: should grinding need a held input instead of being automatic? Automatic is friendlier; held gives the option of skipping a rail.
 

@@ -2,6 +2,15 @@
 
 Newest first. Keep entries to a few lines: what, why, what would change our mind.
 
+## 2026-11-20 — Touch gets on-screen buttons that mirror the keyboard (trial, P-13)
+The GDD said "no on-screen buttons": whole screen halves so thumbs never miss. The first phone session reversed the
+evidence — touch bailed 6.4 times a minute against 3.8 on keyboard, and over half the bails were one overloaded gesture
+(a right-thumb tap). The user asked for the same controls on both devices. Pads are a numbered layout (`touchLayout`)
+with position, size and opacity as knobs, so further variations are added as layout 2, 3… beside the old one, not over it.
+The pad settings live in `core/config.ts` only because that is where switches, the tuning panel and recordings read
+from; the sim never looks at them. Would change our mind: small buttons being missed on a real phone (count presses
+that land outside the pads).
+
 ## 2026-11-19 — Record every run; analyse feedback from replays
 Feel feedback ("jumps don't register") can't be acted on from a description. Since the sim is deterministic, inputs
 alone reproduce a run exactly, so each run is recorded and the dev server collects them into `runs/`. The analyser
