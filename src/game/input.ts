@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Dir, Input, Mode } from '../core/sim';
 import { AW } from './view';
 import { CFG } from '../core/config';
-import { PAD_LEFT, PAD_RIGHT, PAD_UP, PadView, padHit, padsActive } from './pads';
+import { PAD_LEFT, PAD_RIGHT, PAD_UP, PadView, padChord, padHit, padsActive } from './pads';
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 const SWIPE_PX = 16, TAP_MS = 220, BALANCE_PX = 38; // art units (640 wide)
@@ -24,6 +24,7 @@ export class InputController {
   private jumpQueued = false;
   private jumpHeld = false;
   private trickQueued: Dir | null = null;
+  private trickNext: Dir | null = null;   // P-14: a second trick button pressed in the same instant goes out on the next step
   private pushQueued = false;
   private turnQueued = false;
   private touchBalance = 0;
@@ -32,7 +33,7 @@ export class InputController {
   private right: { id: number; x: number; y: number; fired: boolean } | null = null;
   private pads: PadView | null = null;
   private padL = { id: -1, btn: -1 };
-  private padR = { id: -1, btn: -1 };
+  private padR = { id: -1, fired: 0 };   // fired: bitmask of the trick buttons this touch has pressed
   private padBalance = 0;
   private keys: Record<string, Phaser.Input.Keyboard.Key> = {};
   private onOrient = (e: DeviceOrientationEvent) => {
@@ -85,25 +86,46 @@ export class InputController {
     if (this.padL.btn >= 0) this.pads!.press(this.padL.btn, false);
     this.padL.btn = -1; this.jumpHeld = false; this.padBalance = 0;
   }
+  /** Press a trick button for the right-pad touch. One touch presses each button at most once, so a thumb wobbling on a border can't machine-gun. */
+  private fireTrick(btn: number): void {
+    const bit = 1 << (btn - 4);
+    if (this.padR.fired & bit) return;
+    this.padR.fired |= bit; this.pads!.press(btn, true);
+    if (this.trickQueued === null) this.trickQueued = PAD_TRICK[btn - 4]; else this.trickNext = PAD_TRICK[btn - 4];
+  }
+  private dropRight(): void {
+    for (let b = 4; b < 8; b++) if (this.padR.fired & (1 << (b - 4))) this.pads!.press(b, false);
+    this.padR.fired = 0;
+  }
   private padDown(p: Phaser.Input.Pointer): void {
     const b = padHit(p.worldX, p.worldY);
     if (b < 0) return;
     if (b < 4) { this.dropLeft(); this.padL.id = p.id; this.holdLeft(b); }
     else {
-      if (this.padR.btn >= 0) this.pads!.press(this.padR.btn, false);
-      this.padR.id = p.id; this.padR.btn = b; this.pads!.press(b, true);
-      this.trickQueued = PAD_TRICK[b - 4];
+      // a second finger is a new press: it may hit any button again
+      this.dropRight(); this.padR.id = p.id;
+      this.fireTrick(b);
+      const c = padChord(p.worldX, p.worldY); if (c >= 4) this.fireTrick(c);     // P-14: between two buttons = both, nearest first
     }
   }
-  /** Sliding the left thumb onto another button is letting go of one key and pressing the next (how you rock ← → on a rail). */
+  /**
+   * Sliding the left thumb onto another button is letting go of one key and pressing the next (how you rock ← → on a rail).
+   * P-14: rolling the right thumb onto another trick button presses that one too.
+   */
   private padMove(p: Phaser.Input.Pointer): void {
-    if (p.id !== this.padL.id || this.padL.btn < 0) return;
-    const b = padHit(p.worldX, p.worldY);
-    if (b >= 0 && b < 4 && b !== this.padL.btn) { this.dropLeft(); this.holdLeft(b); }
+    if (p.id === this.padL.id && this.padL.btn >= 0) {
+      const b = padHit(p.worldX, p.worldY);
+      if (b >= 0 && b < 4 && b !== this.padL.btn) { this.dropLeft(); this.holdLeft(b); }
+    } else if (p.id === this.padR.id && CFG.padChordDeg > 0) {
+      const b = padHit(p.worldX, p.worldY);
+      if (b < 4) return;
+      this.fireTrick(b);
+      const c = padChord(p.worldX, p.worldY); if (c >= 4) this.fireTrick(c);
+    }
   }
   private padUp(p: Phaser.Input.Pointer): void {
     if (p.id === this.padL.id) { this.dropLeft(); this.padL.id = -1; }
-    else if (p.id === this.padR.id) { if (this.padR.btn >= 0) this.pads!.press(this.padR.btn, false); this.padR.id = -1; this.padR.btn = -1; }
+    else if (p.id === this.padR.id) { this.dropRight(); this.padR.id = -1; }
   }
 
   // ---- layout 0: thumb zones and swipes ----
@@ -162,7 +184,7 @@ export class InputController {
       push: this.pushQueued,
       turn: this.turnQueued,
     };
-    this.jumpQueued = false; this.trickQueued = null; this.pushQueued = false; this.turnQueued = false;
+    this.jumpQueued = false; this.trickQueued = this.trickNext; this.trickNext = null; this.pushQueued = false; this.turnQueued = false;
     return input;
   }
 }

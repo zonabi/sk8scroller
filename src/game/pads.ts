@@ -38,6 +38,21 @@ export function padHit(x: number, y: number): number {
   return side * 4 + (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? PAD_RIGHT : PAD_LEFT) : dy > 0 ? PAD_DOWN : PAD_UP);
 }
 
+/**
+ * P-14: a touch that lands between two buttons presses both, like a thumb laid across two keys.
+ * Given the same point as padHit, returns the second button (the neighbour on the other axis) when the
+ * point is within CFG.padChordDeg of the diagonal between them, else -1.
+ */
+export function padChord(x: number, y: number): number {
+  if (CFG.padChordDeg <= 0) return -1;
+  const g = geom(), side = x < AW / 2 ? 0 : 1;
+  const dx = x - (side ? g.rx : g.lx), dy = y - g.y, r = Math.hypot(dx, dy);
+  if (r > g.reach || r < g.d * 0.5) return -1;       // the middle of the pad is nearer to no button than to two
+  const off = Math.abs(Math.atan2(Math.abs(dy), Math.abs(dx)) * 180 / Math.PI - 45);
+  if (off > CFG.padChordDeg) return -1;
+  return side * 4 + (Math.abs(dx) > Math.abs(dy) ? (dy > 0 ? PAD_DOWN : PAD_UP) : dx > 0 ? PAD_RIGHT : PAD_LEFT);
+}
+
 /** One pad drawn once to a canvas at full canvas resolution (cached per size), like the lettering. */
 function padTexture(scene: Phaser.Scene, side: number, g: typeof G): string {
   const key = `pad-${side}-${g.size}`;
