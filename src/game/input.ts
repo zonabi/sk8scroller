@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Dir, Input, Mode } from '../core/sim';
 import { AW } from './view';
+import { CFG } from '../core/config';
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 const SWIPE_PX = 16, TAP_MS = 220, BALANCE_PX = 38; // art units (640 wide)
@@ -10,7 +11,7 @@ const SWIPE_PX = 16, TAP_MS = 220, BALANCE_PX = 38; // art units (640 wide)
  *   Left thumb  = body:   press to jump (hold = higher). While grinding: hold + drag sideways
  *                         to balance, quick tap to jump off.
  *   Right thumb = tricks: swipe a direction (tap = up). On the ground a tap is a push and a left swipe turns you round (fakie).
- *   Keyboard: SPACE jump, WASD tricks, ←/→ balance; on the ground → pushes and ← turns you round.
+ *   Keyboard: SPACE jump, WASD tricks, ←/→ balance; on the ground → pushes and ← turns you round; in the air ← (or a right-thumb tap) is a 180.
  */
 export class InputController {
   private jumpQueued = false;
@@ -42,7 +43,7 @@ export class InputController {
       const jump = () => { this.jumpQueued = true; };
       // arrows steer balance on a rail; on the ground → is a push
       this.keys.RIGHT.on('down', () => { if (this.getMode() === 'ground') this.pushQueued = true; });
-      this.keys.LEFT.on('down', () => { if (this.getMode() === 'ground') this.turnQueued = true; });
+      this.keys.LEFT.on('down', () => { const m = this.getMode(); if (m === 'ground' || (m === 'air' && CFG.airTurn)) this.turnQueued = true; });
       this.keys.SPACE.on('down', jump); this.keys.UP.on('down', jump);
     }
     if (tilt) window.addEventListener('deviceorientation', this.onOrient);
@@ -86,8 +87,13 @@ export class InputController {
       if (this.getMode() === 'grind' && !this.left.moved && this.scene.time.now - this.left.t < TAP_MS) this.jumpQueued = true;
       this.left = null; this.jumpHeld = false; this.touchBalance = 0;
     } else if (this.right?.id === p.id) {
-      // a tap: on the ground it is a push (and still counts as an 'up' swipe if a jump follows straight away); in the air it is the up trick
-      if (!this.right.fired) { this.trickQueued = 'up'; if (this.getMode() === 'ground') this.pushQueued = true; }
+      // a tap: on the ground it is a push (and still counts as an 'up' swipe if a jump follows straight away);
+      // in the air it turns you round (P-12; the up trick if that is switched off); on a grind it is the up switch-up
+      if (!this.right.fired) {
+        const m = this.getMode();
+        if (m === 'air' && CFG.airTurn) this.turnQueued = true; else this.trickQueued = 'up';
+        if (m === 'ground') this.pushQueued = true;
+      }
       this.right = null;
     }
   }

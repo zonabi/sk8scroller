@@ -43,7 +43,7 @@ export interface SimState {
   /** Direction of the last air trick completed during this airtime. */
   doneDir: Dir | null;
   /** A swipe waiting for the current air trick to finish (P-04), and its age in seconds. */
-  queuedDir: Dir | null; queuedAge: number;
+  queuedDir: Dir | null; queuedTurn: boolean; queuedAge: number;
   /** Seconds left in which a jump still works after a rail ran out (P-04). */
   coyote: number;
   /** Last trick swipe made on the ground and its age in seconds (P-07). */
@@ -99,7 +99,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0, fakie: false, grindFakie: false, turnCd: 0, turnAge: 99,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedTurn: false, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0, fakie: false, grindFakie: false, turnCd: 0, turnAge: 99,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -184,13 +184,15 @@ export class Sim {
         if (s.airTrick) {
           s.airTrick.timeLeft -= dt; s.airTrick.age += dt;
           // P-04: a swipe during a trick waits for it to finish instead of vanishing
-          if (CFG.trickBufferMs > 0) { if (input.trick) { s.queuedDir = input.trick; s.queuedAge = 0; } else s.queuedAge += dt; }
+          const turn = input.turn && !!CFG.airTurn && !!CFG.fakieEnabled;
+          if (CFG.trickBufferMs > 0) { if (input.trick || turn) { s.queuedDir = turn ? 'left' : input.trick; s.queuedTurn = turn; s.queuedAge = 0; } else s.queuedAge += dt; }
           if (s.airTrick.timeLeft <= 0) {
             this.completeAirTrick(ev);
-            if (s.queuedDir && s.queuedAge * 1000 <= CFG.trickBufferMs) this.startAirTrick(s.queuedDir, ev);
-            s.queuedDir = null;
+            if (s.queuedDir && s.queuedAge * 1000 <= CFG.trickBufferMs) this.startAirTrick(s.queuedDir, ev, s.queuedTurn);
+            s.queuedDir = null; s.queuedTurn = false;
           }
-        } else if (input.trick) this.startAirTrick(input.trick, ev);
+        } else if (input.turn && CFG.airTurn && CFG.fakieEnabled) this.startAirTrick('left', ev, true);   // P-12: turn round mid-jump
+        else if (input.trick) this.startAirTrick(input.trick, ev);
         // catch a rail/ledge on the way down
         if (s.vy <= 0) {
           for (const f of this.level.near(s.x)) {
@@ -231,6 +233,8 @@ export class Sim {
         s.grindTime += dt; s.stanceTime += dt;
         if (s.x > f.x + f.w) {
           s.mode = 'air'; s.vy = CFG.railEndPop; s.grind = null; s.coyote = CFG.coyoteMs / 1000;
+          // P-12: a jump pressed on this very frame used to be lost
+          if (input.jumpPressed && CFG.railEndJump) { s.vy = CFG.jumpV * this.skater.air; s.coyote = 0; ev.push({ type: 'jump' }); }
           break;
         }
         s.y = railY(f, s.x);
@@ -284,8 +288,9 @@ export class Sim {
   private entry(tr: { id: string; name: string; points: number }, fakie: boolean, scale: number): ComboEntry {
     return fakie ? { trickId: `fakie-${tr.id}`, name: `Fakie ${tr.name}`, points: tr.points * scale * this.fk(true) } : { trickId: tr.id, name: tr.name, points: tr.points * scale };
   }
-  private startAirTrick(dir: Dir, ev: SimEvent[]): void {
-    const tr = trickForSlot('air', dir, this.playerLevel);
+  /** `turn`: the plain 180 (P-12), whatever the slot's unlocked trick is. */
+  private startAirTrick(dir: Dir, ev: SimEvent[], turn = false): void {
+    const tr = turn ? TRICKS.spin180 : trickForSlot('air', dir, this.playerLevel);
     if (tr) { this.s.airTrick = { id: tr.id, timeLeft: tr.duration, dir, age: 0, fakie: this.s.fakie }; ev.push({ type: 'airTrickStart', trickId: tr.id }); }
   }
   private completeAirTrick(ev: SimEvent[]): void {
@@ -302,7 +307,7 @@ export class Sim {
     const t = this.s.airTrick;
     if (t && CFG.landGraceMs > 0 && t.timeLeft * 1000 <= CFG.landGraceMs + 1e-6) this.completeAirTrick(ev);
   }
-  private clearAir(): void { const s = this.s; s.swipeDir = null; s.swipeAge = 99; s.doneDir = null; s.queuedDir = null; s.coyote = 0; }
+  private clearAir(): void { const s = this.s; s.swipeDir = null; s.swipeAge = 99; s.doneDir = null; s.queuedDir = null; s.queuedTurn = false; s.coyote = 0; }
 
   private startGrind(f: Feature, ev: SimEvent[], dir: Dir | null = null): void {
     const s = this.s, tr = (dir && trickForSlot('grind', dir, this.playerLevel)) || trickForSlot('grind', null, this.playerLevel)!;

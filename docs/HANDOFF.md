@@ -1,6 +1,6 @@
 # Handoff — where the project stands
 
-Updated 2026-11-20, version 0.7.1. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
+Updated 2026-11-20, version 0.7.2. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
 
 ## State in one paragraph
 
@@ -19,6 +19,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 
 - P-05a push strength raised 18% → 22% at his request ("slightly more push"). Not yet played.
 - P-07 pre-jump trick buffer.
+- P-12 turn round mid-jump (← / right-thumb tap = a 180 at any level) and the rail-end jump fix. Not yet played. **Open question for the user:** he also asked to be able to jump while grinding, but the recordings show that already works (175 of 177 presses); find out what he was seeing. On touch, a tap in the air used to be the up trick and is now the turn — untested, his to veto.
 
 ## Parked by the user
 
@@ -43,7 +44,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 ## Repo and delivery
 
 - The working copy is on the user's Mac at `~/Documents/projects/zemog-gamez/sk8scroller`. `origin` is `https://github.com/zonabi/sk8scroller.git`; **nothing has been pushed yet** (he said he'll set up credentials himself). `package-lock.json` shows as modified locally; that's from his `npm install`, leave it.
-- `runs/` is git-ignored and holds his raw recordings. Sessions worth keeping are copied into `tests/golden-runs/` (34 runs: S1, S2, S3) and must keep replaying exactly (`npm run check`).
+- `runs/` is git-ignored and holds his raw recordings. Sessions worth keeping are copied into `tests/golden-runs/` (43 runs: S1–S4) and must keep replaying exactly (`npm run check`).
 - The dev server picks up changes on reload; no restart needed unless `vite.config.ts` changes.
 
 ## Known gaps

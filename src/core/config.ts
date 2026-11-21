@@ -64,6 +64,9 @@ const DEF = {
   fakieEnabled: 1,          // turning round, and 180s/540s leaving you fakie
   fakieBonus: 0.25,         // extra points for anything done fakie, as a fraction
   fakieBalance: 0.15,       // how much faster a lean runs away when grinding fakie
+  // P-12 turn round in the air; jump on the very last frame of a rail
+  airTurn: 1,               // the turn input in the air does a 180 (always available, whatever the left trick slot holds)
+  railEndJump: 1,           // a jump pressed on the frame the rail runs out still jumps
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -74,7 +77,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0, airTurn: 0, railEndJump: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -93,6 +96,8 @@ export const KNOBS: Knob[] = [
   { key: 'pushBoost', group: 'P-05 Push', label: 'Push strength', kind: 'slider', min: 0, max: 0.45, step: 0.01, hint: 'Extra speed while a push lasts (0.22 = 22%). 0 = no pushing' },
   { key: 'pushSecs', group: 'P-05 Push', label: 'Push length (s)', kind: 'slider', min: 0.5, max: 3, step: 0.1 },
   { key: 'pushCooldown', group: 'P-05 Push', label: 'Time between pushes (s)', kind: 'slider', min: 0.5, max: 5, step: 0.1 },
+  { key: 'airTurn', group: 'P-12 Turn in the air', label: 'Turn round mid-jump (a 180)', kind: 'toggle', hint: '← on keyboard, right-thumb tap on touch. Off: tap in the air is the up trick again' },
+  { key: 'railEndJump', group: 'P-12 Turn in the air', label: 'Jump on the last frame of a rail', kind: 'toggle' },
   { key: 'preJumpMs', group: 'P-07 Trick just before take-off', label: 'Swipe-before-jump window (ms)', kind: 'slider', min: 0, max: 300, step: 10, hint: 'A trick swipe on the ground this close before you jump fires as you leave. 0 = off' },
   { key: 'trickBufferMs', group: 'P-04 Inputs that did nothing', label: 'Trick queue window (ms)', kind: 'slider', min: 0, max: 400, step: 10, hint: 'Swipe while a trick is finishing: it fires when the first one ends. 0 = off' },
   { key: 'coyoteMs', group: 'P-04 Inputs that did nothing', label: 'Late jump off a rail end (ms)', kind: 'slider', min: 0, max: 300, step: 10 },

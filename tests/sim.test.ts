@@ -5,7 +5,7 @@ import { Recorder, analyse, inputsOf, report } from '../src/core/replay';
 import { SKATERS } from '../src/core/skaters';
 import { levelForXp, xpForLevel } from '../src/core/progression';
 import { trickForSlot } from '../src/core/tricks';
-import { CFG } from '../src/core/config';
+import { CFG, withTuning } from '../src/core/config';
 
 const mk = (seed = 1, playerLevel = 1) => {
   const sim = new Sim({ seed, skater: SKATERS[0], playerLevel });
@@ -278,6 +278,27 @@ describe('recording', () => {
     expect(a.ignoredJumps.length).toBe(1);
     expect(a.ignoredJumps[0].detail).toContain('jump buffer');
   });
+});
+
+describe('P-12 turn in the air', () => {
+  const land = (sim: Sim) => { while (sim.s.mode === 'air') sim.step(press({})); };
+  it('the turn input mid-jump is a 180 at any level and leaves you fakie', () => {
+    const sim = mk(1, 10);                                   // at level 10 the left slot holds the 540
+    sim.step(press({ jumpPressed: true }));
+    const ev = sim.step(press({ turn: true }));
+    expect(ev.some(e => e.type === 'airTrickStart' && e.trickId === 'spin180')).toBe(true);
+    land(sim);
+    expect(sim.s.mode).toBe('ground');
+    expect(sim.s.fakie).toBe(true);
+    expect(sim.s.combo.some(c => c.trickId === 'spin180')).toBe(true);
+  });
+  it('does nothing in the air when switched off', () => withTuning({ ...CFG, airTurn: 0 }, () => {
+    const sim = mk(1, 10);
+    sim.step(press({ jumpPressed: true }));
+    expect(sim.step(press({ turn: true })).length).toBe(0);
+    land(sim);
+    expect(sim.s.fakie).toBe(false);
+  }));
 });
 
 describe('progression', () => {

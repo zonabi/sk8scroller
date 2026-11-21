@@ -21,7 +21,8 @@ Tilt control needs HTTPS on iOS Safari, so over plain Wi-Fi use touch; tilt work
 | | Touch | Keyboard |
 |---|---|---|
 | Jump (hold = higher) | left thumb press | Space |
-| Air tricks | right thumb swipe ↑ ↓ ← → (tap = ↑) | W A S D |
+| Air tricks | right thumb swipe ↑ ↓ ← → | W A S D |
+| Turn round mid-jump (a 180, lands you fakie) | right thumb tap | ← |
 | Grind | land on a rail or ledge | same |
 | Balance on a grind | left thumb hold + drag sideways, or tilt | ← → |
 | Switch-up (change grind) | right thumb swipe | W A S D |

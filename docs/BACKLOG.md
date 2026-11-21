@@ -16,6 +16,7 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - Full-screen button untested on Android/iPad; iPhone route is Add to Home Screen.
 - Spin turnaround approved in play; flips still rotate the side-view sprite.
 - Fakie sprites (roll, jump, fall, landing, grinds, air tricks) approved 2026-11-19 from stills and play on Mac.
+- P-12: touch tap in the air now turns you round instead of doing the up trick — needs judging on a phone.
 - Push approved; strength raised to 22% (P-05a) and awaiting a play. The pre-jump trick buffer (P-07) is on trial with no direct comment yet.
 
 ## Tooling done
