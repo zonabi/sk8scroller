@@ -323,6 +323,21 @@ describe('P-15 rushed switch-ups', () => {
     expect(slow).toBeCloseTo(CFG.rushKick, 1);
     expect(fast).toBeCloseTo(CFG.rushKick * 2, 1);
   });
+  it('P-15a: each further rushed switch-up in a row shoves harder still', () => {
+    const third = (): number => {
+      const sim = mk(5);
+      sim.level.add('rail', 80, 400, 24);
+      while (sim.s.x < 80 - sim.s.speed * 0.3) sim.step(press({}));
+      sim.step(press({ jumpPressed: true }));
+      while (sim.s.mode === 'air') sim.step(press({}));
+      sim.step(press({ trick: 'up' })); run(sim, 2); sim.step(press({ trick: 'down' })); run(sim, 2);
+      const before = sim.s.balanceVel;
+      sim.step(press({ trick: 'left' }));
+      return Math.abs(sim.s.balanceVel - before);
+    };
+    const flat = withTuning({ ...CFG, rushChain: 0 }, third), chained = third();
+    expect(chained - flat).toBeCloseTo(CFG.rushKick * 2 * CFG.rushChain, 1);
+  });
   it('leaves an unhurried switch-up, and the first one of a grind, exactly as they were', () => {
     expect(secondShove(15)).toBe(off(15));   // 250 ms apart
   });

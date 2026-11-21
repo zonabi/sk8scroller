@@ -78,6 +78,8 @@ const DEF = {
   // P-15 jamming trick buttons on a rail costs balance
   rushMs: 200,              // a switch-up this soon after the previous one is rushed; under half of this it is rushed twice over. 0 = off
   rushKick: 1,              // extra shove to the lean per rushed switch-up (doubled under half the window)
+  // P-15a mashing escalates
+  rushChain: 1,             // each further rushed switch-up in a row adds this many more shoves (0 = every rushed one costs the same)
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -88,7 +90,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0, airTurn: 0, railEndJump: 0, touchLayout: 0, padChordDeg: 0, rushMs: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0, airTurn: 0, railEndJump: 0, touchLayout: 0, padChordDeg: 0, rushMs: 0, rushChain: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -103,6 +105,7 @@ export interface Knob {
 export const KNOBS: Knob[] = [
   { key: 'rushMs', group: 'P-15 Jamming trick buttons on a rail', label: 'Rushed switch-up window (ms)', kind: 'slider', min: 0, max: 400, step: 10, hint: 'A switch-up this soon after the previous one shoves your balance; under half of this, twice as hard. The first switch-up of a grind is never rushed. 0 = off' },
   { key: 'rushKick', group: 'P-15 Jamming trick buttons on a rail', label: 'Shove per rushed switch-up', kind: 'slider', min: 0, max: 3, step: 0.05, hint: 'At 1: a quick pair is a visible wobble, four jammed in a row falls about 3 times in 10, mashing down a whole rail nearly always falls' },
+  { key: 'rushChain', group: 'P-15 Jamming trick buttons on a rail', label: 'Mashing escalates (P-15a)', kind: 'slider', min: 0, max: 2, step: 0.25, hint: 'Each further rushed switch-up in a row adds this many more shoves. 0 = every rushed one costs the same' },
   { key: 'padChordDeg', group: 'P-14 Two trick buttons with one thumb', label: 'Width of the in-between zone (degrees)', kind: 'slider', min: 0, max: 30, step: 1, hint: 'Touch between two trick buttons = both, nearest first; rolling the thumb onto another button presses it too. Wider = easier to hit both, easier to do it by accident. 0 = off' },
   { key: 'touchLayout', group: 'P-13 Touch controls', label: 'Touch layout', kind: 'slider', min: 0, max: 1, step: 1, hint: '0 = thumb zones and swipes (before) · 1 = button pads: left is the arrow keys (jump, turn, push), right is W A S D (tricks)' },
   { key: 'padAlpha', group: 'P-13 Touch controls', label: 'Pad visibility', kind: 'slider', min: 0.05, max: 0.8, step: 0.01, hint: 'Lower = fainter' },
