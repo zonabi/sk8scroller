@@ -18,7 +18,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 ## On trial (shipped, no verdict yet)
 
 - P-05a push strength raised 18% → 22% at his request ("slightly more push"). Not yet played.
-- **P-13 touch button pads** — left pad is the arrow keys (jump, turn/fakie, push), right pad is W A S D (tricks); faint, set above centre. Built from his spec after S5; checked only with emulated touches. He wants to iterate on variations: position, size and faintness are sliders under *tuning → P-13*, and `touchLayout` 0 brings back zones and swipes. New variations go in as layout 2, 3… **Open question for him:** the left pad's ↓ does nothing yet (the keyboard's ↓ doesn't either).
+- **P-13 touch button pads** — left pad is the arrow keys (jump, turn/fakie, push), right pad is W A S D (tricks); faint, set above centre. Built from his spec after S5. First play: "pretty good", then enlarged and moved in at his request (P-13a, awaiting a play). He wants to iterate on variations: position, size and faintness are sliders under *tuning → P-13*, and `touchLayout` 0 brings back zones and swipes. New variations go in as layout 2, 3… **Open question for him:** the left pad's ↓ does nothing yet (the keyboard's ↓ doesn't either).
 - P-07 pre-jump trick buffer.
 - P-12 turn round mid-jump (← / right-thumb tap = a 180 at any level) and the rail-end jump fix. Not yet played. **Open question for the user:** he also asked to be able to jump while grinding, but the recordings show that already works (175 of 177 presses); find out what he was seeing. On touch, a tap in the air used to be the up trick and is now the turn — untested, his to veto.
 

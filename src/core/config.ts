@@ -71,8 +71,8 @@ const DEF = {
   touchLayout: 1,           // 0 = thumb zones and swipes · 1 = two on-screen button pads (left = arrow keys, right = W A S D)
   padAlpha: 0.22,           // how visible the pads are (0 = invisible, 1 = solid)
   padY: 0.38,               // height of the pads' centre as a fraction of the screen, from the top
-  padSize: 44,              // button diameter, art px (the screen is 640 wide)
-  padInset: 14,             // gap from the side of the screen to the pad, art px
+  padSize: 52,              // button diameter, art px (the screen is 640 wide). Was 44 before P-13a
+  padInset: 26,             // gap from the side of the screen to the pad, art px. Was 14 before P-13a
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
