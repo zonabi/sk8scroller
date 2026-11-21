@@ -25,9 +25,9 @@ const DEF = {
   // player hitbox
   halfW: 5,
   // grind balance (inverted pendulum: lean accelerates the lean)
-  balanceInstability: 8,
+  balanceInstability: 12,   // was 8 before P-16 (recordings carry their own value)
   balanceTimeRamp: 0.25,
-  balanceNoise: 8,
+  balanceNoise: 20,         // was 8 before P-16
   balanceControl: 6,
   balanceDamp: 6, // was 4 before P-01 (recordings carry their own value)
   grindPointsRate: 1.0, // fraction of a trick's points earned per second held
@@ -43,7 +43,7 @@ const DEF = {
   // ---- playtest changes (docs/PLAYTEST.md). Each key needs a LEGACY value below. ----
   // P-01 balance you can actually save
   balanceControlScale: 0.9, // steering strength as a fraction of the stance's own pull (never below balanceControl)
-  balanceSettleMs: 400,     // after locking into a stance, the lean takes this long to start running away
+  balanceSettleMs: 200,     // after locking into a stance, the lean takes this long to start running away (was 400 before P-16)
   switchUpKick: 0.25,       // shove a switch-up gives the lean, × stance difficulty
   // P-02 rail landings: your swipe picks the grind
   railIntentMs: 100,        // a swipe this close before touching a rail means "grind in this stance", not an air trick
@@ -128,7 +128,7 @@ export const KNOBS: Knob[] = [
   { key: 'railIntentMs', group: 'P-02 Swipe picks the grind', label: 'Swipe-before-rail window (ms)', kind: 'slider', min: 0, max: 300, step: 10, hint: 'A swipe this close to touching a rail picks the stance instead of starting an air trick. 0 = off' },
   { key: 'railTrickPicksGrind', group: 'P-02 Swipe picks the grind', label: 'Finished air trick picks the stance', kind: 'toggle', hint: 'Land a trick, then a rail: you lock into the stance for that swipe direction' },
   { key: 'balanceControlScale', group: 'P-01 Balance you can save', label: 'Steering strength vs the stance', kind: 'slider', min: 0, max: 1.3, step: 0.05, hint: 'Higher = a lean can be pulled back from further over' },
-  { key: 'balanceSettleMs', group: 'P-01 Balance you can save', label: 'Calm moment after locking in (ms)', kind: 'slider', min: 0, max: 900, step: 50, hint: 'Time before a new stance starts to tip' },
+  { key: 'balanceSettleMs', group: 'P-01 Balance you can save', label: 'Calm moment after locking in (ms)', kind: 'slider', min: 0, max: 900, step: 50, hint: 'Time before a new stance starts to tip (was 400 before P-16)' },
   { key: 'stanceHardness', group: 'P-01 Balance you can save', label: 'How much faster hard stances tip', kind: 'slider', min: 0, max: 1, step: 0.05, hint: '1 = Unity tips over twice as fast as Frontside; lower = closer together' },
   { key: 'balanceDamp', group: 'P-01 Balance you can save', label: 'Lean damping', kind: 'slider', min: 2, max: 9, step: 0.5, hint: 'Higher = the lean builds more slowly (was 4)' },
   { key: 'switchUpKick', group: 'P-01 Balance you can save', label: 'Shove from a switch-up', kind: 'slider', min: 0, max: 0.6, step: 0.05 },
@@ -136,9 +136,9 @@ export const KNOBS: Knob[] = [
   { key: 'gravity', group: 'Base feel', label: 'Gravity', kind: 'slider', min: 600, max: 1300, step: 25 },
   { key: 'baseSpeed', group: 'Base feel', label: 'Starting speed', kind: 'slider', min: 100, max: 220, step: 5 },
   { key: 'maxSpeedBonus', group: 'Base feel', label: 'Extra speed late in a run', kind: 'slider', min: 0, max: 220, step: 10 },
-  { key: 'balanceInstability', group: 'Base feel', label: 'How fast a lean runs away', kind: 'slider', min: 3, max: 14, step: 0.5 },
+  { key: 'balanceInstability', group: 'Base feel', label: 'How fast a lean runs away', kind: 'slider', min: 3, max: 20, step: 0.5, hint: 'Was 8 before P-16' },
   { key: 'balanceTimeRamp', group: 'Base feel', label: 'Harder the longer you grind', kind: 'slider', min: 0, max: 0.6, step: 0.05 },
-  { key: 'balanceNoise', group: 'Base feel', label: 'Random wobble', kind: 'slider', min: 0, max: 14, step: 0.5 },
+  { key: 'balanceNoise', group: 'Base feel', label: 'Random wobble', kind: 'slider', min: 0, max: 30, step: 0.5, hint: 'Was 8 before P-16' },
   { key: 'comboGrace', group: 'Base feel', label: 'Seconds before a combo banks', kind: 'slider', min: 0.3, max: 2, step: 0.1 },
 ];
 
