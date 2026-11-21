@@ -57,7 +57,7 @@ const DEF = {
   // P-07 trick pressed just before take-off
   preJumpMs: 140,           // a swipe on the ground this close before a jump fires as the jump leaves
   // P-05 push for a burst of speed
-  pushBoost: 0.18,          // extra speed while a push lasts, as a fraction (0 = pushing disabled)
+  pushBoost: 0.22,          // extra speed while a push lasts, as a fraction (0 = pushing disabled)
   pushSecs: 1.5,            // how long one push lasts
   pushCooldown: 2.2,        // seconds from one push to the next
   // P-06 fakie: roll backwards, same direction
@@ -90,7 +90,7 @@ export const KNOBS: Knob[] = [
   { key: 'fakieEnabled', group: 'P-06 Fakie', label: 'Fakie stance', kind: 'toggle', hint: 'Turn round on the ground; a 180 or 540 leaves you facing the other way' },
   { key: 'fakieBonus', group: 'P-06 Fakie', label: 'Fakie points bonus', kind: 'slider', min: 0, max: 0.6, step: 0.05 },
   { key: 'fakieBalance', group: 'P-06 Fakie', label: 'Extra balance difficulty when fakie', kind: 'slider', min: 0, max: 0.5, step: 0.05 },
-  { key: 'pushBoost', group: 'P-05 Push', label: 'Push strength', kind: 'slider', min: 0, max: 0.45, step: 0.01, hint: 'Extra speed while a push lasts (0.18 = 18%). 0 = no pushing' },
+  { key: 'pushBoost', group: 'P-05 Push', label: 'Push strength', kind: 'slider', min: 0, max: 0.45, step: 0.01, hint: 'Extra speed while a push lasts (0.22 = 22%). 0 = no pushing' },
   { key: 'pushSecs', group: 'P-05 Push', label: 'Push length (s)', kind: 'slider', min: 0.5, max: 3, step: 0.1 },
   { key: 'pushCooldown', group: 'P-05 Push', label: 'Time between pushes (s)', kind: 'slider', min: 0.5, max: 5, step: 0.1 },
   { key: 'preJumpMs', group: 'P-07 Trick just before take-off', label: 'Swipe-before-jump window (ms)', kind: 'slider', min: 0, max: 300, step: 10, hint: 'A trick swipe on the ground this close before you jump fires as you leave. 0 = off' },
