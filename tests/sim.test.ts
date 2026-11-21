@@ -301,6 +301,33 @@ describe('P-12 turn in the air', () => {
   }));
 });
 
+describe('P-15 rushed switch-ups', () => {
+  /** Lock onto a rail, switch up, wait `gap` steps, switch up again; returns how much the second one shoved the lean. */
+  const secondShove = (gap: number): number => {
+    const sim = mk(5);
+    sim.level.add('rail', 80, 400, 24);
+    while (sim.s.x < 80 - sim.s.speed * 0.3) sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    while (sim.s.mode === 'air') sim.step(press({}));
+    sim.step(press({ trick: 'up' }));
+    run(sim, gap - 1);
+    const before = sim.s.balanceVel;
+    sim.step(press({ trick: 'down' }));
+    expect(sim.s.combo.map(c => c.trickId)).toEqual(['frontside', 'soul', 'makio']);
+    return sim.s.balanceVel - before;
+  };
+  const off = (gap: number) => withTuning({ ...CFG, rushMs: 0 }, () => secondShove(gap));
+
+  it('shoves the lean harder when a switch-up follows the last one inside the window, twice as hard inside half of it', () => {
+    const slow = Math.abs(secondShove(9) - off(9)), fast = Math.abs(secondShove(3) - off(3));   // 150 ms and 50 ms
+    expect(slow).toBeCloseTo(CFG.rushKick, 1);
+    expect(fast).toBeCloseTo(CFG.rushKick * 2, 1);
+  });
+  it('leaves an unhurried switch-up, and the first one of a grind, exactly as they were', () => {
+    expect(secondShove(15)).toBe(off(15));   // 250 ms apart
+  });
+});
+
 describe('progression', () => {
   it('levels are monotonic', () => {
     expect(levelForXp(0)).toBe(1);

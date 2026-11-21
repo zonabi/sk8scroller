@@ -36,6 +36,8 @@ export interface SimState {
   grind: Feature | null; grindTrick: string | null; grindTime: number;
   /** Seconds in the current stance (resets on lock-on and on every switch-up). */
   stanceTime: number;
+  /** P-15: seconds since the last switch-up in this grind (large before the first one). */
+  switchAge: number;
   balance: number; balanceVel: number;
   airTrick: { id: string; timeLeft: number; dir: Dir; age: number; fakie: boolean } | null;
   /** Most recent trick swipe made in the air and how long ago (seconds); cleared on touchdown. */
@@ -99,7 +101,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedTurn: false, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0, fakie: false, grindFakie: false, turnCd: 0, turnAge: 99,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, switchAge: 99, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedTurn: false, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0, fakie: false, grindFakie: false, turnCd: 0, turnAge: 99,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -230,7 +232,7 @@ export class Sim {
       case 'grind': {
         const f = s.grind!, tr = TRICKS[s.grindTrick!];
         s.x += s.speed * dt;
-        s.grindTime += dt; s.stanceTime += dt;
+        s.grindTime += dt; s.stanceTime += dt; s.switchAge += dt;
         if (s.x > f.x + f.w) {
           s.mode = 'air'; s.vy = CFG.railEndPop; s.grind = null; s.coyote = CFG.coyoteMs / 1000;
           // P-12: a jump pressed on this very frame used to be lost
@@ -256,8 +258,13 @@ export class Sim {
           if (nt && nt.id !== s.grindTrick) {
             s.grindTrick = nt.id;
             s.combo.push(this.entry(nt, s.grindFakie, 1));
-            s.balanceVel += (this.rng.next() < 0.5 ? -1 : 1) * CFG.switchUpKick * nt.difficulty; // switch-ups wobble you
-            s.stanceTime = 0;
+            // P-15: a switch-up rushed after the last one shoves harder (twice as hard under half the window) and gets no calm moment
+            const gap = s.switchAge * 1000, rush = CFG.rushMs > 0 && gap < CFG.rushMs ? (gap < CFG.rushMs / 2 ? 2 : 1) : 0;
+            const side = this.rng.next() < 0.5 ? -1 : 1;
+            s.balanceVel += side * CFG.switchUpKick * nt.difficulty; // switch-ups wobble you
+            if (rush) s.balanceVel += side * CFG.rushKick * rush;
+            s.stanceTime = rush ? CFG.balanceSettleMs / 1000 : 0;
+            s.switchAge = 0;
             ev.push({ type: 'switchUp', trickId: nt.id, fakie: s.grindFakie });
           }
         }
@@ -312,7 +319,7 @@ export class Sim {
   private startGrind(f: Feature, ev: SimEvent[], dir: Dir | null = null): void {
     const s = this.s, tr = (dir && trickForSlot('grind', dir, this.playerLevel)) || trickForSlot('grind', null, this.playerLevel)!;
     this.clearAir();
-    s.mode = 'grind'; s.grind = f; s.grindTrick = tr.id; s.grindTime = 0; s.stanceTime = 0; s.vy = 0;
+    s.mode = 'grind'; s.grind = f; s.grindTrick = tr.id; s.grindTime = 0; s.stanceTime = 0; s.switchAge = 99; s.vy = 0;
     s.balance = (this.rng.next() * 2 - 1) * 0.15; s.balanceVel = 0;
     s.grindFakie = s.fakie;
     s.combo.push(this.entry(tr, s.grindFakie, 0.5));
