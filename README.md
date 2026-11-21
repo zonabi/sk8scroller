@@ -16,6 +16,10 @@ Open the Network URL on your phone (same Wi-Fi) and rotate to landscape. The cor
 (Android, iPad, desktop). iPhone Safari has no full-screen API: use Share → Add to Home Screen and launch it from there.
 Tilt control needs HTTPS on iOS Safari, so over plain Wi-Fi use touch; tilt works once wrapped with Capacitor.
 
+## Play it online
+
+Every push to `main` is built and published by `.github/workflows/pages.yml` to **https://zonabi.github.io/sk8scroller/** (about two minutes after the push). It is served over HTTPS, so tilt can work on iPhone there. Runs played on that page are not collected; a tester can only send one back by downloading it.
+
 ## Controls
 
 | | Touch | Keyboard |

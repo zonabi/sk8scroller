@@ -43,7 +43,8 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 
 ## Repo and delivery
 
-- The working copy is on the user's Mac at `~/Documents/projects/zemog-gamez/sk8scroller`. `origin` is `https://github.com/zonabi/sk8scroller.git`; **nothing has been pushed yet** (he said he'll set up credentials himself). `package-lock.json` shows as modified locally; that's from his `npm install`, leave it.
+- The working copy is on the user's Mac at `~/Documents/projects/zemog-gamez/sk8scroller`. `origin` is `https://github.com/zonabi/sk8scroller.git` (public). Cloud sessions can push to it (Claude GitHub App installed 2026-11-20) but cannot delete branches. **Push after each set of changes** — his standing instruction.
+- **Testers' build:** every push to `main` deploys to https://zonabi.github.io/sk8scroller/ via `.github/workflows/pages.yml` (runs `npm run check` first; a failing check blocks the deploy). `vite.config.ts` uses `base: './'` so the build works from a subfolder — keep asset paths relative. Runs played there are not collected (no dev server); only local/Wi-Fi play lands in `runs/`. `package-lock.json` shows as modified locally; that's from his `npm install`, leave it.
 - `runs/` is git-ignored and holds his raw recordings. Sessions worth keeping are copied into `tests/golden-runs/` (43 runs: S1–S4) and must keep replaying exactly (`npm run check`).
 - The dev server picks up changes on reload; no restart needed unless `vite.config.ts` changes.
 

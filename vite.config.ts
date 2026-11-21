@@ -51,4 +51,5 @@ function runCollector(): Plugin {
 const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')) as { version: string };
 process.env.VITE_APP_VERSION = pkg.version;
 
-export default defineConfig({ plugins: [runCollector()], build: { target: 'es2022', chunkSizeWarningLimit: 2000 } });
+// base './': the build works from any folder, e.g. GitHub Pages at /sk8scroller/
+export default defineConfig({ base: './', plugins: [runCollector()], build: { target: 'es2022', chunkSizeWarningLimit: 2000 } });

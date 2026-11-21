@@ -104,5 +104,6 @@ Reference numbers (user's Mac, Chrome, zoom Z4, 2026-11-18): 60 fps / 16.7 ms pe
 - Keep `maxTextures: 1` in `main.ts` (works around a Phaser 4 batching glitch, see DECISIONS).
 - All randomness through `core/rng.ts`. Same seed + same inputs must give the same run (there is a test).
 - All art is generated in code at boot (`game/art/` → `game/textures.ts`). Hand-drawn sheets can replace it later under `public/assets/` using the same texture keys.
+- Asset and fetch paths must be relative (`base: './'`): the testers' build is served from `/sk8scroller/` on GitHub Pages.
 - Original characters only. No real skater names, brands, or copyrighted music/art.
 - Things only a human can judge (game feel on a real phone, tilt, audio latency) — don't guess. Leave a note under "Needs human playtest" in `docs/BACKLOG.md`.
