@@ -4,7 +4,7 @@ import { AH, AW, PAL, Z, hex } from './view';
 
 /**
  * P-13 on-screen button pads (touch layout 1): two faint four-button diamonds that mirror the keyboard.
- *   Left pad  = the arrow keys: ↑ jump · ← turn round / lean left · → push / lean right · ↓ not assigned yet
+ *   Left pad  = the arrow keys: ↑ jump · ← turn round / lean left · → push / lean right · ↓ drop off a rail
  *   Right pad = W A S D:        the four trick directions
  * Everything about where they sit and how they look is a tuning knob (touchLayout, padAlpha, padY, padSize,
  * padInset), so a variation is a slider move on the phone, not a code change.
@@ -62,12 +62,10 @@ function padTexture(scene: Phaser.Scene, side: number, g: typeof G): string {
   const x = c.getContext('2d')!, r = g.size / 2 - 1, a = g.size * 0.2;
   x.scale(Z, Z); x.translate(half, half);
   for (let dir = 0; dir < 4; dir++) {
-    const bx = OX[dir] * g.d, by = OY[dir] * g.d, spare = side === 0 && dir === PAD_DOWN;
-    x.globalAlpha = spare ? 0.4 : 1;
+    const bx = OX[dir] * g.d, by = OY[dir] * g.d;
     x.beginPath(); x.arc(bx, by, r, 0, Math.PI * 2);
     x.fillStyle = 'rgba(26,16,38,0.5)'; x.fill();
     x.lineWidth = 1.5; x.strokeStyle = hex(side ? PAL.yellow : PAL.white); x.stroke();
-    if (spare) continue;                              // the left pad's ↓ has no job yet: ring only
     x.save(); x.translate(bx, by); x.rotate(dir * Math.PI / 2);   // an arrowhead pointing the button's way
     x.beginPath(); x.moveTo(0, -a); x.lineTo(a, a * 0.7); x.lineTo(-a, a * 0.7); x.closePath();
     x.fillStyle = hex(side ? PAL.yellow : PAL.white); x.fill(); x.restore();

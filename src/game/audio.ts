@@ -118,6 +118,7 @@ class Sfx {
   event(e: SimEvent): void {
     switch (e.type) {
       case 'jump': this.play('jump'); break;
+      case 'drop': this.play('turn'); break;
       case 'launch': this.play('launch'); break;
       case 'land': this.play('land'); break;
       case 'push': this.play('push'); break;

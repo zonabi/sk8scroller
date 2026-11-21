@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Dir, Input, Mode } from '../core/sim';
 import { AW } from './view';
 import { CFG } from '../core/config';
-import { PAD_LEFT, PAD_RIGHT, PAD_UP, PadView, padChord, padHit, padsActive } from './pads';
+import { PAD_DOWN, PAD_LEFT, PAD_RIGHT, PAD_UP, PadView, padChord, padHit, padsActive } from './pads';
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 const SWIPE_PX = 16, TAP_MS = 220, BALANCE_PX = 38; // art units (640 wide)
@@ -13,12 +13,12 @@ const PAD_TRICK: Dir[] = ['up', 'right', 'down', 'left'];
  *
  * Touch has two layouts, chosen by CFG.touchLayout (P-13, see pads.ts):
  *   1 = button pads that mirror the keyboard. Left pad is the arrow keys (↑ jump, ← turn / lean left,
- *       → push / lean right), right pad is W A S D (tricks). Each button means exactly what its key means.
+ *       → push / lean right, ↓ drop off a rail), right pad is W A S D (tricks). Each button means exactly what its key means.
  *   0 = thumb zones and swipes, as before:
  *   Left thumb  = body:   press to jump (hold = higher). While grinding: hold + drag sideways
  *                         to balance, quick tap to jump off.
  *   Right thumb = tricks: swipe a direction (tap = up). On the ground a tap is a push and a left swipe turns you round (fakie).
- *   Keyboard: SPACE jump, WASD tricks, ←/→ balance; on the ground → pushes and ← turns you round; in the air ← (or a right-thumb tap) is a 180.
+ *   Keyboard: SPACE jump, WASD tricks, ←/→ balance; on the ground → pushes and ← turns you round; in the air ← (or a right-thumb tap) is a 180; ↓ on a rail drops you off it.
  */
 export class InputController {
   private jumpQueued = false;
@@ -27,6 +27,7 @@ export class InputController {
   private trickNext: Dir | null = null;   // P-14: a second trick button pressed in the same instant goes out on the next step
   private pushQueued = false;
   private turnQueued = false;
+  private dropQueued = false;
   private touchBalance = 0;
   private tilt = 0;
   private left: { id: number; x: number; t: number; moved: boolean } | null = null;
@@ -50,7 +51,7 @@ export class InputController {
     scene.input.on('pointerup', this.up, this);
     const kb = scene.input.keyboard;
     if (kb) {
-      this.keys = kb.addKeys('SPACE,W,A,S,D,LEFT,RIGHT,UP') as Record<string, Phaser.Input.Keyboard.Key>;
+      this.keys = kb.addKeys('SPACE,W,A,S,D,LEFT,RIGHT,UP,DOWN') as Record<string, Phaser.Input.Keyboard.Key>;
       const trick = (k: string, d: Dir) => this.keys[k].on('down', () => { this.trickQueued = d; });
       trick('W', 'up'); trick('A', 'left'); trick('S', 'down'); trick('D', 'right');
       const jump = () => { this.jumpQueued = true; };
@@ -58,6 +59,7 @@ export class InputController {
       this.keys.RIGHT.on('down', () => { if (this.getMode() === 'ground') this.pushQueued = true; });
       this.keys.LEFT.on('down', () => { const m = this.getMode(); if (m === 'ground' || (m === 'air' && CFG.airTurn)) this.turnQueued = true; });
       this.keys.SPACE.on('down', jump); this.keys.UP.on('down', jump);
+      this.keys.DOWN.on('down', () => { this.dropQueued = true; });   // P-17: step down off a rail
     }
     if (tilt) window.addEventListener('deviceorientation', this.onOrient);
     scene.events.once('shutdown', () => window.removeEventListener('deviceorientation', this.onOrient));
@@ -80,6 +82,7 @@ export class InputController {
     const m = this.getMode();
     if (btn === PAD_UP) { this.jumpHeld = true; this.jumpQueued = true; }
     else if (btn === PAD_RIGHT) { this.padBalance = 1; if (m === 'ground') this.pushQueued = true; }
+    else if (btn === PAD_DOWN) this.dropQueued = true;
     else if (btn === PAD_LEFT) { this.padBalance = -1; if (m === 'ground' || (m === 'air' && CFG.airTurn)) this.turnQueued = true; }
   }
   private dropLeft(): void {
@@ -183,8 +186,9 @@ export class InputController {
       balance: clamp(kb + this.touchBalance + this.padBalance + this.tilt),
       push: this.pushQueued,
       turn: this.turnQueued,
+      drop: this.dropQueued,
     };
-    this.jumpQueued = false; this.trickQueued = this.trickNext; this.trickNext = null; this.pushQueued = false; this.turnQueued = false;
+    this.jumpQueued = false; this.trickQueued = this.trickNext; this.trickNext = null; this.pushQueued = false; this.turnQueued = false; this.dropQueued = false;
     return input;
   }
 }

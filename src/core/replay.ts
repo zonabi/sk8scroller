@@ -28,9 +28,9 @@ export interface Recording {
 }
 
 const DIRS: (Dir | null)[] = [null, 'up', 'down', 'left', 'right'];
-// bit layout: 1 jumpPressed · 2 jumpHeld · 4-16 trick · 32 push · 64 turn  (new bits must be added above the old ones so old recordings still decode)
-const pack = (i: Input): number => (i.jumpPressed ? 1 : 0) | (i.jumpHeld ? 2 : 0) | (DIRS.indexOf(i.trick) << 2) | (i.push ? 32 : 0) | (i.turn ? 64 : 0);
-const unpack = (flags: number, bal: number): Input => ({ jumpPressed: !!(flags & 1), jumpHeld: !!(flags & 2), trick: DIRS[(flags >> 2) & 7], balance: bal / 100, push: !!(flags & 32), turn: !!(flags & 64) });
+// bit layout: 1 jumpPressed · 2 jumpHeld · 4-16 trick · 32 push · 64 turn · 128 drop  (new bits must be added above the old ones so old recordings still decode)
+const pack = (i: Input): number => (i.jumpPressed ? 1 : 0) | (i.jumpHeld ? 2 : 0) | (DIRS.indexOf(i.trick) << 2) | (i.push ? 32 : 0) | (i.turn ? 64 : 0) | (i.drop ? 128 : 0);
+const unpack = (flags: number, bal: number): Input => ({ jumpPressed: !!(flags & 1), jumpHeld: !!(flags & 2), trick: DIRS[(flags >> 2) & 7], balance: bal / 100, push: !!(flags & 32), turn: !!(flags & 64), drop: !!(flags & 128) });
 
 export class Recorder {
   private steps: number[] = [];
@@ -163,7 +163,7 @@ function analyseNow(rec: Recording): Analysis {
     }
     if (before === 'grind' && grind) {
       grind.maxLean = Math.max(grind.maxLean, Math.abs(s.balance));
-      if (s.mode !== 'grind' && s.mode !== 'bail') { grind.seconds = gTime; grind.end = events.some(e => e.type === 'jump') ? 'jumped off' : 'rail ended'; a.grinds.push(grind); grind = null; }
+      if (s.mode !== 'grind' && s.mode !== 'bail') { grind.seconds = gTime; grind.end = events.some(e => e.type === 'jump') ? 'jumped off' : events.some(e => e.type === 'drop') ? 'dropped off' : 'rail ended'; a.grinds.push(grind); grind = null; }
     }
     if ((before === 'ground' || before === 'grind') && s.mode === 'air') { leftGroundAt = step; airByJump = events.some(e => e.type === 'jump' || e.type === 'launch'); }
   }

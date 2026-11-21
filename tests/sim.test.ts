@@ -343,6 +343,45 @@ describe('P-15 rushed switch-ups', () => {
   });
 });
 
+describe('P-17 drop off a rail', () => {
+  const onRail = () => {
+    const sim = mk(5);
+    sim.level.add('rail', 80, 400, 24);
+    while (sim.s.x < 80 - sim.s.speed * 0.3) sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    while (sim.s.mode === 'air') sim.step(press({}));
+    expect(sim.s.mode).toBe('grind');
+    return sim;
+  };
+  it('steps down to the street without locking back onto the same rail, and keeps the combo', () => {
+    const sim = onRail();
+    const ev = sim.step(press({ drop: true }));
+    expect(ev.map(e => e.type)).toContain('drop');
+    expect(sim.s.mode).toBe('air');
+    const seen: string[] = [];
+    while (sim.s.mode === 'air') for (const e of sim.step(press({}))) seen.push(e.type);
+    expect(sim.s.mode).toBe('ground');
+    expect(sim.s.x).toBeLessThan(480);          // still alongside the rail: it really did come off early
+    expect(seen).not.toContain('grindStart');
+    expect(sim.s.combo.length).toBe(1);
+    expect(sim.s.lives).toBe(CFG.lives);
+  });
+  it('can grind the same rail again after landing', () => {
+    const sim = onRail();
+    sim.step(press({ drop: true }));
+    while (sim.s.mode === 'air') sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    const seen: string[] = [];
+    for (let i = 0; i < 90 && sim.s.mode !== 'grind'; i++) for (const e of sim.step(press({}))) seen.push(e.type);
+    expect(seen).toContain('grindStart');
+  });
+  it('does nothing when switched off', () => withTuning({ ...CFG, railDrop: 0 }, () => {
+    const sim = onRail();
+    sim.step(press({ drop: true }));
+    expect(sim.s.mode).toBe('grind');
+  }));
+});
+
 describe('progression', () => {
   it('levels are monotonic', () => {
     expect(levelForXp(0)).toBe(1);

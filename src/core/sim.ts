@@ -18,12 +18,14 @@ export interface Input {
   push: boolean;
   /** Turn round: forward ⇄ fakie (ground only). */
   turn: boolean;
+  /** P-17: step down off the rail or ledge you are grinding. */
+  drop: boolean;
 }
-export const NO_INPUT: Input = { jumpPressed: false, jumpHeld: false, trick: null, balance: 0, push: false, turn: false };
+export const NO_INPUT: Input = { jumpPressed: false, jumpHeld: false, trick: null, balance: 0, push: false, turn: false, drop: false };
 
 export interface ComboEntry { trickId: string; name: string; points: number }
 export type SimEvent =
-  | { type: 'jump' } | { type: 'launch' } | { type: 'land' } | { type: 'push' } | { type: 'turn'; fakie: boolean }
+  | { type: 'jump' } | { type: 'drop' } | { type: 'launch' } | { type: 'land' } | { type: 'push' } | { type: 'turn'; fakie: boolean }
   | { type: 'grindStart'; trickId: string; fakie?: boolean } | { type: 'switchUp'; trickId: string; fakie?: boolean }
   | { type: 'airTrickStart'; trickId: string } | { type: 'airTrickDone'; trickId: string; fakie?: boolean }
   | { type: 'bank'; points: number; count: number }
@@ -40,6 +42,8 @@ export interface SimState {
   switchAge: number;
   /** P-15a: how many rushed switch-ups in a row so far in this grind. */
   rushChain: number;
+  /** P-17: id of the rail just dropped from, so the fall doesn't lock straight back onto it (-1 = none). */
+  dropFrom: number;
   balance: number; balanceVel: number;
   airTrick: { id: string; timeLeft: number; dir: Dir; age: number; fakie: boolean } | null;
   /** Most recent trick swipe made in the air and how long ago (seconds); cleared on touchdown. */
@@ -103,7 +107,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, switchAge: 99, rushChain: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedTurn: false, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0, fakie: false, grindFakie: false, turnCd: 0, turnAge: 99,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, switchAge: 99, rushChain: 0, dropFrom: -1, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedTurn: false, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0, fakie: false, grindFakie: false, turnCd: 0, turnAge: 99,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -200,7 +204,7 @@ export class Sim {
         // catch a rail/ledge on the way down
         if (s.vy <= 0) {
           for (const f of this.level.near(s.x)) {
-            if (!isGrindable(f) || s.x < f.x || s.x > f.x + f.w) continue;
+            if (!isGrindable(f) || s.x < f.x || s.x > f.x + f.w || f.id === s.dropFrom) continue;
             const ry = railY(f, s.x);
             if (prevY >= ry - 3 && s.y <= ry) {
               s.y = ry;
@@ -275,6 +279,10 @@ export class Sim {
         if (input.jumpPressed) {
           s.mode = 'air'; s.vy = CFG.jumpV * this.skater.air; s.grind = null;
           ev.push({ type: 'jump' });
+        } else if (input.drop && CFG.railDrop) {
+          // P-17: step off downward. You fall to whatever is below (another rail or ledge, else the street); the combo carries on.
+          s.mode = 'air'; s.vy = 0; s.grind = null; s.coyote = 0; s.dropFrom = f.id;
+          ev.push({ type: 'drop' });
         }
         break;
       }
@@ -318,7 +326,7 @@ export class Sim {
     const t = this.s.airTrick;
     if (t && CFG.landGraceMs > 0 && t.timeLeft * 1000 <= CFG.landGraceMs + 1e-6) this.completeAirTrick(ev);
   }
-  private clearAir(): void { const s = this.s; s.swipeDir = null; s.swipeAge = 99; s.doneDir = null; s.queuedDir = null; s.queuedTurn = false; s.coyote = 0; }
+  private clearAir(): void { const s = this.s; s.dropFrom = -1; s.swipeDir = null; s.swipeAge = 99; s.doneDir = null; s.queuedDir = null; s.queuedTurn = false; s.coyote = 0; }
 
   private startGrind(f: Feature, ev: SimEvent[], dir: Dir | null = null): void {
     const s = this.s, tr = (dir && trickForSlot('grind', dir, this.playerLevel)) || trickForSlot('grind', null, this.playerLevel)!;
