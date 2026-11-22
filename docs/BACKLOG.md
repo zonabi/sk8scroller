@@ -22,6 +22,7 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - **P-17 drop off a rail** (↓): never felt. Does the fall read as a deliberate step-down?
 - **Pause and settings** (T-05): check on the phone that the ❙❙ button is reachable but not hit by accident, that the game pauses when you switch apps, and that left-handed pads feel right.
 - **Tutorial** (T-04): only ever completed by a script. Does a real first-timer get through each lesson? Is three seconds enough to read a prompt? Is the balance lesson (stay on 1.5 s) fair with the new rail sensitivity?
+- **Stacks course** (T-16a): only the bot has skated it. Can a person reach the upper rails on purpose? Is it readable which rail you will land on? Should riding high pay more?
 - Push approved; strength raised to 22% (P-05a) and awaiting a play. The pre-jump trick buffer (P-07) is on trial with no direct comment yet.
 
 ## Tooling done
@@ -64,7 +65,8 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 
 - [ ] **T-14 Special meter.** Fills on banked combos; spend for signature trick or boost.
 - [ ] **T-15 Loadout screen.** Choose the trick per slot from unlocked ones.
-- [ ] **T-16 Terrain.** Variable ground height: stairs, drops, gaps (fall = bail), upper/lower routes. Needs level + sim + bot changes; do as 2–3 cards.
+- [x] **T-16a Stacks course.** Done 2026-11-21: a second course, STACKS, with rails over rails and ledges (double-decker, steps up, steps down, triple-decker, high rail over cones). Chosen on the menu (sticker beside SKATE, or C). Climb by jumping rail to rail, come down with ↓. Bot clears it 200/200 for every skater; `npm run sim` now reports both courses. No bonus for riding high yet.
+- [ ] **T-16 Terrain.** *(stacked rails are done as T-16a; what is left is the ground itself changing height)* Variable ground height: stairs, drops, gaps (fall = bail), upper/lower routes. Needs level + sim + bot changes; do as 2–3 cards.
 - [ ] **T-17 Tagging + letter collectibles.**
 - [ ] **T-18 Districts.** Pattern pools + palettes per district; transition every N metres.
 

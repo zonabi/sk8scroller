@@ -2,6 +2,13 @@
 
 Newest first. Keep entries to a few lines: what, why, what would change our mind.
 
+## 2026-11-21 — Courses, not one bigger level
+Multi-level rails went in as a second course (`stacks`) rather than new patterns in the street pool: the street
+course is what every recording and all the balance numbers were made on, and stacked rails change what a jump lands on.
+Upper decks are always rails, never ledges — a ledge is solid from the side and would be a wall at head height.
+The tutorial is a third course that generates nothing; `core/tutorial.ts` lays it out. Would change our mind: if he
+wants one continuous city, merge the pools behind a difficulty gate.
+
 ## 2026-11-21 — How-to-play card is HTML, and shows on the first SKATE, not at boot
 Same reasoning as the tuning panel: menu-only, lots of small text, so plain HTML costs nothing at run time and needs no
 lettering textures. It opens when a new player first presses SKATE (then starts the run) so boot timing is untouched

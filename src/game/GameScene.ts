@@ -86,7 +86,9 @@ export class GameScene extends Phaser.Scene {
     this.seed = seed; this.frozen = false;
     const wantTutorial = !!data?.tutorial && !this.bot && !playback;
     this.tut = null;
-    this.sim = new Sim({ seed, skater: this.skater, playerLevel: levelForXp(save.xp), longRail: q.has('rail'), course: wantTutorial ? 'tutorial' : 'street' });
+    // ?course=stacks picks a course for tools; otherwise it is the one chosen on the menu
+    const picked = q.get('course') === 'stacks' ? 'stacks' : q.get('course') === 'street' ? 'street' : save.course;
+    this.sim = new Sim({ seed, skater: this.skater, playerLevel: levelForXp(save.xp), longRail: q.has('rail'), course: wantTutorial ? 'tutorial' : picked });
     // every human run is recorded (see core/replay.ts); ?replay=<file> plays one back instead
     this.rec = this.bot || playback || wantTutorial ? null : new Recorder();
     this.replayIn = null;
@@ -357,7 +359,7 @@ export class GameScene extends Phaser.Scene {
 
   // ---- end of run -----------------------------------------------------------
   private snapshot() {
-    return this.rec!.finish({ app: APP_VERSION, device: `${navigator.userAgent} · ${screen.width}x${screen.height}@${devicePixelRatio} · Z${Z}`, seed: this.seed, skaterId: this.skater.id, playerLevel: levelForXp(loadSave().xp), longRail: new URLSearchParams(location.search).has('rail') }, this.sim);
+    return this.rec!.finish({ app: APP_VERSION, device: `${navigator.userAgent} · ${screen.width}x${screen.height}@${devicePixelRatio} · Z${Z}`, seed: this.seed, skaterId: this.skater.id, playerLevel: levelForXp(loadSave().xp), longRail: new URLSearchParams(location.search).has('rail'), course: this.sim.level.course }, this.sim);
   }
 
   private finish(): void {

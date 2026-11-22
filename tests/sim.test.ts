@@ -383,6 +383,51 @@ describe('P-17 drop off a rail', () => {
   }));
 });
 
+describe('T-16 stacked rails', () => {
+  /** A low rail with a higher one over its second half; returns the sim grinding the low one. */
+  const stack = () => {
+    const sim = mk(5);
+    const low = sim.level.add('rail', 80, 500, 24), high = sim.level.add('rail', 200, 500, 50);
+    while (sim.s.x < 80 - sim.s.speed * 0.3) sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    while (sim.s.mode === 'air') sim.step(press({}));
+    expect(sim.s.grind).toBe(low);
+    return { sim, low, high };
+  };
+  const steady = (sim: Sim): Input => press({ balance: Math.max(-1, Math.min(1, -(sim.s.balance * 6 + sim.s.balanceVel * 2))) });
+  it('climbs: a jump from the lower rail passes up through the upper one and lands on it', () => {
+    const { sim, high } = stack();
+    while (sim.s.x < 230) sim.step(steady(sim));
+    sim.step(press({ jumpPressed: true }));
+    while (sim.s.mode === 'air') sim.step(press({}));
+    expect(sim.s.grind).toBe(high);
+    expect(sim.s.combo.length).toBe(2);
+  });
+  it('drops: ↓ on the upper rail lands on the one below and keeps the combo', () => {
+    const { sim, low, high } = stack();
+    while (sim.s.x < 230) sim.step(steady(sim));
+    sim.step(press({ jumpPressed: true }));
+    while (sim.s.mode === 'air') sim.step(press({}));
+    expect(sim.s.grind).toBe(high);
+    run(sim, 6, steady(sim));
+    sim.step(press({ drop: true }));
+    while ((sim.s.mode as string) === 'air') sim.step(press({}));
+    expect(sim.s.grind).toBe(low);
+    expect(sim.s.combo.length).toBe(3);
+    expect(sim.s.lives).toBe(CFG.lives);
+  });
+  it('the stacks course really is stacked, and the street course is not', () => {
+    const overlaps = (course: 'street' | 'stacks') => {
+      const sim = new Sim({ seed: 3, skater: SKATERS[0], playerLevel: 1, course });
+      sim.level.ensure(12000);
+      const g = sim.level.features.filter(f => f.kind === 'rail' || f.kind === 'ledge');
+      return g.filter(a => g.some(b => b !== a && b.h > a.h + 10 && b.x < a.x + a.w && b.x + b.w > a.x)).length;
+    };
+    expect(overlaps('stacks')).toBeGreaterThan(8);
+    expect(overlaps('street')).toBe(0);
+  });
+});
+
 describe('tutorial', () => {
   const start = () => { const sim = new Sim({ seed: 1, skater: SKATERS[0], playerLevel: 1, course: 'tutorial' }); return { sim, tut: new Tutorial(), log: [] as TutorialEvent[] }; };
   /** Step with a policy until the tutorial says something of `type` (or give up after `max` steps). */

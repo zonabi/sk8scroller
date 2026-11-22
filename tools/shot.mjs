@@ -30,6 +30,11 @@ await wait(1200);
 await page.keyboard.press('Space');
 await wait(2500);
 await page.screenshot({ path: `${out}/pads.png` });
+// T-16: the stacked-rails course
+await page.goto('http://localhost:4179/?bot&seed=7&course=stacks');
+await wait(1200);
+await page.keyboard.press('Space');
+for (const [name, ms] of [['stacks-1', 5200], ['stacks-2', 3300], ['stacks-3', 4100]]) { await wait(ms); await page.screenshot({ path: `${out}/${name}.png` }); }
 // no-input run: the skater slams until the run ends, to capture the results screen
 await page.goto('http://localhost:4179/?seed=7');
 await wait(1200);

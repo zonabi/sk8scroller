@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { COURSES } from '../core/level';
 import { MAX_LEVEL, levelForXp, xpForLevel } from '../core/progression';
 import { SKATERS } from '../core/skaters';
 import { sfx } from './audio';
@@ -10,7 +11,7 @@ import { openSettings } from './pause';
 import { loadSave, writeSave, type Save } from './storage';
 import { SPRITE, skaterTex } from './textures';
 import { openTuningPanel, tuningCount } from './tuning';
-import { drips, graf, uiPerf } from './ui';
+import { drips, graf, uiPerf, warm } from './ui';
 import { AH, AW, PAL } from './view';
 
 export class MenuScene extends Phaser.Scene {
@@ -97,6 +98,21 @@ export class MenuScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-SPACE', () => start());
     this.input.keyboard?.on('keydown-H', () => how(false));
 
+    // which course: a sticker beside SKATE, tap to flip
+    const courseLabel = (c: Save['course']) => { const d = COURSES.find(x => x.id === c)!; return `${d.name}\n${d.blurb}`; };
+    const courseStyle = { size: 9, fill: PAL.ink, outlineWidth: 0, align: 'center', angle: 2 } as const;
+    for (const c of COURSES) warm(this, courseLabel(c.id as Save['course']), courseStyle);
+    const cx = AW / 2 + 196, cy = 268;
+    const sticker = this.add.graphics().setDepth(99).setPosition(cx, cy).setAngle(2);
+    sticker.fillStyle(PAL.ink, 0.35).fillRoundedRect(-74, -16, 152, 38, 5);
+    sticker.fillStyle(PAL.cyan, 1).fillRoundedRect(-76, -19, 152, 38, 5);
+    sticker.lineStyle(1.5, PAL.ink, 1).strokeRoundedRect(-76, -19, 152, 38, 5);
+    graf(this, cx, cy - 27, 'course — tap to change', { size: 7, fill: PAL.white, outlineWidth: 2, angle: 2 }).setOrigin(0.5);
+    const course = graf(this, cx, cy, courseLabel(this.save.course), courseStyle).setOrigin(0.5);
+    const flip = () => { this.save.course = this.save.course === 'street' ? 'stacks' : 'street'; writeSave(this.save); course.setText(courseLabel(this.save.course)); sfx.play('tap'); };
+    sticker.setInteractive(new Phaser.Geom.Rectangle(-80, -24, 160, 48), Phaser.Geom.Rectangle.Contains).on('pointerdown', flip);
+    this.input.keyboard?.on('keydown-C', flip);
+
     // how to play, on a strip of tape
     const tip = graf(this, AW / 2, 322, 'HOW TO PLAY', { font: 'marker', size: 15, fill: PAL.ink, outlineWidth: 0, angle: -1.5 }).setOrigin(0.5);
     const tapeG = this.add.graphics().setDepth(99).setPosition(AW / 2, 322).setAngle(-1.5);
@@ -104,7 +120,7 @@ export class MenuScene extends Phaser.Scene {
     tapeG.fillStyle(0xf6e7a1, 0.95).fillRect(-tip.textWidth / 2 - 9, -13, tip.textWidth + 18, 26);
     tapeG.setInteractive(new Phaser.Geom.Rectangle(-tip.textWidth / 2 - 14, -18, tip.textWidth + 28, 36), Phaser.Geom.Rectangle.Contains).on('pointerdown', () => how(false));
     tip.button(() => how(false));
-    graf(this, AW / 2, 348, 'controls, tips and the tutorial · on a keyboard: H · M mutes', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
+    graf(this, AW / 2, 348, 'controls, tips and the tutorial · on a keyboard: H · C changes course · M mutes', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
 
     this.input.keyboard?.on('keydown-M', () => { this.save.mute = !this.save.mute; writeSave(this.save); sfx.setMuted(this.save.mute); sfx.play('tap'); });
 

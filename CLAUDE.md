@@ -39,7 +39,7 @@ Why: core can be tested and bot-played in milliseconds with no browser. That is 
 | Add a trick | `src/core/tricks.ts` (+ row in `docs/TRICKS.md`) |
 | Add a skater | `src/core/skaters.ts` |
 | Tutorial lessons | `src/core/tutorial.ts` (what each lesson lays out and what passes it) + `src/game/tutorialText.ts` (the prompt for pads / keys / zones) |
-| Add a level pattern | `PATTERNS` in `src/core/level.ts` |
+| Add a level pattern | `PATTERNS` (street course) or `STACK_PATTERNS` (stacks course) in `src/core/level.ts`. `npm run sim` bot-checks both courses |
 | New mechanic | `src/core/sim.ts` + a test in `tests/` + bot support in `src/core/bot.ts` if the bot must handle it |
 | Skater look / poses | `src/game/art/skater.ts` — poses are data (hip, feet, hands; IK does the rest) |
 | Scenery, rails, obstacles | `src/game/art/world.ts` |
