@@ -383,6 +383,33 @@ describe('P-17 drop off a rail', () => {
   }));
 });
 
+describe('P-18 the lean follows you', () => {
+  /** Grind a long rail until leaning `lean`, hop, and lock back on; returns the lean the new grind starts with. */
+  const hopAt = (lean: number, airSteps = 0): number => {
+    const sim = mk(5);
+    sim.level.add('rail', 80, 3000, 24);
+    while (sim.s.x < 80 - sim.s.speed * 0.3) sim.step(press({}));
+    sim.step(press({ jumpPressed: true }));
+    while (sim.s.mode === 'air') sim.step(press({}));
+    sim.s.balance = lean; sim.s.balanceVel = 0;
+    sim.step(press({ jumpPressed: true, jumpHeld: false, balance: 0 }));
+    if (airSteps) { sim.level.features.length = 0; run(sim, airSteps, press({ jumpHeld: false })); sim.level.add('rail', sim.s.x + 20, 3000, 24); sim.step(press({ jumpPressed: true })); }
+    while ((sim.s.mode as string) !== 'grind') sim.step(press({ jumpHeld: false }));
+    return sim.s.balance;
+  };
+  it('a hop back onto the rail keeps most of the lean, on the same side', () => {
+    const b = hopAt(0.6);
+    expect(b).toBeGreaterThan(0.4); expect(b).toBeLessThanOrEqual(0.6);
+    expect(hopAt(-0.6)).toBeLessThan(-0.4);
+  });
+  it('fades with time off the rail and is gone after the window', () => {
+    expect(Math.abs(hopAt(0.6, 240))).toBeLessThanOrEqual(0.15);          // four seconds on the street
+  });
+  it('switched off, every grind starts level again', () => withTuning({ ...CFG, balanceCarryMs: 0 }, () => {
+    expect(Math.abs(hopAt(0.6))).toBeLessThanOrEqual(0.15);
+  }));
+});
+
 describe('T-16 stacked rails', () => {
   /** A low rail with a higher one over its second half; returns the sim grinding the low one. */
   const stack = () => {

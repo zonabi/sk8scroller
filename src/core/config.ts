@@ -82,6 +82,10 @@ const DEF = {
   rushChain: 1,             // each further rushed switch-up in a row adds this many more shoves (0 = every rushed one costs the same)
   // P-17 step down off a rail
   railDrop: 1,              // ↓ while grinding drops you off the rail to whatever is below
+  // P-18 the lean follows you from rail to rail
+  balanceCarryMs: 3000,     // a new grind this soon after the last one starts with the lean you left on, fading to nothing over this time. 0 = off
+  balanceCarry: 1,          // how much of that lean comes back at once (1 = all of it)
+  relockKick: 1,            // landing back on a rail inside the window shoves the lean further the way it already leans
   stanceHardness: 0.4,      // how much of a stance's difficulty speeds up the lean (1 = all of it, 0 = every stance tips like the easiest)
 };
 export type CfgKey = keyof typeof DEF;
@@ -92,7 +96,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0, airTurn: 0, railEndJump: 0, touchLayout: 0, padChordDeg: 0, rushMs: 0, rushChain: 0, railDrop: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0, airTurn: 0, railEndJump: 0, touchLayout: 0, padChordDeg: 0, rushMs: 0, rushChain: 0, railDrop: 0, balanceCarryMs: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -105,6 +109,9 @@ export interface Knob {
 }
 /** Panel layout. Groups are change IDs (newest work first) then base feel. */
 export const KNOBS: Knob[] = [
+  { key: 'balanceCarryMs', group: 'P-18 The lean follows you', label: 'How long the lean is remembered (ms)', kind: 'slider', min: 0, max: 6000, step: 250, hint: 'Leave a rail leaning, lock onto a rail again within this time: you start with that lean, less the longer you were off. 0 = every grind starts level (before)' },
+  { key: 'balanceCarry', group: 'P-18 The lean follows you', label: 'How much of it comes back', kind: 'slider', min: 0, max: 1, step: 0.05 },
+  { key: 'relockKick', group: 'P-18 The lean follows you', label: 'Jolt when you land back on a rail', kind: 'slider', min: 0, max: 2, step: 0.05, hint: 'Pushes the lean further the way it already leans. 0 = landing is free' },
   { key: 'railDrop', group: 'P-17 Drop off a rail', label: 'Down arrow drops you off the rail', kind: 'toggle', hint: '↓ on the keyboard or the left pad while grinding: step off and fall to whatever is below. The combo carries on' },
   { key: 'rushMs', group: 'P-15 Jamming trick buttons on a rail', label: 'Rushed switch-up window (ms)', kind: 'slider', min: 0, max: 400, step: 10, hint: 'A switch-up this soon after the previous one shoves your balance; under half of this, twice as hard. The first switch-up of a grind is never rushed. 0 = off' },
   { key: 'rushKick', group: 'P-15 Jamming trick buttons on a rail', label: 'Shove per rushed switch-up', kind: 'slider', min: 0, max: 3, step: 0.05, hint: 'At 1: a quick pair is a visible wobble, four jammed in a row falls about 3 times in 10, mashing down a whole rail nearly always falls' },

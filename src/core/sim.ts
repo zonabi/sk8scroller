@@ -44,6 +44,10 @@ export interface SimState {
   rushChain: number;
   /** P-17: id of the rail just dropped from, so the fall doesn't lock straight back onto it (-1 = none). */
   dropFrom: number;
+  /** Seconds of grinding that count toward "harder the longer you grind". Equals grindTime unless P-18 carried some over. */
+  fatigue: number;
+  /** P-18: when the last grind was left, and the balance it was left in (carried into the next lock-in). */
+  leftAt: number; leftBalance: number; leftVel: number; leftFatigue: number;
   balance: number; balanceVel: number;
   airTrick: { id: string; timeLeft: number; dir: Dir; age: number; fakie: boolean } | null;
   /** Most recent trick swipe made in the air and how long ago (seconds); cleared on touchdown. */
@@ -111,7 +115,7 @@ export class Sim {
     this.playerLevel = opts.playerLevel;
     this.s = {
       t: 0, x: 0, y: 0, vy: 0, speed: CFG.baseSpeed * opts.skater.speed, mode: 'ground',
-      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, switchAge: 99, rushChain: 0, dropFrom: -1, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedTurn: false, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0, fakie: false, grindFakie: false, turnCd: 0, turnAge: 99,
+      grind: null, grindTrick: null, grindTime: 0, stanceTime: 0, switchAge: 99, rushChain: 0, dropFrom: -1, fatigue: 0, leftAt: -99, leftBalance: 0, leftVel: 0, leftFatigue: 0, balance: 0, balanceVel: 0, airTrick: null, swipeDir: null, swipeAge: 99, doneDir: null, queuedDir: null, queuedTurn: false, queuedAge: 0, coyote: 0, groundSwipe: null, groundSwipeAge: 0, pushT: 0, pushCd: 0, fakie: false, grindFakie: false, turnCd: 0, turnAge: 99,
       combo: [], comboTimer: 0, score: 0, bestCombo: 0,
       lives: CFG.lives, invuln: 0, bailTimer: 0,
     };
@@ -242,7 +246,9 @@ export class Sim {
       case 'grind': {
         const f = s.grind!, tr = TRICKS[s.grindTrick!];
         s.x += s.speed * dt;
-        s.grindTime += dt; s.stanceTime += dt; s.switchAge += dt;
+        s.grindTime += dt; s.stanceTime += dt; s.switchAge += dt; s.fatigue += dt;
+        // P-18: whatever ends this grind, this is the balance it ended in
+        s.leftAt = s.t; s.leftBalance = s.balance; s.leftVel = s.balanceVel; s.leftFatigue = s.fatigue;
         if (s.x > f.x + f.w) {
           s.mode = 'air'; s.vy = CFG.railEndPop; s.grind = null; s.coyote = CFG.coyoteMs / 1000;
           // P-12: a jump pressed on this very frame used to be lost
@@ -252,7 +258,7 @@ export class Sim {
         s.y = railY(f, s.x);
         // P-01: only part of a stance's difficulty speeds up the lean (EASIEST is the baseline stance)
         const hard = CFG.stanceHardness === 1 ? tr.difficulty : EASIEST + (tr.difficulty - EASIEST) * CFG.stanceHardness;
-        const k0 = (CFG.balanceInstability * hard * (1 + s.grindTime * CFG.balanceTimeRamp)) / this.skater.balance;
+        const k0 = (CFG.balanceInstability * hard * (1 + s.fatigue * CFG.balanceTimeRamp)) / this.skater.balance;
         const k = s.grindFakie ? k0 * (1 + CFG.fakieBalance) : k0;   // P-06: fakie is a little less stable
         const noise = (this.rng.next() * 2 - 1) * CFG.balanceNoise * tr.difficulty;
         // P-01: steering scales with the stance so hard stances stay saveable; a fresh stance is calm for a moment
@@ -335,8 +341,19 @@ export class Sim {
   private startGrind(f: Feature, ev: SimEvent[], dir: Dir | null = null): void {
     const s = this.s, tr = (dir && trickForSlot('grind', dir, this.playerLevel)) || trickForSlot('grind', null, this.playerLevel)!;
     this.clearAir();
-    s.mode = 'grind'; s.grind = f; s.grindTrick = tr.id; s.grindTime = 0; s.stanceTime = 0; s.switchAge = 99; s.rushChain = 0; s.vy = 0;
+    s.mode = 'grind'; s.grind = f; s.grindTrick = tr.id; s.grindTime = 0; s.fatigue = 0; s.stanceTime = 0; s.switchAge = 99; s.rushChain = 0; s.vy = 0;
     s.balance = (this.rng.next() * 2 - 1) * 0.15; s.balanceVel = 0;
+    // P-18: hopping off and locking back on is not a reset. Within the window the new grind picks up the balance the last one
+    // ended in — lean, the speed it was tipping at, and how tired the grind was — less the longer you were off a rail, with no calm moment.
+    const away = (s.t - s.leftAt) * 1000;
+    if (CFG.balanceCarryMs > 0 && away < CFG.balanceCarryMs) {
+      // a short hop (under a fifth of the window) keeps everything; after that it fades to nothing by the end of the window
+      const hold = CFG.balanceCarryMs * 0.2, c = CFG.balanceCarry * (away <= hold ? 1 : 1 - (away - hold) / (CFG.balanceCarryMs - hold)), kept = s.leftBalance * c;
+      if (Math.abs(kept) > Math.abs(s.balance)) s.balance = clamp(kept, -0.92, 0.92);
+      // landing on a rail already leaning jolts you further the same way: full strength from a 0.3 lean, nothing if you left level
+      s.balanceVel = s.leftVel * c + Math.sign(s.balance) * CFG.relockKick * c * Math.min(1, Math.abs(kept) / 0.3); s.fatigue = s.leftFatigue * c;
+      s.stanceTime = (CFG.balanceSettleMs / 1000) * Math.min(1, c);
+    }
     s.grindFakie = s.fakie;
     s.combo.push(this.entry(tr, s.grindFakie, 0.5));
     ev.push({ type: 'grindStart', trickId: tr.id, fakie: s.grindFakie });
@@ -352,6 +369,7 @@ export class Sim {
 
   private bail(reason: 'obstacle' | 'balance' | 'sketchy', ev: SimEvent[]): void {
     const s = this.s;
+    s.leftAt = -99;   // a slam wipes the slate
     s.mode = 'bail'; s.combo = []; s.airTrick = null; s.grind = null; s.grindTrick = null; this.clearAir();
     if (!this.freeLives) s.lives -= 1;
     s.bailTimer = CFG.bailTime; s.invuln = CFG.bailTime + CFG.invulnTime;
