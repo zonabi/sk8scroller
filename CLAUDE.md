@@ -43,6 +43,7 @@ Why: core can be tested and bot-played in milliseconds with no browser. That is 
 | Skater look / poses | `src/game/art/skater.ts` — poses are data (hip, feet, hands; IK does the rest) |
 | Scenery, rails, obstacles | `src/game/art/world.ts` |
 | Any text or UI | `graf()` in `src/game/ui.ts` — never raw `scene.add.text` with a system font |
+| Menus over the game (how to play, pause, settings) | HTML sheets: `src/game/panels.ts` + `howto.ts` / `pause.ts`, styled by `.panel` in `index.html`. Only open on the menu or while paused |
 | HUD, layout | `src/game/` scenes — palette is `PAL` in `view.ts`, stay inside it |
 | Run recording / analysis | `src/core/replay.ts` (pure), `src/game/recording.ts`, collector in `vite.config.ts`, CLI in `tools/replay.ts` |
 | Sounds | `src/game/audio.ts` — add a recipe to `ONE_SHOTS`, trigger it from `event()`. Synthesised only, no audio files yet |

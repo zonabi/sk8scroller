@@ -20,6 +20,7 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - **P-13 touch button pads** (left = arrow keys, right = W A S D) are the default on touch from 0.8.0. Never touched by a real thumb: check reach from a natural grip and whether the pads cover anything (size and position were adjusted once in P-13a and approved). Position, size and faintness are sliders in the tuning panel.
 - **Rail difficulty (P-15, P-15a, P-16)** was tuned on a modelled player, twice in one morning. Needs a phone session: does plain grinding now ask for steering without feeling unfair, and what does a quick pair of trick buttons cost?
 - **P-17 drop off a rail** (↓): never felt. Does the fall read as a deliberate step-down?
+- **Pause and settings** (T-05): check on the phone that the ❙❙ button is reachable but not hit by accident, that the game pauses when you switch apps, and that left-handed pads feel right.
 - Push approved; strength raised to 22% (P-05a) and awaiting a play. The pre-jump trick buffer (P-07) is on trial with no direct comment yet.
 
 ## Tooling done
@@ -41,7 +42,7 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - [ ] **T-03 Manuals.** New `manual` mode in sim: swipe down on landing within 0.15s to enter; own balance meter (forward/back); counts as a combo entry and keeps the combo alive; ends on jump or balance loss. Tests + bot unaffected. Touch + keys.
 - [x] **T-04a How-to-play card.** Done 2026-11-21 (`game/howto.ts`, styles in `index.html`). Shows once before the first run, and from the menu (HOW TO PLAY, or H). Draws the controls for the device in hand: touch pads, keyboard, or thumb zones. Replaced the menu's tape strips, which still described the old swipe controls.
 - [ ] **T-04 First-run tutorial.** *(the static card above covers the controls; this card is the playable version)* Scripted opening stretch (fixed features) with contextual prompts: jump → grind → balance → switch-up → air trick. Skippable; flag in save.
-- [ ] **T-05 Pause + settings.** Pause on blur and via a corner button; settings for tilt, sound, left-handed (mirror thumbs).
+- [x] **T-05 Pause + settings.** Done 2026-11-21 (`game/pause.ts`, `game/panels.ts`). Pause: ❙❙ button top centre, P or ESC, and automatically when the page is hidden; sheet has resume, restart, how to play, settings, quit. Settings (menu and pause): sound, left-handed pads, tilt, and on the menu a two-tap progress reset. ESC no longer quits straight to the menu.
 - [ ] **T-06 Landing quality.** Releasing/pressing near touchdown gives "clean" (bonus multiplier) vs "sloppy" (speed loss). Adds skill to every landing.
 
 ## M2 — Look

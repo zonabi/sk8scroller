@@ -92,14 +92,14 @@
   #tune .sw i { position: absolute; inset: 0; border-radius: 15px; background: #4a4460; transition: background .15s; }
   #tune .sw i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #f5f5f5; transition: transform .15s; }
   #tune .sw input:checked + i { background: #3dff8f; } #tune .sw input:checked + i::after { transform: translateX(22px); }
-  /* how-to-play card (menu only) */
-  #how { position: fixed; inset: 0; z-index: 8; background: rgba(10,6,18,.9); display: flex; justify-content: center; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  /* HTML sheets over the game: how to play, pause, settings (see game/panels.ts) */
+  .panel { position: fixed; inset: 0; z-index: 8; background: rgba(10,6,18,.9); display: flex; justify-content: center; overflow-y: auto; -webkit-overflow-scrolling: touch;
     font: 14px/1.3 system-ui, sans-serif; color: #f5f5f5; touch-action: pan-y; }
-  #how .box { width: min(760px, 100%); padding: 10px calc(16px + env(safe-area-inset-right)) 24px calc(16px + env(safe-area-inset-left)); box-sizing: border-box; }
-  #how header { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; background: #1a1026; padding: 6px 0; z-index: 1; }
-  #how h2 { flex: 1; margin: 0; font: 400 26px/1 "Rubik Spray Paint", system-ui; color: #ffd23f; transform: rotate(-1.5deg); transform-origin: left; }
-  #how button { border: 2px solid #1a1026; border-radius: 8px; padding: 9px 12px; background: #f6e7a1; color: #1a1026; font: 400 14px/1 "Permanent Marker", system-ui; box-shadow: 2px 3px 0 #000; }
-  #how button.x { background: #3dff8f; font-size: 16px; }
+  .panel .box { width: min(760px, 100%); padding: 10px calc(16px + env(safe-area-inset-right)) 24px calc(16px + env(safe-area-inset-left)); box-sizing: border-box; }
+  .panel header { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; background: #1a1026; padding: 6px 0; z-index: 1; }
+  .panel h2 { flex: 1; margin: 0; font: 400 26px/1 "Rubik Spray Paint", system-ui; color: #ffd23f; transform: rotate(-1.5deg); transform-origin: left; }
+  .panel button { border: 2px solid #1a1026; border-radius: 8px; padding: 9px 12px; background: #f6e7a1; color: #1a1026; font: 400 14px/1 "Permanent Marker", system-ui; box-shadow: 2px 3px 0 #000; }
+  .panel button.x { background: #3dff8f; font-size: 16px; }
   #how .pads, #how .zones { display: flex; gap: 14px; justify-content: center; margin-top: 8px; }
   #how .pad, #how .zones > div { flex: 1; max-width: 360px; background: rgba(255,255,255,.06); border-radius: 12px; padding: 8px 10px 10px; text-align: center; }
   #how h3 { margin: 0 0 4px; font: 400 16px/1.1 "Permanent Marker", system-ui; color: #ff3d6e; }
@@ -117,7 +117,22 @@
   #how .d span.l { right: calc(50% + 56px); top: 50%; transform: translateY(-50%); text-align: right; } #how .d span.r { left: calc(50% + 56px); top: 50%; transform: translateY(-50%); text-align: left; }
   #how .pad.tr .d span { color: #9aa3b8; font-size: 11px; }
   #how ol { margin: 10px 0 0; padding-left: 22px; font-size: 13px; } #how li { margin-top: 3px; } #how li b { color: #3dff8f; font-weight: 600; }
-  @media (min-width: 1000px) and (min-height: 600px) { #how .box { zoom: 1.45; } }
+  @media (min-width: 1000px) and (min-height: 600px) { .panel .box { zoom: 1.45; } }
+  .panel .box.narrow { width: min(460px, 100%); }
+  .panel .menu { display: flex; flex-direction: column; gap: 9px; align-items: stretch; margin: 12px auto 0; max-width: 300px; }
+  .panel .menu button { font-size: 17px; padding: 11px 12px; } .panel .menu button.x { font-size: 22px; padding: 13px 12px; }
+  .panel .set { display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 8px; background: rgba(255,255,255,.06); margin-top: 6px; }
+  .panel .set > div { flex: 1; min-width: 0; } .panel .set b { display: block; font-weight: 600; } .panel .set small { display: block; color: #9aa3b8; font-size: 11px; }
+  .panel .set button { min-width: 74px; } .panel button.warn { background: #ff3d6e; color: #fff; }
+  #settings-sheet, #how { z-index: 9; background: rgba(10,6,18,.97); }   /* these can sit on top of the pause sheet */
+  /* pause button: beside the flag during a run */
+  #pause { position: fixed; z-index: 4; left: 50%; top: calc(6px + env(safe-area-inset-top)); width: 44px; height: 38px; margin-left: 4px; padding: 0; display: none;
+    align-items: center; justify-content: center; gap: 5px; border: 3px solid #1a1026; border-radius: 10px; background: #f6e7a1; opacity: .55;
+    box-shadow: 2px 3px 0 #1a1026; transform: rotate(-3deg); touch-action: none; -webkit-tap-highlight-color: transparent; }
+  #pause i { width: 6px; height: 16px; background: #1a1026; border-radius: 2px; }
+  body.can-pause #pause { display: flex; }
+  body.can-pause #flag { margin-left: -48px; }
+  body.can-pause:not(.in-game) #pause { margin-left: -22px; }
   #how .foot { margin: 8px 0 0; color: #9aa3b8; font-size: 12px; } #how .foot b { color: #f6e7a1; }
   #fps { position: fixed; left: 4px; bottom: 4px; color: #3dff8f; font: 12px monospace; z-index: 6; pointer-events: none; }
   @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
@@ -150,6 +165,7 @@
   <svg class="exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>
 </button>
 <div id="fs-toast">iPhone: tap Share, then “Add to Home Screen” — it opens full screen from there.</div>
+<button id="pause" aria-label="Pause"><i></i><i></i></button>
 <button id="flag" aria-label="Flag this moment"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2h2v20H5zM8 3h11l-3 4.5 3 4.5H8z"/></svg></button>
 <div id="fps"></div>
 <div id="rotate">ROTATE YOUR PHONE<br/>↻ landscape</div>

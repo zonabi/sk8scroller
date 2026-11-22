@@ -1,5 +1,7 @@
 import { CFG } from '../core/config';
-import { padsActive } from './pads';
+import { padsActive, padsLefty } from './pads';
+import { actionOf, openPanel } from './panels';
+import { loadSave } from './storage';
 
 /**
  * The "how to play" card: what every button does, plus the five things worth knowing before a first run.
@@ -30,10 +32,10 @@ function body(v: View): string {
   const keys = v === 'keys';
   const move: [string, string, string, string] = ['JUMP<i>hold = higher</i>', 'PUSH<i>on a rail: lean</i>', 'DROP OFF<i>on a rail</i>', 'FAKIE<i>on a rail: lean</i>'];
   const trick: [string, string, string, string] = ['trick', 'trick', 'trick', 'trick'];
-  return `<div class="pads">
-    ${pad('mv', keys ? 'ARROW KEYS' : 'LEFT THUMB', ['▲', '▶', '▼', '◀'], move, keys ? 'SPACE also jumps' : 'slide between ◀ ▶ to balance')}
-    ${pad('tr', keys ? 'W A S D' : 'RIGHT THUMB', keys ? ['W', 'D', 'S', 'A'] : ['▲', '▶', '▼', '◀'], trick, 'in the air: a trick · on a rail: switch stance')}
-  </div>`;
+  const swap = !keys && (padsLefty() || loadSave().lefty);          // left-handed pads: tricks on the left
+  const mv = pad('mv', keys ? 'ARROW KEYS' : swap ? 'RIGHT THUMB' : 'LEFT THUMB', ['▲', '▶', '▼', '◀'], move, keys ? 'SPACE also jumps' : 'slide between ◀ ▶ to balance');
+  const tr = pad('tr', keys ? 'W A S D' : swap ? 'LEFT THUMB' : 'RIGHT THUMB', keys ? ['W', 'D', 'S', 'A'] : ['▲', '▶', '▼', '◀'], trick, 'in the air: a trick · on a rail: switch stance');
+  return `<div class="pads">${swap ? tr + mv : mv + tr}</div>`;
 }
 
 const TIPS = [
@@ -46,25 +48,20 @@ const TIPS = [
 
 /** Opens the card. `go` set = first-run flow: the close button reads "SKATE!". */
 export function openHowTo(onClose: () => void, go = false): void {
-  document.getElementById('how')?.remove();
-  const root = document.createElement('div'); root.id = 'how';
   let view = firstView();
   const other = (): View => (view === 'keys' ? (CFG.touchLayout === 1 ? 'pads' : 'zones') : 'keys');
   const name = (v: View) => (v === 'keys' ? 'keyboard' : 'touch');
+  const close = () => { p.close(); onClose(); };
+  const p = openPanel('how', e => { if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); close(); } });
   const draw = () => {
-    root.innerHTML = `<div class="box"><header><h2>HOW TO PLAY</h2><button data-a="swap">show ${name(other())}</button><button data-a="close" class="x">${go ? 'GOT IT — SKATE!' : 'got it'}</button></header>
+    p.root.innerHTML = `<div class="box"><header><h2>HOW TO PLAY</h2><button data-a="swap">show ${name(other())}</button><button data-a="close" class="x">${go ? 'GOT IT — SKATE!' : 'got it'}</button></header>
       ${body(view)}<ol>${TIPS.map(t => `<li>${t}</li>`).join('')}</ol>
-      <p class="foot">Find this again on the menu: <b>how to play</b>${view === 'keys' ? ' (or press H) · M mutes' : ''}.</p></div>`;
+      <p class="foot">Find this again on the menu: <b>how to play</b>${view === 'keys' ? ' (or press H) · P or ESC pauses · M mutes' : ' · the ❙❙ button at the top pauses'}.</p></div>`;
   };
-  const close = () => { window.removeEventListener('keydown', onKey, true); root.remove(); onClose(); };
-  const onKey = (e: KeyboardEvent) => { e.stopPropagation(); if (e.repeat) return; if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); close(); } };
-  root.addEventListener('click', e => {
-    const a = (e.target as HTMLElement).closest<HTMLElement>('[data-a]')?.dataset.a;
+  p.root.addEventListener('click', e => {
+    const a = actionOf(e);
     if (a === 'swap') { view = other(); draw(); }
     if (a === 'close') close();
   });
-  for (const ev of ['pointerdown', 'touchstart']) root.addEventListener(ev, e => e.stopPropagation());
-  window.addEventListener('keydown', onKey, true);
   draw();
-  document.body.appendChild(root);
 }

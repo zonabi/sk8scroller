@@ -21,6 +21,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 ## On trial (shipped, no verdict yet)
 
 - **P-11 progression pacing** — his target: 1–2 runs of 3–5 min per level. Built as about five minutes of play per level (XP = seconds + points/1000). His runs are far shorter than 3–5 min (median 35 s), so check with him whether levels feel right from a reset save.
+- **Pause and settings** (T-05) — pause button / P / ESC / auto on app switch; settings sheet with sound, left-handed pads, tilt, reset progress. All HTML sheets share `game/panels.ts`. Unseen by him.
 - **How-to-play card** (T-04a) — his request: a controls screen on first start and from the menu. Not yet seen by him on the phone. Keep `game/howto.ts` in step with any control change.
 - **P-13 touch button pads** — left pad is the arrow keys (jump, turn/fakie, push), right pad is W A S D (tricks); faint, set above centre. Built from his spec after S5. First play: "pretty good", then enlarged and moved in at his request (P-13a: "that feels much better"). He wants to iterate on variations: position, size and faintness are sliders under *tuning → P-13*, and `touchLayout` 0 brings back zones and swipes. New variations go in as layout 2, 3…
 - **P-14 one thumb, two trick buttons** — touching between two buttons on the right pad presses both; rolling onto another presses it. Watch the next phone recordings for accidental doubles (`padChordDeg` narrows or disables it).
@@ -38,7 +39,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 
 1. **Second phone session on the P-13 pads (needs the user).** Then compare with S5 in `PLAYTEST.md`: bails per minute (was 6.4), mid-trick slams (4.8), jump presses that did nothing (5.0). Still wanted from the phone: the `?fps` readout, and whether audio starts.
 2. **P-09 mid-trick slams** — the one number that got worse in the last session (see `PLAYTEST.md`, "Open after S3"). Investigate in the recordings before changing anything.
-4. **T-03 manuals, T-04 tutorial, T-05 pause/settings** — the remaining M1 cards that don't need a device.
+4. **T-03 manuals, T-06 landing quality** — he said wait on these (2026-11-21).
 5. **T-11 Capacitor iOS shell** once the phone playtest says the web build is worth wrapping.
 
 ## How to work with this user

@@ -11,6 +11,7 @@ import { FAKIE_FRAMES, SPIN_FRAMES, type PoseName } from './art/skater';
 import { sfx } from './audio';
 import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
+import { bindPause, openPause } from './pause';
 import { bindFlag, downloadLastRun, playback, saveRun } from './recording';
 import { loadSave, writeSave } from './storage';
 import { SPRITE, dropFeatureTexture, featureTexture, hasFakieVersion, skaterTex, warmSkater, type SkaterFrame } from './textures';
@@ -65,6 +66,7 @@ export class GameScene extends Phaser.Scene {
   private replayIn: Generator<Input> | null = null;
   private frozen = false;
   private popN = 0;
+  private paused = false;
 
   constructor() { super('game'); }
 
@@ -112,8 +114,15 @@ export class GameScene extends Phaser.Scene {
     this.fakieTag.img.setVisible(false);
     for (const t of Object.values(BAIL_TEXT)) warm(this, t, CALL.bail);
 
-    this.ctl = new InputController(this, () => this.sim.s.mode, save.tilt);
-    this.input.keyboard?.on('keydown-ESC', () => this.scene.start('menu'));
+    this.ctl = new InputController(this, () => this.sim.s.mode, save.tilt, save.lefty);
+    // pause: the ❙❙ button, P or ESC, and by itself when the page loses focus (never for the bot: tools must not stall)
+    this.paused = false;
+    const pause = () => this.pauseRun();
+    this.input.keyboard?.on('keydown-ESC', pause); this.input.keyboard?.on('keydown-P', pause);
+    bindPause(pause);
+    const away = () => { if (document.hidden && !this.bot) this.pauseRun(); };
+    document.addEventListener('visibilitychange', away);
+    this.events.once('shutdown', () => { document.removeEventListener('visibilitychange', away); bindPause(null); });
     this.input.keyboard?.on('keydown-F', () => this.rec?.mark());
     bindFlag(this.rec ? () => this.rec?.mark() : null);
     this.events.once('shutdown', () => { sfx.hush(); bindFlag(null); if (!this.finished && this.rec && this.rec.length > 180) void saveRun(this.snapshot()); for (const { f } of this.feats.values()) dropFeatureTexture(this, f); });
@@ -142,6 +151,14 @@ export class GameScene extends Phaser.Scene {
     const s = this.sim.s;
     sfx.frame(s.mode, s.speed, s.grind ? (s.grind.kind as 'rail' | 'ledge') : null, s.balance);
     this.draw();
+  }
+
+  /** Freeze the run behind the pause sheet. The sim only advances in update(), so a paused scene is a paused game. */
+  private pauseRun(): void {
+    if (this.paused || this.finished || this.frozen) return;
+    this.paused = true; sfx.hush(); this.scene.pause();
+    const back = () => { this.paused = false; this.acc = 0; this.ctl.reset(); this.scene.resume(); };
+    openPause({ resume: back, restart: () => { back(); this.scene.restart(); }, menu: () => { back(); this.scene.start('menu'); } });
   }
 
   // ---- events → juice -------------------------------------------------------
@@ -298,7 +315,7 @@ export class GameScene extends Phaser.Scene {
   private finish(): void {
     if (this.finished) return;
     this.finished = true;
-    bindFlag(null); this.ctl.hidePads();
+    bindFlag(null); bindPause(null); this.ctl.hidePads();
     if (this.rec) {
       // snapshot BEFORE xp is added below, so the recorded level is the one the run was played at
       const rec = this.snapshot();

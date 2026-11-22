@@ -1,8 +1,8 @@
 import { legacyLevelForXp, xpForLevel } from '../core/progression';
 
-export interface Save { /** 2 = XP on the P-11 curve */ v: number; xp: number; best: number; skaterId: string; tilt: boolean; mute: boolean; /** the how-to-play card has been shown once */ seenHow: boolean }
+export interface Save { /** 2 = XP on the P-11 curve */ v: number; xp: number; best: number; skaterId: string; tilt: boolean; mute: boolean; /** the how-to-play card has been shown once */ seenHow: boolean; /** P-13: swap the touch pads (tricks left, movement right) */ lefty: boolean }
 const KEY = 'sk8scroller.save.v1';
-const DEFAULT: Save = { v: 2, xp: 0, best: 0, skaterId: 'rio', tilt: false, mute: false, seenHow: false };
+const DEFAULT: Save = { v: 2, xp: 0, best: 0, skaterId: 'rio', tilt: false, mute: false, seenHow: false, lefty: false };
 
 export function loadSave(): Save {
   try {

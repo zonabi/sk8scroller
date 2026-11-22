@@ -5,8 +5,8 @@ import { sfx } from './audio';
 import { World, setupCamera } from './backdrop';
 import { showFullscreenButton } from './fullscreen';
 import { howToIsDue, openHowTo } from './howto';
-import { InputController } from './input';
 import { bootMark, bootSummary, loading } from './loading';
+import { openSettings } from './pause';
 import { loadSave, writeSave, type Save } from './storage';
 import { SPRITE, skaterTex } from './textures';
 import { openTuningPanel, tuningCount } from './tuning';
@@ -106,25 +106,19 @@ export class MenuScene extends Phaser.Scene {
     tip.button(() => how(false));
     graf(this, AW / 2, 348, 'controls and tips · on a keyboard: H · M mutes', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
 
-    const sound = graf(this, AW - 10, 44, '', { size: 9, fill: PAL.yellow }).setOrigin(1, 0);
-    const showSound = () => sound.setText(`sound: ${this.save.mute ? 'off' : 'ON'}`);
-    showSound();
-    const toggleSound = () => { this.save.mute = !this.save.mute; writeSave(this.save); sfx.setMuted(this.save.mute); showSound(); sfx.play('tap'); };
-    sound.button(toggleSound);
-    this.input.keyboard?.on('keydown-M', toggleSound);
+    this.input.keyboard?.on('keydown-M', () => { this.save.mute = !this.save.mute; writeSave(this.save); sfx.setMuted(this.save.mute); sfx.play('tap'); });
 
-    const tune = graf(this, AW - 10, 58, '', { size: 9, fill: PAL.green }).setOrigin(1, 0);
+    // settings (sound, left-handed pads, tilt, reset progress) and the developer tuning panel
+    const sheet = (open: (done: () => void) => void) => {
+      sfx.play('tap'); this.input.enabled = false; if (this.input.keyboard) this.input.keyboard.enabled = false;
+      open(() => { this.input.enabled = true; if (this.input.keyboard) this.input.keyboard.enabled = true; });
+    };
+    graf(this, AW - 10, 30, 'settings', { size: 11, fill: PAL.cyan }).setOrigin(1, 0)
+      .button(() => sheet(done => openSettings(reset => { done(); this.save = loadSave(); if (reset) this.scene.restart(); })));
+    const tune = graf(this, AW - 10, 48, '', { size: 9, fill: PAL.green }).setOrigin(1, 0);
     const showTune = () => tune.setText(tuningCount() ? `tuning: ${tuningCount()} changed` : 'tuning');
     showTune();
-    tune.button(() => { sfx.play('tap'); this.input.enabled = false; openTuningPanel(() => { this.input.enabled = true; showTune(); }); });
-
-    const tilt = graf(this, AW - 10, 30, '', { size: 9, fill: PAL.cyan }).setOrigin(1, 0);
-    const showTilt = () => tilt.setText(`tilt balance: ${this.save.tilt ? 'ON' : 'off'}`);
-    showTilt();
-    tilt.button(async () => {
-      this.save.tilt = !this.save.tilt && (await InputController.requestTilt());
-      writeSave(this.save); showTilt();
-    });
+    tune.button(() => sheet(done => openTuningPanel(() => { done(); showTune(); })));
   }
 
   update(t: number): void {

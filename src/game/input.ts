@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Dir, Input, Mode } from '../core/sim';
 import { AW } from './view';
 import { CFG } from '../core/config';
-import { PAD_DOWN, PAD_LEFT, PAD_RIGHT, PAD_UP, PadView, padChord, padHit, padsActive } from './pads';
+import { PAD_DOWN, PAD_LEFT, PAD_RIGHT, PAD_UP, PadView, padChord, padHit, padsActive, setPadsLefty } from './pads';
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 const SWIPE_PX = 16, TAP_MS = 220, BALANCE_PX = 38; // art units (640 wide)
@@ -43,8 +43,9 @@ export class InputController {
     this.tilt = clamp((v ?? 0) / 18);
   };
 
-  constructor(private scene: Phaser.Scene, private getMode: () => Mode, tilt: boolean) {
+  constructor(private scene: Phaser.Scene, private getMode: () => Mode, tilt: boolean, lefty = false) {
     scene.input.addPointer(2);
+    setPadsLefty(lefty);
     if (padsActive()) this.pads = new PadView(scene);
     scene.input.on('pointerdown', this.down, this);
     scene.input.on('pointermove', this.move, this);
@@ -73,6 +74,13 @@ export class InputController {
     try { return (await D.requestPermission()) === 'granted'; } catch { return false; }
   }
 
+  /** After a pause: forget anything held or queued, since the release may have happened while the game wasn't listening. */
+  reset(): void {
+    if (this.pads) { this.dropLeft(); this.dropRight(); this.padL.id = -1; this.padR.id = -1; }
+    this.left = null; this.right = null; this.touchBalance = 0; this.jumpHeld = false;
+    this.jumpQueued = false; this.trickQueued = null; this.trickNext = null; this.pushQueued = false; this.turnQueued = false; this.dropQueued = false;
+    for (const k of Object.values(this.keys)) k.reset();
+  }
   /** The run is over: take the pads off the results screen. */
   hidePads(): void { this.pads?.hide(); }
 
