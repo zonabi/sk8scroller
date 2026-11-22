@@ -39,7 +39,8 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - [ ] **T-01 [H] Device playtest + tuning pass.** Play 20 runs on a phone. Adjust only `config.ts`. Record before/after values and why in DECISIONS.md.
 - [x] **T-02 Sound effects.** Done 2026-11-18 (`audio.ts`): roll and grind loops, 12 one-shots, mute (menu toggle / M). Tuned blind — see playtest notes. Original card:  `game/audio.ts` using WebAudio synthesis (no asset files yet): roll loop pitched by speed, grind scrape, jump, land, bail, bank sting. Driven only by SimEvents. Mute toggle saved in storage. Accept: no audio before first user gesture; no console errors in `shots`.
 - [ ] **T-03 Manuals.** New `manual` mode in sim: swipe down on landing within 0.15s to enter; own balance meter (forward/back); counts as a combo entry and keeps the combo alive; ends on jump or balance loss. Tests + bot unaffected. Touch + keys.
-- [ ] **T-04 First-run tutorial.** Scripted opening stretch (fixed features) with contextual prompts: jump → grind → balance → switch-up → air trick. Skippable; flag in save.
+- [x] **T-04a How-to-play card.** Done 2026-11-21 (`game/howto.ts`, styles in `index.html`). Shows once before the first run, and from the menu (HOW TO PLAY, or H). Draws the controls for the device in hand: touch pads, keyboard, or thumb zones. Replaced the menu's tape strips, which still described the old swipe controls.
+- [ ] **T-04 First-run tutorial.** *(the static card above covers the controls; this card is the playable version)* Scripted opening stretch (fixed features) with contextual prompts: jump → grind → balance → switch-up → air trick. Skippable; flag in save.
 - [ ] **T-05 Pause + settings.** Pause on blur and via a corner button; settings for tilt, sound, left-handed (mirror thumbs).
 - [ ] **T-06 Landing quality.** Releasing/pressing near touchdown gives "clean" (bonus multiplier) vs "sloppy" (speed loss). Adds skill to every landing.
 

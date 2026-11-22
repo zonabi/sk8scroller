@@ -1,0 +1,70 @@
+import { CFG } from '../core/config';
+import { padsActive } from './pads';
+
+/**
+ * The "how to play" card: what every button does, plus the five things worth knowing before a first run.
+ * Plain HTML like the tuning panel — it is only ever open on the menu, never mid-run.
+ * It draws the controls the player actually has: the touch pads, the keyboard, or (touch layout 0) thumb zones.
+ */
+type View = 'pads' | 'keys' | 'zones';
+const touchScreen = (): boolean => navigator.maxTouchPoints > 0;
+const firstView = (): View => (padsActive() ? 'pads' : touchScreen() ? 'zones' : 'keys');
+
+/** First launch shows the card once before the first run. Test and replay URLs skip it so tools are never blocked. */
+export function howToIsDue(seen: boolean): boolean {
+  if (seen) return false;
+  const q = new URLSearchParams(location.search);
+  return !(q.has('bot') || q.has('seed') || q.has('replay'));
+}
+
+const pad = (cls: string, title: string, glyph: [string, string, string, string], label: [string, string, string, string], foot: string): string => `
+  <div class="pad ${cls}"><h3>${title}</h3><div class="d">
+    <b class="u">${glyph[0]}</b><b class="r">${glyph[1]}</b><b class="dn">${glyph[2]}</b><b class="l">${glyph[3]}</b>
+    <span class="u">${label[0]}</span><span class="r">${label[1]}</span><span class="dn">${label[2]}</span><span class="l">${label[3]}</span>
+  </div><p>${foot}</p></div>`;
+
+function body(v: View): string {
+  if (v === 'zones') return `<div class="zones">
+    <div><h3>LEFT THUMB</h3><p>Press to jump, hold for more height.<br>On a rail: hold and drag sideways to balance, quick tap to hop off.</p></div>
+    <div><h3>RIGHT THUMB</h3><p>Swipe up, down, left or right for a trick.<br>On a rail: swipe to switch stance.<br>On the ground: tap to push, swipe left to turn fakie.</p></div></div>`;
+  const keys = v === 'keys';
+  const move: [string, string, string, string] = ['JUMP<i>hold = higher</i>', 'PUSH<i>on a rail: lean</i>', 'DROP OFF<i>on a rail</i>', 'FAKIE<i>on a rail: lean</i>'];
+  const trick: [string, string, string, string] = ['trick', 'trick', 'trick', 'trick'];
+  return `<div class="pads">
+    ${pad('mv', keys ? 'ARROW KEYS' : 'LEFT THUMB', ['▲', '▶', '▼', '◀'], move, keys ? 'SPACE also jumps' : 'slide between ◀ ▶ to balance')}
+    ${pad('tr', keys ? 'W A S D' : 'RIGHT THUMB', keys ? ['W', 'D', 'S', 'A'] : ['▲', '▶', '▼', '◀'], trick, 'in the air: a trick · on a rail: switch stance')}
+  </div>`;
+}
+
+const TIPS = [
+  'Jump onto a rail or ledge to <b>grind</b>. Keep the needle in the green with ◀ ▶.',
+  'Press a trick button just before you touch a rail to <b>pick your grind</b>; press another on the rail to <b>switch up</b>.',
+  'Tricks need air: land before one finishes and you <b>slam</b>. Jam trick buttons on a rail and you fall.',
+  'String tricks together. The <b>combo</b> banks about a second after you land.',
+  '<b>Fakie</b> (rolling backwards) scores 25% more.',
+];
+
+/** Opens the card. `go` set = first-run flow: the close button reads "SKATE!". */
+export function openHowTo(onClose: () => void, go = false): void {
+  document.getElementById('how')?.remove();
+  const root = document.createElement('div'); root.id = 'how';
+  let view = firstView();
+  const other = (): View => (view === 'keys' ? (CFG.touchLayout === 1 ? 'pads' : 'zones') : 'keys');
+  const name = (v: View) => (v === 'keys' ? 'keyboard' : 'touch');
+  const draw = () => {
+    root.innerHTML = `<div class="box"><header><h2>HOW TO PLAY</h2><button data-a="swap">show ${name(other())}</button><button data-a="close" class="x">${go ? 'GOT IT — SKATE!' : 'got it'}</button></header>
+      ${body(view)}<ol>${TIPS.map(t => `<li>${t}</li>`).join('')}</ol>
+      <p class="foot">Find this again on the menu: <b>how to play</b>${view === 'keys' ? ' (or press H) · M mutes' : ''}.</p></div>`;
+  };
+  const close = () => { window.removeEventListener('keydown', onKey, true); root.remove(); onClose(); };
+  const onKey = (e: KeyboardEvent) => { e.stopPropagation(); if (e.repeat) return; if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); close(); } };
+  root.addEventListener('click', e => {
+    const a = (e.target as HTMLElement).closest<HTMLElement>('[data-a]')?.dataset.a;
+    if (a === 'swap') { view = other(); draw(); }
+    if (a === 'close') close();
+  });
+  for (const ev of ['pointerdown', 'touchstart']) root.addEventListener(ev, e => e.stopPropagation());
+  window.addEventListener('keydown', onKey, true);
+  draw();
+  document.body.appendChild(root);
+}

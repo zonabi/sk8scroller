@@ -1,6 +1,6 @@
 # Handoff — where the project stands
 
-Updated 2026-11-21, version 0.8.2. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
+Updated 2026-11-21, version 0.8.3. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
 
 ## State in one paragraph
 
@@ -20,6 +20,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 
 ## On trial (shipped, no verdict yet)
 
+- **How-to-play card** (T-04a) — his request: a controls screen on first start and from the menu. Not yet seen by him on the phone. Keep `game/howto.ts` in step with any control change.
 - **P-13 touch button pads** — left pad is the arrow keys (jump, turn/fakie, push), right pad is W A S D (tricks); faint, set above centre. Built from his spec after S5. First play: "pretty good", then enlarged and moved in at his request (P-13a: "that feels much better"). He wants to iterate on variations: position, size and faintness are sliders under *tuning → P-13*, and `touchLayout` 0 brings back zones and swipes. New variations go in as layout 2, 3…
 - **P-14 one thumb, two trick buttons** — touching between two buttons on the right pad presses both; rolling onto another presses it. Watch the next phone recordings for accidental doubles (`padChordDeg` narrows or disables it).
 - **P-15 rushed switch-ups** — his idea, to stop a points hack: trick buttons jammed under 200 ms apart on a rail shove your balance, harder under 100 ms. It also taxes his own habit of pressing two trick buttons together (P-14); ask how a quick pair feels.

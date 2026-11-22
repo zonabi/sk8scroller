@@ -4,6 +4,7 @@ import { SKATERS } from '../core/skaters';
 import { sfx } from './audio';
 import { World, setupCamera } from './backdrop';
 import { showFullscreenButton } from './fullscreen';
+import { howToIsDue, openHowTo } from './howto';
 import { InputController } from './input';
 import { bootMark, bootSummary, loading } from './loading';
 import { loadSave, writeSave, type Save } from './storage';
@@ -81,20 +82,29 @@ export class MenuScene extends Phaser.Scene {
 
     const play = graf(this, AW / 2, 268, 'SKATE!', { font: 'spray', size: 40, fill: [PAL.green, PAL.cyan], block: PAL.plum, angle: -2 }).setOrigin(0.5);
     this.tweens.add({ targets: play, scale: 1.07, yoyo: true, repeat: -1, duration: 520, ease: 'Sine.easeInOut' });
-    const start = () => { sfx.play('go'); this.scene.start('game'); };
+    const go = () => { sfx.play('go'); this.scene.start('game'); };
+    // the controls card: opened from the menu, and once by itself before the very first run
+    const how = (thenSkate: boolean) => {
+      sfx.play('tap'); this.input.enabled = false; if (this.input.keyboard) this.input.keyboard.enabled = false;
+      openHowTo(() => {
+        this.input.enabled = true; if (this.input.keyboard) this.input.keyboard.enabled = true;
+        if (!this.save.seenHow) { this.save.seenHow = true; writeSave(this.save); }
+        if (thenSkate) go();
+      }, thenSkate);
+    };
+    const start = () => { if (howToIsDue(this.save.seenHow)) how(true); else go(); };
     play.button(start);
     this.input.keyboard?.on('keydown-SPACE', start);
+    this.input.keyboard?.on('keydown-H', () => how(false));
 
-    // controls on strips of tape
-    const tape = (x: number, y: number, text: string, angle: number) => {
-      const t = graf(this, x, y, text, { size: 8, fill: PAL.ink, outlineWidth: 0, angle, align: 'center' }).setOrigin(0.5);
-      const g = this.add.graphics().setDepth(99).setPosition(x, y).setAngle(angle);
-      g.fillStyle(PAL.ink, 0.35).fillRect(-t.textWidth / 2 + 1, -9, t.textWidth, 20);
-      g.fillStyle(0xf6e7a1, 0.95).fillRect(-t.textWidth / 2 - 1, -11, t.textWidth, 20);
-    };
-    tape(AW / 2 - 150, 318, 'LEFT THUMB  jump · hold = higher\non rails: drag to balance, tap to hop off', -1.5);
-    tape(AW / 2 + 150, 318, 'RIGHT THUMB  swipe = tricks · on rails: swipe to switch up\non the ground: tap = push · swipe left = turn fakie', 1.5);
-    graf(this, AW / 2, 348, 'keys: SPACE jump · WASD tricks · ← → balance on rails · on the ground → push, ← fakie · M mute', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
+    // how to play, on a strip of tape
+    const tip = graf(this, AW / 2, 322, 'HOW TO PLAY', { font: 'marker', size: 15, fill: PAL.ink, outlineWidth: 0, angle: -1.5 }).setOrigin(0.5);
+    const tapeG = this.add.graphics().setDepth(99).setPosition(AW / 2, 322).setAngle(-1.5);
+    tapeG.fillStyle(PAL.ink, 0.35).fillRect(-tip.textWidth / 2 - 7, -11, tip.textWidth + 18, 26);
+    tapeG.fillStyle(0xf6e7a1, 0.95).fillRect(-tip.textWidth / 2 - 9, -13, tip.textWidth + 18, 26);
+    tapeG.setInteractive(new Phaser.Geom.Rectangle(-tip.textWidth / 2 - 14, -18, tip.textWidth + 28, 36), Phaser.Geom.Rectangle.Contains).on('pointerdown', () => how(false));
+    tip.button(() => how(false));
+    graf(this, AW / 2, 348, 'controls and tips · on a keyboard: H · M mutes', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
 
     const sound = graf(this, AW - 10, 44, '', { size: 9, fill: PAL.yellow }).setOrigin(1, 0);
     const showSound = () => sound.setText(`sound: ${this.save.mute ? 'off' : 'ON'}`);

@@ -2,6 +2,12 @@
 
 Newest first. Keep entries to a few lines: what, why, what would change our mind.
 
+## 2026-11-21 — How-to-play card is HTML, and shows on the first SKATE, not at boot
+Same reasoning as the tuning panel: menu-only, lots of small text, so plain HTML costs nothing at run time and needs no
+lettering textures. It opens when a new player first presses SKATE (then starts the run) so boot timing is untouched
+and nobody has to find it. URLs with `?bot`, `?seed` or `?replay` never auto-show it, so shots, perf and replays are not blocked.
+If a control changes, update `howto.ts` in the same commit — the menu no longer lists controls anywhere else.
+
 ## 2026-11-20 — Touch gets on-screen buttons that mirror the keyboard (trial, P-13)
 The GDD said "no on-screen buttons": whole screen halves so thumbs never miss. The first phone session reversed the
 evidence — touch bailed 6.4 times a minute against 3.8 on keyboard, and over half the bails were one overloaded gesture

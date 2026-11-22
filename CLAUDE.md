@@ -46,7 +46,7 @@ Why: core can be tested and bot-played in milliseconds with no browser. That is 
 | HUD, layout | `src/game/` scenes — palette is `PAL` in `view.ts`, stay inside it |
 | Run recording / analysis | `src/core/replay.ts` (pure), `src/game/recording.ts`, collector in `vite.config.ts`, CLI in `tools/replay.ts` |
 | Sounds | `src/game/audio.ts` — add a recipe to `ONE_SHOTS`, trigger it from `event()`. Synthesised only, no audio files yet |
-| Controls | `src/game/input.ts` (must keep producing the core `Input` shape). Touch layouts are numbered (`CFG.touchLayout`): 0 = zones and swipes, 1 = button pads drawn by `src/game/pads.ts`. Add a variation as a new number; leave the others working |
+| Controls | `src/game/input.ts` (must keep producing the core `Input` shape). Touch layouts are numbered (`CFG.touchLayout`): 0 = zones and swipes, 1 = button pads drawn by `src/game/pads.ts`. Add a variation as a new number; leave the others working. The player-facing description of every control is the how-to-play card, `src/game/howto.ts` — update it with any control change |
 
 ## Playtest recordings — investigate feedback, don't guess
 
