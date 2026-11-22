@@ -119,6 +119,31 @@ const K = 4 / 3; // world units → art pixels (kept in sync with view.ts)
 /** Sprite for a level feature. `oy` = pixels from the sprite top to the ground line. */
 export function featureSprite(f: Feature): { pix: Pix; ox: number; oy: number } {
   const w = Math.round(f.w * K);
+  if (f.kind === 'rail' && f.skin === 'fence' && f.h2 === undefined) {
+    // chain-link fence: you grind the top bar. Posts and mesh run down to the street.
+    const H = Math.round(f.h * K) + 4, p = new Pix(w + 4, H + 2), mesh = mix(STEEL[2], INK, 0.25);
+    p.part(q => {
+      for (let y = 5; y < H - 3; y++) for (let x = 3; x < w + 1; x++) if ((x + y) % 6 === 0 || (x - y + 6000) % 6 === 0) q.set(x, y, mesh);
+      for (let x = 2; x < w + 2; x++) { q.set(x, H - 4, STEEL[2]); q.set(x, H - 3, STEEL[3]); }
+      for (let x = 2; x <= w; x += 48) { const px = Math.min(x, w - 1); q.rect(px, 4, 1, H - 4, STEEL[1]); q.rect(px + 1, 4, 1, H - 4, STEEL[2]); q.rect(px + 2, 4, 1, H - 4, STEEL[3]); q.rect(px - 1, H - 2, 5, 2, STEEL[3]); }
+      q.rect(w - 1, 4, 1, H - 4, STEEL[1]); q.rect(w, 4, 1, H - 4, STEEL[2]); q.rect(w + 1, 4, 1, H - 4, STEEL[3]);
+      for (let x = 2; x < w + 2; x++) for (let i = 0; i < 4; i++) q.set(x, 2 + i, STEEL[i]);
+    });
+    return { pix: p, ox: 2, oy: H };
+  }
+  if (f.kind === 'rail' && f.skin === 'awning' && f.h2 === undefined) {
+    // shop awning: you grind its metal front edge. Striped canvas hangs below; it is fixed to the wall, so no posts.
+    const H = Math.round(f.h * K) + 4, D = 15, p = new Pix(w + 4, D + 4), a = ramp(0xd62839), b = ramp(0xf2ead8);
+    p.part(q => {
+      for (let x = 2; x < w + 2; x++) {
+        const c = Math.floor((x - 2) / 9) % 2 ? b : a, edge = (x - 2) % 9;
+        const drop = D - (edge === 0 || edge === 8 ? 3 : edge === 1 || edge === 7 ? 1 : 0);      // scalloped hem
+        for (let y = 6; y < 6 + drop - 4; y++) q.set(x, y, y > 6 + drop - 8 ? c[0] : y < 8 ? c[2] : c[1]);
+      }
+      for (let x = 2; x < w + 2; x++) for (let i = 0; i < 4; i++) q.set(x, 2 + i, STEEL[i]);
+    });
+    return { pix: p, ox: 2, oy: H };
+  }
   if (f.kind === 'rail') {
     const h1 = Math.round(f.h * K), h2 = Math.round((f.h2 ?? f.h) * K), H = Math.max(h1, h2) + 4;
     const p = new Pix(w + 4, H + 2), yAt = (x: number) => H - (h1 + ((h2 - h1) * x) / w);

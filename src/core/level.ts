@@ -8,7 +8,10 @@ export interface Feature {
   h: number;
   /** Rails only: height at the end (sloped rails). */
   h2?: number;
+  /** Rails only, looks only: what the grindable edge belongs to. It skates exactly like a rail. */
+  skin?: RailSkin;
 }
+export type RailSkin = 'fence' | 'awning';
 
 export const isGrindable = (f: Feature): boolean => f.kind === 'rail' || f.kind === 'ledge';
 export const isObstacle = (f: Feature): boolean => f.kind === 'cone' || f.kind === 'barrier';
@@ -87,7 +90,8 @@ const PATTERNS: { name: string; weight: number; minD: number; make: Pattern }[] 
 /**
  * STACKS (T-16): grindables on two and three levels. Rails can be passed through from below and landed on
  * from above, so you climb by jumping from one to the next and come down with ↓ (P-17) or off the end.
- * Upper levels are always rails — a ledge is solid and would be a wall. Nothing up high is compulsory:
+ * Upper levels are always rails — a ledge is solid and would be a wall — but a rail can be dressed as the top of a fence
+ * or the front edge of a shop awning (`skin`), and upper decks are drawn further back (see GameScene). Nothing up high is compulsory:
  * every pattern can be cleared along the bottom by the bot.
  */
 const STACK_PATTERNS: typeof PATTERNS = [
@@ -95,14 +99,14 @@ const STACK_PATTERNS: typeof PATTERNS = [
   { name: 'ledge-under-rail', weight: 4, minD: 0, make: (lv, x) => {
       const w = lv.rng.int(260, 340);
       lv.add('ledge', x, w, 16);
-      lv.add('rail', x + 80, w + 40, 46);
+      lv.add('rail', x + 80, w + 40, 46, undefined, lv.skin('awning', 'fence', undefined));
       return w + 120 + 60;
     } },
   // two rails, the upper starting later and ending later
   { name: 'double-decker', weight: 4, minD: 0, make: (lv, x) => {
       const w = lv.rng.int(320, 420);
       lv.add('rail', x, w, 24);
-      lv.add('rail', x + 130, w, 50);
+      lv.add('rail', x + 130, w, 50, undefined, lv.skin('fence', undefined));
       return w + 130 + 60;
     } },
   // three rails stepping up: hop from each to the next
@@ -130,8 +134,8 @@ const STACK_PATTERNS: typeof PATTERNS = [
   // three decks at once
   { name: 'triple-decker', weight: 1.5, minD: 0.3, make: (lv, x) => {
       lv.add('ledge', x, 380, 16);
-      lv.add('rail', x + 90, 340, 42);
-      lv.add('rail', x + 200, 320, 68);
+      lv.add('rail', x + 90, 340, 42, undefined, 'fence');
+      lv.add('rail', x + 200, 320, 68, undefined, 'awning');
       return 520 + 70;
     } },
   // breathers from the street course
@@ -151,8 +155,9 @@ export class Level {
   readonly course: Course;
   constructor(seed: number, opts: { longRailAt?: number; course?: Course } = {}) { this.rng = new Rng(seed); this.longRailAt = opts.longRailAt ?? 0; this.course = opts.course ?? 'street'; }
 
-  add(kind: FeatureKind, x: number, w: number, h: number, h2?: number): Feature {
+  add(kind: FeatureKind, x: number, w: number, h: number, h2?: number, skin?: RailSkin): Feature {
     const f: Feature = { id: this.nextId++, kind, x, w, h, h2 };
+    if (skin) f.skin = skin;
     this.features.push(f);
     return f;
   }
@@ -179,6 +184,9 @@ export class Level {
       while (this.features.length && this.features[0].x + this.features[0].w < behindX - 600) this.features.shift();
     }
   }
+
+  /** A look for the next upper-deck rail. Chosen from the feature count, not the dice, so adding looks never changes a level's layout. */
+  skin(...from: (RailSkin | undefined)[]): RailSkin | undefined { return from[this.nextId % from.length]; }
 
   near(x: number, range = 40): Feature[] {
     return this.features.filter(f => f.x + f.w > x - range && f.x < x + range);

@@ -1,6 +1,6 @@
 # Handoff — where the project stands
 
-Updated 2026-11-21, version 0.9.0. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
+Updated 2026-11-21, version 0.9.1. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
 
 ## State in one paragraph
 
@@ -24,6 +24,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 - **Pause and settings** (T-05) — pause button / P / ESC / auto on app switch; settings sheet with sound, left-handed pads, tilt, reset progress. All HTML sheets share `game/panels.ts`. Unseen by him.
 - **P-18 the lean follows you** — his idea: hopping off a rail and back on no longer resets the balance meter (lean, tipping speed and fatigue carry over for up to 3 s). Closes the last rail exploit he found. His own style hops a lot (162 same-rail re-locks in the recordings), so ask whether normal play now feels punishing.
 - **Playable tutorial** (T-04) — eight lessons, repeat-until-done, offered on first launch and from the how-to card. Rules live in `core/tutorial.ts`; the course is `course: 'tutorial'` on the Sim. Unplayed by a person.
+- **Depth on stacks** (T-16b) — his rule: the higher deck is always further back. Draw order and tint are set in `GameScene.decksInFront`; fence and awning looks are `skin` on a rail (`core/level.ts`, art in `art/world.ts`). Looks never use the level's dice, so layouts and recordings are unchanged.
 - **Stacks course** (T-16a) — his request for a level with multi-level rails. `course: 'stacks'` on the Sim, own pattern pool in `core/level.ts`, picked on the menu and saved. Recordings carry the course. Unplayed by a person.
 - **How-to-play card** (T-04a) — his request: a controls screen on first start and from the menu. Not yet seen by him on the phone. Keep `game/howto.ts` in step with any control change.
 - **P-13 touch button pads** — left pad is the arrow keys (jump, turn/fakie, push), right pad is W A S D (tricks); faint, set above centre. Built from his spec after S5. First play: "pretty good", then enlarged and moved in at his request (P-13a: "that feels much better"). He wants to iterate on variations: position, size and faintness are sliders under *tuning → P-13*, and `touchLayout` 0 brings back zones and swipes. New variations go in as layout 2, 3…

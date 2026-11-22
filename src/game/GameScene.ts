@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { botInput } from '../core/bot';
 import { CFG, recordedTuning } from '../core/config';
-import type { Feature } from '../core/level';
+import { isGrindable, type Feature } from '../core/level';
 import { levelForXp, unlocksAt, xpFromRun } from '../core/progression';
 import { Recorder, inputsOf, simFor } from '../core/replay';
 import { Sim, comboValue, type Input, type SimEvent } from '../core/sim';
@@ -22,6 +22,8 @@ import { AH, AW, APP_VERSION, GROUND, K, PAL, PLAYER_X, Z, Z_KEY } from './view'
 
 interface Spark { x: number; y: number; vx: number; vy: number; life: number; color: number; size: number }
 const TURN_SECS = 0.22;
+/** Tint for a deck with 0, 1 or 2 lower decks in front of it. */
+const BACK_TINT = [0xffffff, 0xb6b6d0, 0x8c8cac];
 const BODY = 28; // art px from feet to the sprite's rotation centre
 const ROLL: PoseName[] = ['roll0', 'roll0', 'roll1', 'roll2', 'roll3', 'roll0', 'roll0', 'roll0'];
 /** Call-out styles. Fixed set so every trick name can be drawn before the run starts. */
@@ -295,7 +297,11 @@ export class GameScene extends Phaser.Scene {
       if (x > AW + 20) break;                       // features are sorted by x
       if (x + f.w * K < -40) continue;
       let e = this.feats.get(f.id);
-      if (!e) { const t = featureTexture(this, f); e = { f, img: this.bg.add(this.add.image(0, 0, t.key).setOrigin(0).setDepth(10)), ox: t.ox, oy: t.oy, seen: 0 }; this.feats.set(f.id, e); }
+      if (!e) {
+        // the higher of two overlapping decks stands further back: drawn behind the lower one and a shade darker
+        const t = featureTexture(this, f), back = this.decksInFront(f);
+        e = { f, img: this.bg.add(this.add.image(0, 0, t.key).setOrigin(0).setDepth(10 - back).setTint(BACK_TINT[back])), ox: t.ox, oy: t.oy, seen: 0 }; this.feats.set(f.id, e);
+      }
       e.seen = this.frame;
       e.img.setPosition(x - e.ox, GROUND - e.oy + 1);
     }
@@ -343,6 +349,15 @@ export class GameScene extends Phaser.Scene {
       this.comboTotal.setTint(HYPE[Math.min(n, HYPE.length - 1)]);
     } else if (this.lastCombo) { this.comboNames.setText(''); this.comboTotal.setVisible(false); }
     this.lastCombo = n;
+  }
+
+  /** How many lower rails or ledges this one overlaps (0–2): that many decks stand in front of it. */
+  private decksInFront(f: Feature): number {
+    if (!isGrindable(f)) return 0;
+    const top = Math.max(f.h, f.h2 ?? f.h);
+    let n = 0;
+    for (const o of this.sim.level.features) if (o !== f && isGrindable(o) && Math.max(o.h, o.h2 ?? o.h) < top - 8 && o.x < f.x + f.w && o.x + o.w > f.x) n++;
+    return Math.min(2, n);
   }
 
   /** Balance meter: a spray-painted bar with a safe zone and a paint-marker needle. */
