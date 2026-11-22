@@ -116,6 +116,70 @@ export function street(w: number, h: number): Pix {
 
 const K = 4 / 3; // world units → art pixels (kept in sync with view.ts)
 
+/** 5×7 capitals for shop signs (only the letters the shop names use). */
+const SIGN_FONT: Record<string, string[]> = {
+  A: ['01110', '10001', '10001', '11111', '10001', '10001', '10001'], C: ['01111', '10000', '10000', '10000', '10000', '10000', '01111'],
+  D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'], E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
+  I: ['11111', '00100', '00100', '00100', '00100', '00100', '11111'], L: ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
+  N: ['10001', '11001', '10101', '10011', '10001', '10001', '10001'], O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+  P: ['11110', '10001', '10001', '11110', '10000', '10000', '10000'], S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110'],
+  T: ['11111', '00100', '00100', '00100', '00100', '00100', '00100'], Z: ['11111', '00001', '00010', '00100', '01000', '10000', '11111'],
+};
+/** The businesses an awning can belong to: name on the sign, wall paint, awning stripe, sign lettering. */
+const SHOPS: { name: string; paint: number; stripe: number; neon: number }[] = [
+  { name: 'PIZZA', paint: 0x8a3a30, stripe: 0xd62839, neon: 0xffd23f },
+  { name: 'TACOS', paint: 0x2f7a62, stripe: 0xff7b00, neon: 0xff3d6e },
+  { name: 'DELI', paint: 0x35557f, stripe: 0x2a9d8f, neon: 0xf5f5f5 },
+  { name: 'NOODLES', paint: 0x5a4288, stripe: 0xc2255c, neon: 0x00d9ff },
+  { name: 'SLICE', paint: 0x7a5a2a, stripe: 0x3d8f3d, neon: 0xffd23f },
+];
+
+/**
+ * A shop awning you can grind, with the shop it belongs to: painted front, lit windows, a door, and a sign above.
+ * The grindable edge is the awning's metal front bar, in exactly the place a plain rail's bar would be.
+ */
+function shopfront(f: Feature, w: number): { pix: Pix; ox: number; oy: number } {
+  const H = Math.round(f.h * K) + 4, T = 24, PH = H + T, D = 20;                 // T: sign band above the bar, D: how far the canvas hangs
+  const shop = SHOPS[f.id % SHOPS.length], wallC = ramp(shop.paint), a = ramp(shop.stripe), cream = ramp(0xf2ead8), r = new Rng(f.id * 7 + 1);
+  const p = new Pix(w + 4, PH + 2), L = 2, R = w + 2, glow = ramp(0xffc864), frame = mix(shop.paint, INK, 0.55);
+  p.part(q => {
+    // the building front
+    q.rect(L, 3, w, PH - 3, wallC[1]);
+    q.each((x, y, c) => c === -1 ? -1 : y < 3 ? c : (x * 7 + y * 13) % 23 === 0 ? wallC[0] : (x * 5 + y * 11) % 31 === 0 ? wallC[2] : c);       // weathered paint
+    q.rect(L - 1, 0, w + 2, 3, wallC[2]); q.rect(L - 1, 2, w + 2, 1, wallC[0]);                                                                   // cornice
+    q.rect(L, 3, 2, PH - 3, wallC[0]); q.rect(R - 2, 3, 2, PH - 3, wallC[0]); q.rect(L, PH - 4, w, 4, mix(shop.paint, INK, 0.5));                // edges, kick plate
+    // sign board with the name, centred over the awning
+    const name = shop.name, tw = name.length * 12 - 2, bw = Math.min(w - 16, tw + 28), bx = L + Math.round((w - bw) / 2);
+    q.rect(bx, 5, bw, 17, INK); q.rect(bx + 1, 6, bw - 2, 15, mix(shop.paint, INK, 0.7)); q.rect(bx + 1, 6, bw - 2, 1, mix(shop.neon, INK, 0.5));
+    let tx = bx + Math.round((bw - tw) / 2);
+    for (const ch of name) { const g = SIGN_FONT[ch]; if (g) for (let gy = 0; gy < 7; gy++) for (let gx = 0; gx < 5; gx++) if (g[gy][gx] === '1') { q.rect(tx + gx * 2 + 1, 8 + gy * 2 + 1, 2, 2, mix(shop.neon, INK, 0.6)); q.rect(tx + gx * 2, 8 + gy * 2, 2, 2, shop.neon); } tx += 12; }
+    // windows and a door under the awning
+    const top = T + D + 4, bot = PH - 6;
+    if (bot - top >= 10) {
+      const doorW = 22, doorX = r.next() < 0.5 ? L + 12 : R - 12 - doorW;
+      q.rect(doorX - 1, top - 2, doorW + 2, bot - top + 4, frame); q.rect(doorX + 1, top, doorW - 2, bot - top + 2, mix(shop.paint, INK, 0.35));
+      q.rect(doorX + 4, top + 3, doorW - 8, Math.max(4, (bot - top) >> 1), glow[0]); q.rect(doorX + doorW - 6, top + ((bot - top) >> 1) + 3, 2, 3, STEEL[0]);
+      const from = doorX < w / 2 ? doorX + doorW + 10 : L + 12, to = doorX < w / 2 ? R - 12 : doorX - 10;
+      for (let x0 = from; x0 + 30 <= to; x0 += 62) {
+        const ww = Math.min(54, to - x0);
+        q.rect(x0 - 1, top - 1, ww + 2, bot - top + 2, frame);
+        for (let y = top; y < bot; y++) for (let x = x0; x < x0 + ww; x++) q.set(x, y, bayer(x, y) < (y - top) / (bot - top) * 0.8 ? glow[0] : (x - x0 + (y - top)) % 19 < 3 ? glow[2] : glow[1]);   // lit from inside, a streak of glare
+        q.rect(x0 + (ww >> 1), top, 1, bot - top, frame);
+        if (bot - top > 16) q.rect(x0 + 4, bot - 7, ww - 8, 2, mix(glow[0], INK, 0.45));                                                                                                           // counter inside
+      }
+    }
+    // the awning: striped canvas hanging from the bar, scalloped hem, darker toward the wall
+    for (let x = L; x < R; x++) {
+      const k = (x - L) % 10, c = Math.floor((x - L) / 10) % 2 ? cream : a;
+      const hem = D - (k === 0 || k === 9 ? 4 : k === 1 || k === 8 ? 2 : k === 2 || k === 7 ? 1 : 0);
+      for (let y = 0; y < hem; y++) q.set(x, T + 6 + y, y < 3 ? c[2] : y > hem - 5 ? c[0] : c[1]);
+    }
+    for (let x = L; x < R; x++) q.set(x, T + 6 + D - 6, mix(a[0], INK, 0.3));                                                                    // valance seam
+    for (let x = L; x < R; x++) for (let i = 0; i < 4; i++) q.set(x, T + 2 + i, STEEL[i]);                                                        // the bar you grind
+  });
+  return { pix: p, ox: 2, oy: PH };
+}
+
 /** Sprite for a level feature. `oy` = pixels from the sprite top to the ground line. */
 export function featureSprite(f: Feature): { pix: Pix; ox: number; oy: number } {
   const w = Math.round(f.w * K);
@@ -131,19 +195,7 @@ export function featureSprite(f: Feature): { pix: Pix; ox: number; oy: number } 
     });
     return { pix: p, ox: 2, oy: H };
   }
-  if (f.kind === 'rail' && f.skin === 'awning' && f.h2 === undefined) {
-    // shop awning: you grind its metal front edge. Striped canvas hangs below; it is fixed to the wall, so no posts.
-    const H = Math.round(f.h * K) + 4, D = 15, p = new Pix(w + 4, D + 4), a = ramp(0xd62839), b = ramp(0xf2ead8);
-    p.part(q => {
-      for (let x = 2; x < w + 2; x++) {
-        const c = Math.floor((x - 2) / 9) % 2 ? b : a, edge = (x - 2) % 9;
-        const drop = D - (edge === 0 || edge === 8 ? 3 : edge === 1 || edge === 7 ? 1 : 0);      // scalloped hem
-        for (let y = 6; y < 6 + drop - 4; y++) q.set(x, y, y > 6 + drop - 8 ? c[0] : y < 8 ? c[2] : c[1]);
-      }
-      for (let x = 2; x < w + 2; x++) for (let i = 0; i < 4; i++) q.set(x, 2 + i, STEEL[i]);
-    });
-    return { pix: p, ox: 2, oy: H };
-  }
+  if (f.kind === 'rail' && f.skin === 'awning' && f.h2 === undefined) return shopfront(f, w);
   if (f.kind === 'rail') {
     const h1 = Math.round(f.h * K), h2 = Math.round((f.h2 ?? f.h) * K), H = Math.max(h1, h2) + 4;
     const p = new Pix(w + 4, H + 2), yAt = (x: number) => H - (h1 + ((h2 - h1) * x) / w);
