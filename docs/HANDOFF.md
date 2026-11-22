@@ -15,18 +15,18 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 - Sound: "good enough for the feel" — no further sound work wanted for now.
 - Rail difficulty after P-15, P-15a and P-16 (2026-11-21, on the phone): "The new rail system feels real good!" Leave the balance numbers alone unless he raises them.
 - Dropping off a rail with ↓ (P-17, 2026-11-21): "jumping 'down' on a rail also feels good."
+- Turn round mid-jump (P-12) and push at 22% (P-05a), 2026-11-21: "feels good"; "stronger push feels right now".
 - Fakie mechanic and all fakie sprites (P-06, P-06a…h): "approved here on that fakie addition".
 
 ## On trial (shipped, no verdict yet)
 
-- P-05a push strength raised 18% → 22% at his request ("slightly more push"). Not yet played.
 - **P-13 touch button pads** — left pad is the arrow keys (jump, turn/fakie, push), right pad is W A S D (tricks); faint, set above centre. Built from his spec after S5. First play: "pretty good", then enlarged and moved in at his request (P-13a: "that feels much better"). He wants to iterate on variations: position, size and faintness are sliders under *tuning → P-13*, and `touchLayout` 0 brings back zones and swipes. New variations go in as layout 2, 3…
 - **P-14 one thumb, two trick buttons** — touching between two buttons on the right pad presses both; rolling onto another presses it. Watch the next phone recordings for accidental doubles (`padChordDeg` narrows or disables it).
 - **P-15 rushed switch-ups** — his idea, to stop a points hack: trick buttons jammed under 200 ms apart on a rail shove your balance, harder under 100 ms. It also taxes his own habit of pressing two trick buttons together (P-14); ask how a quick pair feels.
 - **P-15a / P-16 harder rails** — he found rails still too easy after P-15 ("both in regular simple grinding and in button-mashing"). P-16 raises general sensitivity (hands-off grinding now falls; it used to be safe on 3 rails in 4); P-15a makes rushed switch-ups escalate. All tuned on a modelled player. P-01 was the opposite complaint (too hard to save), so compare falls per grind with S1 (17 of 153) and S2–S5 (3 of 316) after the next session.
 - **P-17 drop off a rail** — ↓ (keyboard or left pad) while grinding steps down to whatever is below. On this level that is always the street; it will matter more once T-16 adds stacked routes.
 - P-07 pre-jump trick buffer.
-- P-12 turn round mid-jump (← / right-thumb tap = a 180 at any level) and the rail-end jump fix. Not yet played. **Open question for the user:** he also asked to be able to jump while grinding, but the recordings show that already works (175 of 177 presses); find out what he was seeing. On touch, a tap in the air used to be the up trick and is now the turn — untested, his to veto.
+- P-12's touch question is moot on the pads (the tap gesture only exists in touch layout 0). He never said what he was seeing when he asked to jump while grinding; the recordings showed it already worked.
 
 ## Parked by the user
 
