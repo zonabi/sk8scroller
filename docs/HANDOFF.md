@@ -14,6 +14,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 - Push (P-05): "I can notice it and it feels good to boost the player."
 - Sound: "good enough for the feel" — no further sound work wanted for now.
 - Rail difficulty after P-15, P-15a and P-16 (2026-11-21, on the phone): "The new rail system feels real good!" Leave the balance numbers alone unless he raises them.
+- Dropping off a rail with ↓ (P-17, 2026-11-21): "jumping 'down' on a rail also feels good."
 - Fakie mechanic and all fakie sprites (P-06, P-06a…h): "approved here on that fakie addition".
 
 ## On trial (shipped, no verdict yet)
