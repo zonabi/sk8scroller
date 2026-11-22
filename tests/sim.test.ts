@@ -3,7 +3,7 @@ import { Sim, comboValue, NO_INPUT, type Input } from '../src/core/sim';
 import { botInput, runBot } from '../src/core/bot';
 import { Recorder, analyse, inputsOf, report } from '../src/core/replay';
 import { SKATERS } from '../src/core/skaters';
-import { levelForXp, xpForLevel } from '../src/core/progression';
+import { MAX_LEVEL, legacyLevelForXp, levelForXp, xpForLevel, xpFromRun } from '../src/core/progression';
 import { trickForSlot } from '../src/core/tricks';
 import { CFG, withTuning } from '../src/core/config';
 
@@ -387,6 +387,17 @@ describe('progression', () => {
     expect(levelForXp(0)).toBe(1);
     expect(levelForXp(xpForLevel(4))).toBe(4);
     expect(levelForXp(xpForLevel(4) - 1)).toBe(3);
+  });
+  it('P-11: a level takes roughly five minutes of typical play, and one huge run cannot skip levels', () => {
+    for (let l = 1; l < MAX_LEVEL; l++) {
+      const cost = xpForLevel(l + 1) - xpForLevel(l);
+      // typical play earns 75–150 XP a minute (recorded sessions): every level lands between 3 and 12 minutes
+      expect(cost / 150).toBeGreaterThanOrEqual(3);
+      expect(cost / 75).toBeLessThanOrEqual(12);
+    }
+    expect(xpFromRun(267056, 97)).toBeLessThan(xpForLevel(2));          // the best run on record, from level 1
+    expect(xpFromRun(0, 240)).toBe(240);                                 // time on the board always counts
+    expect(legacyLevelForXp(5049)).toBe(10);                             // old saves keep their level
   });
   it('higher level upgrades a slot', () => {
     expect(trickForSlot('grind', 'up', 1)!.id).toBe('soul');

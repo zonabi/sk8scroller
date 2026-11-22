@@ -33,7 +33,7 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 
 - [ ] **P-09 Mid-trick slams after fakie (investigate first).** S3: 23 slams in 9.8 min, 26 of 143 air tricks unfinished at touchdown. Break down by trick, air time left and whether a second trick was queued; propose one change. Follow PLAYTEST.md.
 - [ ] **P-10 Ignored trick swipes.** S3: 56. Classify them with `npm run replay -- --all tests/golden-runs`, then decide whether anything needs fixing.
-- [ ] **P-11 [H] Progression pacing.** One run maxes the level (`core/progression.ts`). Needs the user's call on how long unlocking everything should take; then retune the XP curve. Note `allSlotsFromStart` already gives all four slots at level 1.
+- [x] **P-11 Progression pacing.** Done 2026-11-21: about five minutes of play per level (see PLAYTEST.md). Needs his verdict after a few sessions from a reset save.
 - [ ] **P-08 [H] Real blading names — PARKED by the user.** Proposal is in TRICKS.md ("Naming model"). Waiting on his answers: spin direction for truespin, natural side for switch, groove-trick names, corrections to the table. Do not build until he picks it up.
 
 - [ ] **T-01 [H] Device playtest + tuning pass.** Play 20 runs on a phone. Adjust only `config.ts`. Record before/after values and why in DECISIONS.md.

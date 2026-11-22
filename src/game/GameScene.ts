@@ -310,7 +310,7 @@ export class GameScene extends Phaser.Scene {
     }
     const save = loadSave(), total = this.sim.totalScore, before = levelForXp(save.xp);
     const real = !this.bot && !playback;
-    const gained = real ? xpFromRun(total) : 0;
+    const gained = real ? xpFromRun(total, this.sim.s.t) : 0;
     save.xp += gained; save.best = Math.max(save.best, real ? total : 0);
     writeSave(save);
     const after = levelForXp(save.xp);
