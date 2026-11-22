@@ -1,3 +1,4 @@
+import type { Course } from './level';
 import { CFG, DEFAULTS as DEFAULTS_NOW, recordedTuning, withTuning } from './config';
 import { isObstacle } from './level';
 import { Sim, type Dir, type Input, type Mode, type SimEvent } from './sim';
@@ -18,6 +19,8 @@ export interface Recording {
   at: string;                  // ISO time
   device: string;              // user agent + screen, for context
   seed: number; skaterId: string; playerLevel: number; longRail: boolean;
+  /** Which course (absent in recordings made before there was a choice = 'street'). */
+  course?: Course;
   cfg: Record<string, number>;
   /** Run-length encoded steps: [count, flags, balance×100] triples, flattened. */
   steps: number[];
@@ -46,7 +49,7 @@ export class Recorder {
   }
   mark(): void { if (this.marks[this.marks.length - 1] !== this.n) this.marks.push(this.n); }
   get length(): number { return this.n; }
-  finish(meta: Pick<Recording, 'app' | 'device' | 'seed' | 'skaterId' | 'playerLevel' | 'longRail'>, sim: Sim): Recording {
+  finish(meta: Pick<Recording, 'app' | 'device' | 'seed' | 'skaterId' | 'playerLevel' | 'longRail' | 'course'>, sim: Sim): Recording {
     return {
       v: 1, at: new Date().toISOString(), ...meta, cfg: { ...CFG }, steps: this.steps, marks: this.marks,
       result: { steps: this.n, score: sim.totalScore, distance: sim.distance, lives: sim.s.lives, over: sim.s.mode === 'over' },
@@ -57,7 +60,7 @@ export class Recorder {
 export function* inputsOf(rec: Recording): Generator<Input> {
   for (let k = 0; k < rec.steps.length; k += 3) for (let c = 0; c < rec.steps[k]; c++) yield unpack(rec.steps[k + 1], rec.steps[k + 2]);
 }
-export const simFor = (rec: Recording): Sim => new Sim({ seed: rec.seed, skater: skaterById(rec.skaterId), playerLevel: rec.playerLevel, longRail: rec.longRail });
+export const simFor = (rec: Recording): Sim => new Sim({ seed: rec.seed, skater: skaterById(rec.skaterId), playerLevel: rec.playerLevel, longRail: rec.longRail, course: rec.course });
 
 // ---- analysis -------------------------------------------------------------------------------
 

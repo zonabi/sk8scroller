@@ -26,9 +26,18 @@ export function openPause(on: { resume: () => void; restart: () => void; menu: (
     if (a === 'resume') leave(on.resume);
     if (a === 'restart') leave(on.restart);
     if (a === 'menu') leave(on.menu);
-    if (a === 'how') openHowTo(() => {});
+    if (a === 'how') openHowTo(() => {});   // no tutorial button here: a run is in progress
     if (a === 'settings') openSettings(() => {}, true);
   });
+}
+
+/** Shown when the last tutorial lesson is passed. */
+export function openTutorialDone(on: { skate: () => void; again: () => void; menu: () => void }): void {
+  const leave = (then: () => void) => { p.close(); then(); };
+  const p = openPanel('pause-sheet', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); leave(on.skate); } if (e.key === 'Escape') { e.preventDefault(); leave(on.menu); } });
+  p.root.innerHTML = `<div class="box narrow"><header><h2>YOU'RE READY!</h2></header><p class="lead">That is every control. String tricks together for combos, and land before a trick finishes.</p><div class="menu">
+    <button data-a="skate" class="x">SKATE!</button><button data-a="again">tutorial again</button><button data-a="menu">menu</button></div></div>`;
+  p.root.addEventListener('click', e => { const a = actionOf(e); if (a === 'skate') leave(on.skate); if (a === 'again') leave(on.again); if (a === 'menu') leave(on.menu); });
 }
 
 /**

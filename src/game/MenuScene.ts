@@ -82,19 +82,19 @@ export class MenuScene extends Phaser.Scene {
 
     const play = graf(this, AW / 2, 268, 'SKATE!', { font: 'spray', size: 40, fill: [PAL.green, PAL.cyan], block: PAL.plum, angle: -2 }).setOrigin(0.5);
     this.tweens.add({ targets: play, scale: 1.07, yoyo: true, repeat: -1, duration: 520, ease: 'Sine.easeInOut' });
-    const go = () => { sfx.play('go'); this.scene.start('game'); };
+    const go = (tutorial = false) => { sfx.play('go'); this.scene.start('game', { tutorial }); };
     // the controls card: opened from the menu, and once by itself before the very first run
-    const how = (thenSkate: boolean) => {
+    const how = (first: boolean) => {
       sfx.play('tap'); this.input.enabled = false; if (this.input.keyboard) this.input.keyboard.enabled = false;
-      openHowTo(() => {
+      openHowTo(choice => {
         this.input.enabled = true; if (this.input.keyboard) this.input.keyboard.enabled = true;
         if (!this.save.seenHow) { this.save.seenHow = true; writeSave(this.save); }
-        if (thenSkate) go();
-      }, thenSkate);
+        if (choice === 'tutorial') go(true); else if (first) go();
+      }, { first, tutorial: true });
     };
     const start = () => { if (howToIsDue(this.save.seenHow)) how(true); else go(); };
     play.button(start);
-    this.input.keyboard?.on('keydown-SPACE', start);
+    this.input.keyboard?.on('keydown-SPACE', () => start());
     this.input.keyboard?.on('keydown-H', () => how(false));
 
     // how to play, on a strip of tape
@@ -104,7 +104,7 @@ export class MenuScene extends Phaser.Scene {
     tapeG.fillStyle(0xf6e7a1, 0.95).fillRect(-tip.textWidth / 2 - 9, -13, tip.textWidth + 18, 26);
     tapeG.setInteractive(new Phaser.Geom.Rectangle(-tip.textWidth / 2 - 14, -18, tip.textWidth + 28, 36), Phaser.Geom.Rectangle.Contains).on('pointerdown', () => how(false));
     tip.button(() => how(false));
-    graf(this, AW / 2, 348, 'controls and tips · on a keyboard: H · M mutes', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
+    graf(this, AW / 2, 348, 'controls, tips and the tutorial · on a keyboard: H · M mutes', { size: 7, fill: PAL.white, outlineWidth: 2 }).setOrigin(0.5);
 
     this.input.keyboard?.on('keydown-M', () => { this.save.mute = !this.save.mute; writeSave(this.save); sfx.setMuted(this.save.mute); sfx.play('tap'); });
 

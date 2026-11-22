@@ -81,6 +81,10 @@ export class InputController {
     this.jumpQueued = false; this.trickQueued = null; this.trickNext = null; this.pushQueued = false; this.turnQueued = false; this.dropQueued = false;
     for (const k of Object.values(this.keys)) k.reset();
   }
+  /** True when the on-screen button pads are in use. */
+  get usesPads(): boolean { return !!this.pads; }
+  /** Tutorial: pulse one pad button (-1 = none). */
+  hint(btn: number): void { this.pads?.hint(btn); }
   /** The run is over: take the pads off the results screen. */
   hidePads(): void { this.pads?.hide(); }
 

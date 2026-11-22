@@ -19,6 +19,9 @@ export function railY(f: Feature, x: number): number {
   return f.h + (f.h2 - f.h) * t;
 }
 
+/** Which course a level is. 'street' is the endless generated run; 'tutorial' starts empty and is laid out lesson by lesson (core/tutorial.ts). */
+export type Course = 'street' | 'tutorial';
+
 /** Length of the practice rail: about 10 seconds of grinding at early-run speed. */
 export const LONG_RAIL = 2000;
 
@@ -83,7 +86,8 @@ export class Level {
   private nextId = 1;
   /** Practice aid: world x at which to drop one very long flat rail (0 = none). */
   private longRailAt: number;
-  constructor(seed: number, opts: { longRailAt?: number } = {}) { this.rng = new Rng(seed); this.longRailAt = opts.longRailAt ?? 0; }
+  readonly course: Course;
+  constructor(seed: number, opts: { longRailAt?: number; course?: Course } = {}) { this.rng = new Rng(seed); this.longRailAt = opts.longRailAt ?? 0; this.course = opts.course ?? 'street'; }
 
   add(kind: FeatureKind, x: number, w: number, h: number, h2?: number): Feature {
     const f: Feature = { id: this.nextId++, kind, x, w, h, h2 };
@@ -93,7 +97,7 @@ export class Level {
 
   /** Generate features up to world x and drop ones far behind `behindX`. */
   ensure(x: number, behindX = -Infinity): void {
-    while (this.genX < x) {
+    while (this.course !== 'tutorial' && this.genX < x) {
       if (this.longRailAt && this.genX >= this.longRailAt) {
         this.add('rail', this.genX, LONG_RAIL, 24);
         this.genX += LONG_RAIL + 320; this.longRailAt = 0;

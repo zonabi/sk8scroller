@@ -7,14 +7,16 @@ import { Recorder, inputsOf, simFor } from '../core/replay';
 import { Sim, comboValue, type Input, type SimEvent } from '../core/sim';
 import { skaterById, type SkaterDef } from '../core/skaters';
 import { TRICKS, TRICK_LIST } from '../core/tricks';
+import { LESSONS, Tutorial, type TutorialEvent } from '../core/tutorial';
 import { FAKIE_FRAMES, SPIN_FRAMES, type PoseName } from './art/skater';
 import { sfx } from './audio';
 import { World, setupCamera } from './backdrop';
 import { InputController } from './input';
-import { bindPause, openPause } from './pause';
+import { bindPause, openPause, openTutorialDone } from './pause';
 import { bindFlag, downloadLastRun, playback, saveRun } from './recording';
 import { loadSave, writeSave } from './storage';
 import { SPRITE, dropFeatureTexture, featureTexture, hasFakieVersion, skaterTex, warmSkater, type SkaterFrame } from './textures';
+import { lessonHint, lessonText, lessonsToSkip, type ControlKind } from './tutorialText';
 import { Graf, Num, graf, num, uiPerf, warm, type GrafStyle } from './ui';
 import { AH, AW, APP_VERSION, GROUND, K, PAL, PLAYER_X, Z, Z_KEY } from './view';
 
@@ -67,19 +69,26 @@ export class GameScene extends Phaser.Scene {
   private frozen = false;
   private popN = 0;
   private paused = false;
+  /** The playable tutorial, when this run is one (started with { tutorial: true }). */
+  private tut: Tutorial | null = null;
+  private tutKind: ControlKind = 'keys';
+  private tutLefty = false;
+  private tutTitle!: Graf; private tutHow!: Graf; private tutStep!: Graf;
 
   constructor() { super('game'); }
 
-  create(): void {
+  create(data?: { tutorial?: boolean }): void {
     setupCamera(this);
     const save = loadSave(), q = new URLSearchParams(location.search);
     this.skater = skaterById(save.skaterId);
     this.bot = q.has('bot');
     const seed = q.has('seed') ? Number(q.get('seed')) : (Math.random() * 2 ** 32) >>> 0;
     this.seed = seed; this.frozen = false;
-    this.sim = new Sim({ seed, skater: this.skater, playerLevel: levelForXp(save.xp), longRail: q.has('rail') });
+    const wantTutorial = !!data?.tutorial && !this.bot && !playback;
+    this.tut = null;
+    this.sim = new Sim({ seed, skater: this.skater, playerLevel: levelForXp(save.xp), longRail: q.has('rail'), course: wantTutorial ? 'tutorial' : 'street' });
     // every human run is recorded (see core/replay.ts); ?replay=<file> plays one back instead
-    this.rec = this.bot || playback ? null : new Recorder();
+    this.rec = this.bot || playback || wantTutorial ? null : new Recorder();
     this.replayIn = null;
     if (playback) {
       // play it back under the settings it was recorded with, then restore ours
@@ -115,6 +124,7 @@ export class GameScene extends Phaser.Scene {
     for (const t of Object.values(BAIL_TEXT)) warm(this, t, CALL.bail);
 
     this.ctl = new InputController(this, () => this.sim.s.mode, save.tilt, save.lefty);
+    if (wantTutorial) this.startTutorial(save.lefty);
     // pause: the ❙❙ button, P or ESC, and by itself when the page loses focus (never for the bot: tools must not stall)
     this.paused = false;
     const pause = () => this.pauseRun();
@@ -141,8 +151,10 @@ export class GameScene extends Phaser.Scene {
       if (this.frozen) { this.acc = 0; break; }
       let input: Input;
       if (this.replayIn) { const n = this.replayIn.next(); if (n.done) { this.frozen = true; break; } input = n.value; }
-      else input = this.bot ? botInput(this.sim) : this.rec!.push(this.ctl.sample());
-      for (const e of this.sim.step(input)) this.onEvent(e);
+      else input = this.bot ? botInput(this.sim) : this.rec ? this.rec.push(this.ctl.sample()) : this.ctl.sample();
+      const ev = this.sim.step(input);
+      for (const e of ev) this.onEvent(e);
+      if (this.tut) for (const e of this.tut.step(this.sim, ev)) this.onTutorial(e);
       this.stepSparks();
       if (this.landT > 0) this.landT -= CFG.dt;
       if (this.pushAnim > 0) this.pushAnim -= CFG.dt;
@@ -153,12 +165,48 @@ export class GameScene extends Phaser.Scene {
     this.draw();
   }
 
+  // ---- tutorial ------------------------------------------------------------
+  private static readonly TUT_TITLE: GrafStyle = { font: 'piece', size: 26, fill: [PAL.yellow, PAL.orange], block: PAL.ink, angle: -2, outlineWidth: 6, align: 'center' };
+  private static readonly TUT_HOW: GrafStyle = { size: 12, fill: PAL.white, align: 'center' };
+  private static readonly TUT_STEP: GrafStyle = { size: 8, fill: PAL.cyan, align: 'center' };
+  private startTutorial(lefty: boolean): void {
+    this.tutKind = this.ctl.usesPads ? 'pads' : navigator.maxTouchPoints > 0 ? 'zones' : 'keys';
+    this.tutLefty = lefty;
+    this.tut = new Tutorial(lessonsToSkip(this.tutKind));
+    // every prompt is drawn now, so changing lesson mid-run only swaps a texture
+    for (const id of LESSONS) { const [a, b] = lessonText(id, this.tutKind, lefty); warm(this, a, GameScene.TUT_TITLE); if (b) warm(this, b, GameScene.TUT_HOW); }
+    for (let i = 1; i <= this.tut.count; i++) warm(this, `lesson ${i} of ${this.tut.count}`, GameScene.TUT_STEP);
+    warm(this, 'NICE!', CALL.air); warm(this, 'TRY AGAIN', CALL.grind);
+    this.tutStep = graf(this, AW / 2, 54, '', GameScene.TUT_STEP).setOrigin(0.5, 0);
+    this.tutTitle = graf(this, AW / 2, 64, '', GameScene.TUT_TITLE).setOrigin(0.5, 0);
+    this.tutHow = graf(this, AW / 2, 100, '', GameScene.TUT_HOW).setOrigin(0.5, 0);
+    for (const l of this.lives) l.setVisible(false);      // nothing costs a life in here
+  }
+  private onTutorial(e: TutorialEvent): void {
+    const tut = this.tut!;
+    if (e.type === 'lesson') {
+      const [title, how] = lessonText(e.id, this.tutKind, this.tutLefty);
+      this.tutTitle.setText(title); this.tutHow.setText(how); this.tutStep.setText(`lesson ${tut.number} of ${tut.count}`);
+      this.tutTitle.alpha = 1; this.tutHow.alpha = 1;
+      this.ctl.hint(lessonHint(e.id));
+      if (e.retry) this.popup('TRY AGAIN', 'grind');
+    } else if (e.type === 'passed') {
+      this.popup('NICE!', 'air'); sfx.play('bank', 2);
+      this.tutTitle.alpha = 0.35; this.tutHow.alpha = 0.35; this.ctl.hint(-1);
+    } else {
+      const save = loadSave(); if (!save.seenHow) { save.seenHow = true; writeSave(save); }
+      this.paused = true; sfx.hush(); this.scene.pause();
+      const back = () => { this.paused = false; this.scene.resume(); };
+      openTutorialDone({ skate: () => { back(); this.scene.restart({ tutorial: false }); }, again: () => { back(); this.scene.restart({ tutorial: true }); }, menu: () => { back(); this.scene.start('menu'); } });
+    }
+  }
+
   /** Freeze the run behind the pause sheet. The sim only advances in update(), so a paused scene is a paused game. */
   private pauseRun(): void {
     if (this.paused || this.finished || this.frozen) return;
     this.paused = true; sfx.hush(); this.scene.pause();
     const back = () => { this.paused = false; this.acc = 0; this.ctl.reset(); this.scene.resume(); };
-    openPause({ resume: back, restart: () => { back(); this.scene.restart(); }, menu: () => { back(); this.scene.start('menu'); } });
+    openPause({ resume: back, restart: () => { back(); this.scene.restart({ tutorial: !!this.tut }); }, menu: () => { back(); this.scene.start('menu'); } });
   }
 
   // ---- events → juice -------------------------------------------------------
@@ -344,9 +392,9 @@ export class GameScene extends Phaser.Scene {
       graf(this, AW / 2, 208, `LEVEL ${after}!` + (names.length ? `  new: ${names.join(', ')}` : ''), { font: 'piece', size: 20, fill: [PAL.green, PAL.cyan], angle: 2, ephemeral: true }).setOrigin(0.5);
     }
     this.time.delayedCall(500, () => {
-      graf(this, AW / 2 - 90, 266, 'AGAIN!', { font: 'spray', size: 34, fill: [PAL.green, PAL.cyan], block: PAL.plum, angle: -3 }).setOrigin(0.5).button(() => this.scene.restart());
+      graf(this, AW / 2 - 90, 266, 'AGAIN!', { font: 'spray', size: 34, fill: [PAL.green, PAL.cyan], block: PAL.plum, angle: -3 }).setOrigin(0.5).button(() => this.scene.restart({ tutorial: false }));
       graf(this, AW / 2 + 110, 268, 'menu', { font: 'piece', size: 26, fill: PAL.white, angle: 3 }).setOrigin(0.5).button(() => this.scene.start('menu'));
-      this.input.keyboard?.once('keydown-SPACE', () => this.scene.restart());
+      this.input.keyboard?.once('keydown-SPACE', () => this.scene.restart({ tutorial: false }));
     });
   }
 }

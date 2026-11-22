@@ -94,6 +94,7 @@ function glowTexture(scene: Phaser.Scene, g: typeof G): string {
 export class PadView {
   private base: Phaser.GameObjects.Image[] = [];
   private glow: Phaser.GameObjects.Image[] = [];
+  private tip: Phaser.GameObjects.Image;
   constructor(scene: Phaser.Scene) {
     const g = geom(), a = CFG.padAlpha, glow = glowTexture(scene, g);
     for (let side = 0; side < 2; side++) {
@@ -101,7 +102,15 @@ export class PadView {
       this.base.push(scene.add.image(cx, g.y, padTexture(scene, side, g)).setScale(1 / Z).setAlpha(a).setDepth(96));
       for (let dir = 0; dir < 4; dir++) this.glow.push(scene.add.image(cx + OX[dir] * g.d, g.y + OY[dir] * g.d, glow).setScale(1 / Z).setAlpha(Math.min(0.85, a * 1.5 + 0.1)).setDepth(96).setVisible(false));
     }
+    // tutorial hint: one green ring that pulses on the button to press
+    this.tip = scene.add.image(0, 0, glow).setScale(1 / Z).setTint(PAL.green).setAlpha(0.55).setDepth(96).setVisible(false);
+    scene.tweens.add({ targets: this.tip, alpha: 0.15, yoyo: true, repeat: -1, duration: 420 });
+  }
+  /** Light up one button (-1 = none). */
+  hint(btn: number): void {
+    const g = this.glow[btn];
+    this.tip.setVisible(!!g); if (g) this.tip.setPosition(g.x, g.y);
   }
   press(btn: number, on: boolean): void { this.glow[btn]?.setVisible(on); }
-  hide(): void { for (const i of this.base) i.setVisible(false); for (const i of this.glow) i.setVisible(false); }
+  hide(): void { this.tip.setVisible(false); for (const i of this.base) i.setVisible(false); for (const i of this.glow) i.setVisible(false); }
 }

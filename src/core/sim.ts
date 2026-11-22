@@ -1,5 +1,5 @@
 import { CFG } from './config';
-import { Level, isGrindable, isObstacle, railY, type Feature } from './level';
+import { Level, isGrindable, isObstacle, railY, type Course, type Feature } from './level';
 import { Rng } from './rng';
 import type { SkaterDef } from './skaters';
 import { TRICKS, trickForSlot } from './tricks';
@@ -71,6 +71,8 @@ export interface SimOptions {
   seed: number; skater: SkaterDef; playerLevel: number;
   /** Practice aid (?rail): one very long rail about 10 seconds into the run. */
   longRail?: boolean;
+  /** Which course to skate (default 'street'). The tutorial course never costs a life. */
+  course?: Course;
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -99,9 +101,11 @@ export class Sim {
   private readonly rng: Rng;
   private readonly skater: SkaterDef;
   private readonly playerLevel: number;
+  private readonly freeLives: boolean;
 
   constructor(opts: SimOptions) {
-    this.level = new Level(opts.seed, { longRailAt: opts.longRail ? 1350 : 0 });
+    this.level = new Level(opts.seed, { longRailAt: opts.longRail ? 1350 : 0, course: opts.course });
+    this.freeLives = opts.course === 'tutorial';
     this.rng = new Rng(opts.seed ^ 0x9e3779b9);
     this.skater = opts.skater;
     this.playerLevel = opts.playerLevel;
@@ -349,7 +353,8 @@ export class Sim {
   private bail(reason: 'obstacle' | 'balance' | 'sketchy', ev: SimEvent[]): void {
     const s = this.s;
     s.mode = 'bail'; s.combo = []; s.airTrick = null; s.grind = null; s.grindTrick = null; this.clearAir();
-    s.lives -= 1; s.bailTimer = CFG.bailTime; s.invuln = CFG.bailTime + CFG.invulnTime;
+    if (!this.freeLives) s.lives -= 1;
+    s.bailTimer = CFG.bailTime; s.invuln = CFG.bailTime + CFG.invulnTime;
     s.speed *= CFG.bailSpeedFactor; s.vy = 0; s.pushT = 0; s.fakie = false;
     ev.push({ type: 'bail', reason });
   }

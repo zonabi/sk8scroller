@@ -38,6 +38,7 @@ Why: core can be tested and bot-played in milliseconds with no browser. That is 
 | Feel / tuning numbers | `src/core/config.ts` (never inline magic numbers). `CFG` is live and mutable — the tuning panel overrides it — so read `CFG.x` at use, never cache it |
 | Add a trick | `src/core/tricks.ts` (+ row in `docs/TRICKS.md`) |
 | Add a skater | `src/core/skaters.ts` |
+| Tutorial lessons | `src/core/tutorial.ts` (what each lesson lays out and what passes it) + `src/game/tutorialText.ts` (the prompt for pads / keys / zones) |
 | Add a level pattern | `PATTERNS` in `src/core/level.ts` |
 | New mechanic | `src/core/sim.ts` + a test in `tests/` + bot support in `src/core/bot.ts` if the bot must handle it |
 | Skater look / poses | `src/game/art/skater.ts` — poses are data (hip, feet, hands; IK does the rest) |

@@ -46,15 +46,24 @@ const TIPS = [
   '<b>Fakie</b> (rolling backwards) scores 25% more.',
 ];
 
-/** Opens the card. `go` set = first-run flow: the close button reads "SKATE!". */
-export function openHowTo(onClose: () => void, go = false): void {
+/**
+ * Opens the card. `first` = the first-launch flow: the buttons offer the tutorial or a straight run.
+ * `tutorial` = also offer the tutorial (menu). onClose gets 'tutorial' when the player chose it.
+ */
+export function openHowTo(onClose: (choice?: 'tutorial') => void, opts: { first?: boolean; tutorial?: boolean } = {}): void {
   let view = firstView();
   const other = (): View => (view === 'keys' ? (CFG.touchLayout === 1 ? 'pads' : 'zones') : 'keys');
   const name = (v: View) => (v === 'keys' ? 'keyboard' : 'touch');
-  const close = () => { p.close(); onClose(); };
-  const p = openPanel('how', e => { if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); close(); } });
+  const close = (choice?: 'tutorial') => { p.close(); onClose(choice); };
+  const p = openPanel('how', e => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); close(opts.first ? 'tutorial' : undefined); }
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
+  });
   const draw = () => {
-    p.root.innerHTML = `<div class="box"><header><h2>HOW TO PLAY</h2><button data-a="swap">show ${name(other())}</button><button data-a="close" class="x">${go ? 'GOT IT — SKATE!' : 'got it'}</button></header>
+    const buttons = opts.first
+      ? '<button data-a="close">skip — just skate</button><button data-a="tutorial" class="x">PLAY THE TUTORIAL</button>'
+      : `<button data-a="swap">show ${name(other())}</button>${opts.tutorial ? '<button data-a="tutorial">play tutorial</button>' : ''}<button data-a="close" class="x">got it</button>`;
+    p.root.innerHTML = `<div class="box"><header><h2>HOW TO PLAY</h2>${buttons}</header>
       ${body(view)}<ol>${TIPS.map(t => `<li>${t}</li>`).join('')}</ol>
       <p class="foot">Find this again on the menu: <b>how to play</b>${view === 'keys' ? ' (or press H) · P or ESC pauses · M mutes' : ' · the ❙❙ button at the top pauses'}.</p></div>`;
   };
@@ -62,6 +71,7 @@ export function openHowTo(onClose: () => void, go = false): void {
     const a = actionOf(e);
     if (a === 'swap') { view = other(); draw(); }
     if (a === 'close') close();
+    if (a === 'tutorial') close('tutorial');
   });
   draw();
 }

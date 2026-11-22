@@ -5,6 +5,7 @@ import { Recorder, analyse, inputsOf, report } from '../src/core/replay';
 import { SKATERS } from '../src/core/skaters';
 import { MAX_LEVEL, legacyLevelForXp, levelForXp, xpForLevel, xpFromRun } from '../src/core/progression';
 import { trickForSlot } from '../src/core/tricks';
+import { LESSONS, Tutorial, type TutorialEvent } from '../src/core/tutorial';
 import { CFG, withTuning } from '../src/core/config';
 
 const mk = (seed = 1, playerLevel = 1) => {
@@ -380,6 +381,58 @@ describe('P-17 drop off a rail', () => {
     sim.step(press({ drop: true }));
     expect(sim.s.mode).toBe('grind');
   }));
+});
+
+describe('tutorial', () => {
+  const start = () => { const sim = new Sim({ seed: 1, skater: SKATERS[0], playerLevel: 1, course: 'tutorial' }); return { sim, tut: new Tutorial(), log: [] as TutorialEvent[] }; };
+  /** Step with a policy until the tutorial says something of `type` (or give up after `max` steps). */
+  const until = (t: ReturnType<typeof start>, type: TutorialEvent['type'], policy: (sim: Sim) => Partial<Input>, max = 1500): TutorialEvent | undefined => {
+    for (let i = 0; i < max; i++) {
+      const out = t.tut.step(t.sim, t.sim.step(press({ jumpHeld: false, ...policy(t.sim) })));
+      t.log.push(...out);
+      const hit = out.find(e => e.type === type); if (hit) return hit;
+    }
+    return undefined;
+  };
+  const nextObstacle = (sim: Sim) => sim.level.features.find(f => f.x + f.w > sim.s.x);
+  /** Jumps at the right moment for whatever is ahead, and steers a rail. */
+  const hop = (sim: Sim): Partial<Input> => {
+    const f = nextObstacle(sim), s = sim.s;
+    if (s.mode === 'grind') return { balance: Math.max(-1, Math.min(1, -(s.balance * 6 + s.balanceVel * 2))) };
+    return { jumpPressed: s.mode === 'ground' && !!f && f.x - s.x < 36 && f.x - s.x > 0, jumpHeld: true };
+  };
+
+  it('is an empty course that never costs a life', () => {
+    const t = start();
+    expect(t.sim.level.features.length).toBe(0);
+    until(t, 'lesson', () => ({}));
+    expect(t.tut.lesson).toBe('jump');
+    until(t, 'lesson', () => ({}));                       // roll straight into the cone
+    expect(t.sim.s.lives).toBe(CFG.lives);
+  });
+  it('repeats a lesson until it is done, then moves on', () => {
+    const t = start();
+    until(t, 'lesson', () => ({}));
+    const again = until(t, 'lesson', () => ({}));         // did nothing: the cone lesson comes back
+    expect(again).toMatchObject({ id: 'jump', retry: true });
+    expect(until(t, 'passed', hop)).toMatchObject({ id: 'jump' });
+    expect(until(t, 'lesson', hop)).toMatchObject({ id: 'grind', retry: false });
+  });
+  it('can be completed start to finish', () => {
+    const t = start();
+    const play = (sim: Sim): Partial<Input> => {
+      const s = sim.s, id = t.tut.lesson, base = hop(sim);
+      if (id === 'switch' && s.mode === 'grind' && s.grindTime > 0.3) return { ...base, trick: 'up' };
+      if (id === 'drop' && s.mode === 'grind' && s.grindTime > 0.3) return { ...base, drop: true };
+      if (id === 'trick') return s.mode === 'ground' ? { jumpPressed: true, jumpHeld: true } : { jumpHeld: true, trick: s.vy > 0 ? 'up' : null };
+      if (id === 'push') return { push: true };
+      if (id === 'fakie') return { turn: true };
+      return base;
+    };
+    expect(until(t, 'finished', play, 60 * 120)).toBeDefined();
+    expect(t.log.filter(e => e.type === 'passed').map(e => (e as { id: string }).id)).toEqual([...LESSONS]);
+    expect(t.sim.s.lives).toBe(CFG.lives);
+  });
 });
 
 describe('progression', () => {
