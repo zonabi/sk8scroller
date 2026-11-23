@@ -72,6 +72,10 @@ const DEF = {
   padAlpha: 0.22,           // how visible the pads are (0 = invisible, 1 = solid)
   padY: 0.38,               // height of the pads' centre as a fraction of the screen, from the top
   padSize: 52,              // button diameter, art px (the screen is 640 wide). Was 44 before P-13a
+  // P-13b tablets: pads in the lower corners, where the hands hold it. Smaller in art px because a tablet shows each art px much bigger.
+  padYTablet: 0.72,         // height of the pads' centre on a tablet (was padY's 0.38 before P-13b)
+  padSizeTablet: 44,        // button diameter on a tablet, art px (was padSize's 52)
+  padInsetTablet: 8,        // gap from the side of the screen on a tablet, art px (was padInset's 26)
   padInset: 26,             // gap from the side of the screen to the pad, art px. Was 14 before P-13a
   // P-14 one thumb across two trick buttons presses both
   padChordDeg: 15,          // a touch within this many degrees of the line between two trick buttons presses both; also lets a rolling thumb press the next button. 0 = off
@@ -96,7 +100,7 @@ export const CFG: Record<CfgKey, number> = { ...DEF };
 /** Pre-change values for keys introduced by a playtest change (see header). */
 export const LEGACY: Partial<Record<CfgKey, number>> = {
   balanceControlScale: 0, balanceSettleMs: 0, switchUpKick: 0.4, stanceHardness: 1,
-  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0, airTurn: 0, railEndJump: 0, touchLayout: 0, padChordDeg: 0, rushMs: 0, rushChain: 0, railDrop: 0, balanceCarryMs: 0,
+  railIntentMs: 0, railTrickPicksGrind: 0, landGraceMs: 0, trickBufferMs: 0, coyoteMs: 0, allSlotsFromStart: 0, preJumpMs: 0, pushBoost: 0, fakieEnabled: 0, airTurn: 0, railEndJump: 0, touchLayout: 0, padChordDeg: 0, padYTablet: 0.38, padSizeTablet: 52, padInsetTablet: 26, rushMs: 0, rushChain: 0, railDrop: 0, balanceCarryMs: 0,
 };
 
 /** A control shown in the tuning panel. */
@@ -121,6 +125,9 @@ export const KNOBS: Knob[] = [
   { key: 'padAlpha', group: 'P-13 Touch controls', label: 'Pad visibility', kind: 'slider', min: 0.05, max: 0.8, step: 0.01, hint: 'Lower = fainter' },
   { key: 'padY', group: 'P-13 Touch controls', label: 'Pad height on screen', kind: 'slider', min: 0.2, max: 0.8, step: 0.01, hint: '0.5 = centred, lower numbers = nearer the top' },
   { key: 'padSize', group: 'P-13 Touch controls', label: 'Button size', kind: 'slider', min: 30, max: 64, step: 1 },
+  { key: 'padYTablet', group: 'P-13b Touch controls on a tablet', label: 'Pad height on screen', kind: 'slider', min: 0.2, max: 0.85, step: 0.01, hint: 'Tablets only. Higher numbers = nearer the bottom. Phones use the P-13 sliders' },
+  { key: 'padSizeTablet', group: 'P-13b Touch controls on a tablet', label: 'Button size', kind: 'slider', min: 28, max: 64, step: 1 },
+  { key: 'padInsetTablet', group: 'P-13b Touch controls on a tablet', label: 'Gap from the screen edge', kind: 'slider', min: 0, max: 80, step: 2 },
   { key: 'padInset', group: 'P-13 Touch controls', label: 'Gap from the screen edge', kind: 'slider', min: 0, max: 80, step: 2 },
   { key: 'fakieEnabled', group: 'P-06 Fakie', label: 'Fakie stance', kind: 'toggle', hint: 'Turn round on the ground; a 180 or 540 leaves you facing the other way' },
   { key: 'fakieBonus', group: 'P-06 Fakie', label: 'Fakie points bonus', kind: 'slider', min: 0, max: 0.6, step: 0.05 },

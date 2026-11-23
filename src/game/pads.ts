@@ -7,7 +7,7 @@ import { AH, AW, PAL, Z, hex } from './view';
  *   Left pad  = the arrow keys: ↑ jump · ← turn round / lean left · → push / lean right · ↓ drop off a rail
  *   Right pad = W A S D:        the four trick directions
  * Everything about where they sit and how they look is a tuning knob (touchLayout, padAlpha, padY, padSize,
- * padInset), so a variation is a slider move on the phone, not a code change.
+ * padInset, and padYTablet / padSizeTablet / padInsetTablet for tablets), so a variation is a slider move on the phone, not a code change.
  *
  * Left-handed players can swap the two (settings); "left" and "right" pad below mean the default arrangement.
  *
@@ -26,14 +26,20 @@ let lefty = false;
 export const setPadsLefty = (on: boolean): void => { lefty = on; };
 export const padsLefty = (): boolean => lefty;
 
+/**
+ * P-13b: a tablet is held by its lower corners, a phone by its sides, so tablets get their own pad position and size.
+ * Tablet = the short side of the screen is 600 CSS px or more (phones are about 430 at most, the smallest iPad 744). `?tablet` forces it.
+ */
+export const IS_TABLET = Math.min(screen.width, screen.height) >= 600 || new URLSearchParams(location.search).has('tablet');
+
 const G = { size: 0, d: 0, reach: 0, lx: 0, rx: 0, y: 0 };
 /** Pad geometry in art units, read from the live tuning. */
 function geom(): typeof G {
-  const size = CFG.padSize, d = size * 0.76, half = d + size / 2;
+  const size = IS_TABLET ? CFG.padSizeTablet : CFG.padSize, inset = IS_TABLET ? CFG.padInsetTablet : CFG.padInset, d = size * 0.76, half = d + size / 2;
   G.size = size; G.d = d;
   G.reach = half + size * 0.3;                       // a thumb that lands a little outside a button still counts
-  G.lx = CFG.padInset + half; G.rx = AW - CFG.padInset - half;
-  G.y = Math.max(half + 2, Math.min(AH - half - 2, AH * CFG.padY));
+  G.lx = inset + half; G.rx = AW - inset - half;
+  G.y = Math.max(half + 2, Math.min(AH - half - 2, AH * (IS_TABLET ? CFG.padYTablet : CFG.padY)));
   return G;
 }
 
