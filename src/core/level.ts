@@ -135,7 +135,7 @@ const STACK_PATTERNS: typeof PATTERNS = [
   { name: 'triple-decker', weight: 1.5, minD: 0.3, make: (lv, x) => {
       lv.add('ledge', x, 380, 16);
       lv.add('rail', x + 90, 340, 42, undefined, 'fence');
-      lv.add('rail', x + 200, 320, 68, undefined, 'awning');
+      lv.add('rail', x + 200, 320, 68);   // too high for an awning: a shop is only as tall as the wall
       return 520 + 70;
     } },
   // breathers from the street course

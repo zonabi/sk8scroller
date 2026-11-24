@@ -1,6 +1,6 @@
 # Handoff — where the project stands
 
-Updated 2026-11-21, version 0.9.4. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
+Updated 2026-11-21, version 0.9.5. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
 
 ## State in one paragraph
 
@@ -24,7 +24,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 - **Pause and settings** (T-05) — pause button / P / ESC / auto on app switch; settings sheet with sound, left-handed pads, tilt, reset progress. All HTML sheets share `game/panels.ts`. Unseen by him.
 - **P-18 the lean follows you** — his idea: hopping off a rail and back on no longer resets the balance meter (lean, tipping speed and fatigue carry over for up to 3 s). Closes the last rail exploit he found. His own style hops a lot (162 same-rail re-locks in the recordings), so ask whether normal play now feels punishing.
 - **Playable tutorial** (T-04) — eight lessons, repeat-until-done, offered on first launch and from the how-to card. Rules live in `core/tutorial.ts`; the course is `course: 'tutorial'` on the Sim. Unplayed by a person.
-- **Depth on stacks** (T-16b) — his rule: the higher deck is always further back. Draw order and tint are set in `GameScene.decksInFront`; fence and awning looks are `skin` on a rail (`core/level.ts`, art in `art/world.ts`); an awning is always drawn with its shopfront (`shopfront()`), because he said a bare awning looked out of place. Looks never use the level's dice, so layouts and recordings are unchanged.
+- **Depth on stacks** (T-16b) — his rule: the higher deck is always further back. Draw order and tint are set in `GameScene.decksInFront`; fence and awning looks are `skin` on a rail (`core/level.ts`, art in `art/world.ts`); an awning is always drawn with its shopfront (`shopfront()`), because he said a bare awning looked out of place. His rules for the shop: top level with the back wall's top, standing at the wall's foot (not on the pavement), at the wall's depth. Looks never use the level's dice, so layouts and recordings are unchanged.
 - **Stacks course** (T-16a) — his request for a level with multi-level rails. `course: 'stacks'` on the Sim, own pattern pool in `core/level.ts`, picked on the menu and saved. Recordings carry the course. Unplayed by a person.
 - **How-to-play card** (T-04a) — his request: a controls screen on first start and from the menu. Not yet seen by him on the phone. Keep `game/howto.ts` in step with any control change.
 - **P-13b pads on tablets** — he found the upper corners wrong on an iPad; tablets now have their own position, size and edge gap (lower corners). If he wants them lower still, the next step is making the letterbox band under the picture take touches.

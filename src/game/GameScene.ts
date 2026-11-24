@@ -300,7 +300,9 @@ export class GameScene extends Phaser.Scene {
       if (!e) {
         // the higher of two overlapping decks stands further back: drawn behind the lower one and a shade darker
         const t = featureTexture(this, f), back = this.decksInFront(f);
-        e = { f, img: this.bg.add(this.add.image(0, 0, t.key).setOrigin(0).setDepth(10 - back).setTint(BACK_TINT[back])), ox: t.ox, oy: t.oy, seen: 0 }; this.feats.set(f.id, e);
+        // a shop is part of the back wall: behind every other deck, and shaded in its own art
+        const shop = f.skin === 'awning';
+        e = { f, img: this.bg.add(this.add.image(0, 0, t.key).setOrigin(0).setDepth(shop ? 6 : 10 - back).setTint(shop ? 0xffffff : BACK_TINT[back])), ox: t.ox, oy: t.oy, seen: 0 }; this.feats.set(f.id, e);
       }
       e.seen = this.frame;
       e.img.setPosition(x - e.ox, GROUND - e.oy + 1);

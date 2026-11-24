@@ -134,41 +134,54 @@ const SHOPS: { name: string; paint: number; stripe: number; neon: number }[] = [
   { name: 'SLICE', paint: 0x7a5a2a, stripe: 0x3d8f3d, neon: 0xffd23f },
 ];
 
+/** Height of the back wall, art px. Must equal WALL_H in textures.ts (which imports this file, so it cannot be imported here). */
+const WALL_H = 96;
+/** Art px from the foot of the back wall down to the line the skates roll on (view.ts: GROUND − STREET_TOP). */
+const CURB = 7;
+
 /**
  * A shop awning you can grind, with the shop it belongs to: painted front, lit windows, a door, and a sign above.
+ * The shop is part of the back wall: exactly as tall as the wall, standing where the wall stands (not out on the
+ * pavement), and dimmed like it. Only the awning reaches out toward the street, so it and its bar stay bright.
  * The grindable edge is the awning's metal front bar, in exactly the place a plain rail's bar would be.
  */
 function shopfront(f: Feature, w: number): { pix: Pix; ox: number; oy: number } {
-  const H = Math.round(f.h * K) + 4, T = 24, PH = H + T, D = 20;                 // T: sign band above the bar, D: how far the canvas hangs
-  const shop = SHOPS[f.id % SHOPS.length], wallC = ramp(shop.paint), a = ramp(shop.stripe), cream = ramp(0xf2ead8), r = new Rng(f.id * 7 + 1);
-  const p = new Pix(w + 4, PH + 2), L = 2, R = w + 2, glow = ramp(0xffc864), frame = mix(shop.paint, INK, 0.55);
+  const H = Math.round(f.h * K) + 4, oy = WALL_H + CURB + 1, T = oy - H, PH = WALL_H, D = 20;   // T: wall above the bar (the sign goes there), D: how far the canvas hangs
+  const far = (c: number) => mix(c, 0x1e1238, 0.28);                                            // as far back as the wall
+  const shop = SHOPS[f.id % SHOPS.length], wallC = ramp(far(shop.paint)), a = ramp(shop.stripe), cream = ramp(0xf2ead8), r = new Rng(f.id * 7 + 1);
+  const p = new Pix(w + 4, PH), L = 2, R = w + 2, glow = ramp(0xf0b85a), frame = far(mix(shop.paint, INK, 0.55));
   p.part(q => {
-    // the building front
+    // the building front, wall top to wall foot
     q.rect(L, 3, w, PH - 3, wallC[1]);
     q.each((x, y, c) => c === -1 ? -1 : y < 3 ? c : (x * 7 + y * 13) % 23 === 0 ? wallC[0] : (x * 5 + y * 11) % 31 === 0 ? wallC[2] : c);       // weathered paint
     q.rect(L - 1, 0, w + 2, 3, wallC[2]); q.rect(L - 1, 2, w + 2, 1, wallC[0]);                                                                   // cornice
-    q.rect(L, 3, 2, PH - 3, wallC[0]); q.rect(R - 2, 3, 2, PH - 3, wallC[0]); q.rect(L, PH - 4, w, 4, mix(shop.paint, INK, 0.5));                // edges, kick plate
-    // sign board with the name, centred over the awning
-    const name = shop.name, tw = name.length * 12 - 2, bw = Math.min(w - 16, tw + 28), bx = L + Math.round((w - bw) / 2);
-    q.rect(bx, 5, bw, 17, INK); q.rect(bx + 1, 6, bw - 2, 15, mix(shop.paint, INK, 0.7)); q.rect(bx + 1, 6, bw - 2, 1, mix(shop.neon, INK, 0.5));
-    let tx = bx + Math.round((bw - tw) / 2);
-    for (const ch of name) { const g = SIGN_FONT[ch]; if (g) for (let gy = 0; gy < 7; gy++) for (let gx = 0; gx < 5; gx++) if (g[gy][gx] === '1') { q.rect(tx + gx * 2 + 1, 8 + gy * 2 + 1, 2, 2, mix(shop.neon, INK, 0.6)); q.rect(tx + gx * 2, 8 + gy * 2, 2, 2, shop.neon); } tx += 12; }
+    q.rect(L, 3, 2, PH - 3, wallC[0]); q.rect(R - 2, 3, 2, PH - 3, wallC[0]); q.rect(L, PH - 4, w, 4, far(mix(shop.paint, INK, 0.5)));           // edges, kick plate
+    // sign board with the name, centred in the wall above the awning (as big as that space allows)
+    const S = T >= 36 ? 3 : T >= 26 ? 2 : 0;
+    if (S) {
+      const name = shop.name, tw = name.length * 6 * S - S, bh = 7 * S + 8, by = Math.max(4, Math.round((T - bh) / 2)), bw = Math.min(w - 16, tw + 14 * S), bx = L + Math.round((w - bw) / 2);
+      q.rect(bx, by, bw, bh, INK); q.rect(bx + 1, by + 1, bw - 2, bh - 2, mix(shop.paint, INK, 0.75)); q.rect(bx + 1, by + 1, bw - 2, 1, mix(shop.neon, INK, 0.5));
+      let tx = bx + Math.round((bw - tw) / 2);
+      for (const ch of name) { const g = SIGN_FONT[ch]; if (g) for (let gy = 0; gy < 7; gy++) for (let gx = 0; gx < 5; gx++) if (g[gy][gx] === '1') { q.rect(tx + gx * S + 1, by + 4 + gy * S + 1, S, S, mix(shop.neon, INK, 0.6)); q.rect(tx + gx * S, by + 4 + gy * S, S, S, shop.neon); } tx += 6 * S; }
+    }
     // windows and a door under the awning
-    const top = T + D + 4, bot = PH - 6;
+    const top = T + D + 8, bot = PH - 5;
     if (bot - top >= 10) {
-      const doorW = 22, doorX = r.next() < 0.5 ? L + 12 : R - 12 - doorW;
-      q.rect(doorX - 1, top - 2, doorW + 2, bot - top + 4, frame); q.rect(doorX + 1, top, doorW - 2, bot - top + 2, mix(shop.paint, INK, 0.35));
+      const doorW = 24, doorX = r.next() < 0.5 ? L + 12 : R - 12 - doorW;
+      q.rect(doorX - 1, top - 2, doorW + 2, bot - top + 4, frame); q.rect(doorX + 1, top, doorW - 2, bot - top + 2, far(mix(shop.paint, INK, 0.35)));
       q.rect(doorX + 4, top + 3, doorW - 8, Math.max(4, (bot - top) >> 1), glow[0]); q.rect(doorX + doorW - 6, top + ((bot - top) >> 1) + 3, 2, 3, STEEL[0]);
       const from = doorX < w / 2 ? doorX + doorW + 10 : L + 12, to = doorX < w / 2 ? R - 12 : doorX - 10;
-      for (let x0 = from; x0 + 30 <= to; x0 += 62) {
-        const ww = Math.min(54, to - x0);
+      for (let x0 = from; x0 + 30 <= to; x0 += 70) {
+        const ww = Math.min(62, to - x0);
         q.rect(x0 - 1, top - 1, ww + 2, bot - top + 2, frame);
         for (let y = top; y < bot; y++) for (let x = x0; x < x0 + ww; x++) q.set(x, y, bayer(x, y) < (y - top) / (bot - top) * 0.8 ? glow[0] : (x - x0 + (y - top)) % 19 < 3 ? glow[2] : glow[1]);   // lit from inside, a streak of glare
         q.rect(x0 + (ww >> 1), top, 1, bot - top, frame);
         if (bot - top > 16) q.rect(x0 + 4, bot - 7, ww - 8, 2, mix(glow[0], INK, 0.45));                                                                                                           // counter inside
       }
     }
-    // the awning: striped canvas hanging from the bar, scalloped hem, darker toward the wall
+    // shadow the awning throws on the wall behind it
+    for (let x = L; x < R; x++) for (let y = T + D + 2; y < T + D + 7 && y < PH; y++) if (bayer(x, y) < 0.6) q.set(x, y, mix(wallC[0], INK, 0.45));
+    // the awning: striped canvas hanging from the bar, scalloped hem
     for (let x = L; x < R; x++) {
       const k = (x - L) % 10, c = Math.floor((x - L) / 10) % 2 ? cream : a;
       const hem = D - (k === 0 || k === 9 ? 4 : k === 1 || k === 8 ? 2 : k === 2 || k === 7 ? 1 : 0);
@@ -177,7 +190,7 @@ function shopfront(f: Feature, w: number): { pix: Pix; ox: number; oy: number } 
     for (let x = L; x < R; x++) q.set(x, T + 6 + D - 6, mix(a[0], INK, 0.3));                                                                    // valance seam
     for (let x = L; x < R; x++) for (let i = 0; i < 4; i++) q.set(x, T + 2 + i, STEEL[i]);                                                        // the bar you grind
   });
-  return { pix: p, ox: 2, oy: PH };
+  return { pix: p, ox: 2, oy };
 }
 
 /** Sprite for a level feature. `oy` = pixels from the sprite top to the ground line. */
