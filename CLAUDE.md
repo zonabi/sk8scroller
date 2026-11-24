@@ -88,6 +88,32 @@ How to chase a performance problem (learned the hard way):
 
 Reference numbers (user's Mac, Chrome, zoom Z4, 2026-11-18): 60 fps / 16.7 ms per frame; boot 551 ms. Phone numbers: not yet measured.
 
+## Committing and pushing — the route that works
+
+The user wants every change pushed to `main` so testers see it (approved by him 2026-11-23). Do not hand
+him a `git push` to run. Two things break the obvious approach when Claude works through the desktop app's
+shell on his Mac (`device_bash`), and both have a fix:
+
+1. **Git leaves `.lock` files and later commands fail with "File exists".** That shell cannot delete files
+   until he allows it. Before the first git write of a session, ask with `device_request_delete_permission`
+   for this folder (he sees a prompt and decides). If stale locks are already there, remove them once
+   deletion is allowed — only ones no running git holds.
+2. **`git push` from that shell fails ("could not read Username").** It has no GitHub credentials and should
+   not be given any. The Claude GitHub App is what can push, and it works from the cloud side of the session:
+   - commit in this folder as usual;
+   - `git bundle create .git/push.bundle origin/main..main`, then `device_stage_files` on that file;
+   - attach the repo with push access (`add_repo`: owner `zonabi`, repo `sk8scroller`, access `push`) and
+     clone it once in the cloud workspace;
+   - there: `git fetch <staged bundle> main && git merge --ff-only FETCH_HEAD && git push origin main`
+     (same commit hashes, so nothing diverges);
+   - back here: `git fetch origin`, delete `.git/push.bundle`, and check `git status -sb` shows no "ahead".
+
+A session that already runs in the cloud clone just commits and pushes there. Either way, say the push
+landed only after `git ls-remote origin main` shows the new commit. If a permission request is declined or
+blocked, stop and tell him — do not look for another way round.
+
+Never commit `package-lock.json` churn that the task did not cause.
+
 ## Definition of done
 
 1. `npm run check` passes. New rules have a test. If the bot's median distance drops, you made the game unfair — fix it or justify it in the PR.
