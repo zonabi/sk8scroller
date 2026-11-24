@@ -36,11 +36,13 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 
 ## M1 — Feel
 
-- [ ] **P-09 Mid-trick slams after fakie (investigate first).** S3: 23 slams in 9.8 min, 26 of 143 air tricks unfinished at touchdown. Break down by trick, air time left and whether a second trick was queued; propose one change. Follow PLAYTEST.md.
-- [ ] **P-10 Ignored trick swipes.** S3: 56. Classify them with `npm run replay -- --all tests/golden-runs`, then decide whether anything needs fixing.
+- [x] **P-09 Mid-trick slams — investigated 2026-11-23 (PLAYTEST.md, S7).** Late presses of long tricks, not a bug; the fix is a design choice (T-15 loadouts, or tap/hold). Original card:  S3: 23 slams in 9.8 min, 26 of 143 air tricks unfinished at touchdown. Break down by trick, air time left and whether a second trick was queued; propose one change. Follow PLAYTEST.md.
+- [x] **P-10 Ignored trick presses — classified 2026-11-23 (PLAYTEST.md, S7).** Nothing to fix. Original card:  S3: 56. Classify them with `npm run replay -- --all tests/golden-runs`, then decide whether anything needs fixing.
 - [x] **P-11 Progression pacing.** Done 2026-11-21: about five minutes of play per level (see PLAYTEST.md). Needs his verdict after a few sessions from a reset save.
 - [ ] **P-08 [H] Real blading names — PARKED by the user.** Proposal is in TRICKS.md ("Naming model"). Waiting on his answers: spin direction for truespin, natural side for switch, groove-trick names, corrections to the table. Do not build until he picks it up.
 
+- [ ] **P-19 Jump buffer (proposed, needs his OK).** S7: 12 of 30 jump presses made in the air were within 150 ms of landing and did nothing. Standard forgiveness: fire the jump on touchdown. Behind a switch like every feel change.
+- [ ] **Run length [H].** Median run is 39 s; he wants 3–5 minutes. Needs his decision: lives that come back, more lives, or a gentler start.
 - [ ] **T-01 [H] Device playtest + tuning pass.** Play 20 runs on a phone. Adjust only `config.ts`. Record before/after values and why in DECISIONS.md.
 - [x] **T-02 Sound effects.** Done 2026-11-18 (`audio.ts`): roll and grind loops, 12 one-shots, mute (menu toggle / M). Tuned blind — see playtest notes. Original card:  `game/audio.ts` using WebAudio synthesis (no asset files yet): roll loop pitched by speed, grind scrape, jump, land, bail, bank sting. Driven only by SimEvents. Mute toggle saved in storage. Accept: no audio before first user gesture; no console errors in `shots`.
 - [ ] **T-03 Manuals.** New `manual` mode in sim: swipe down on landing within 0.15s to enter; own balance meter (forward/back); counts as a combo entry and keeps the combo alive; ends on jump or balance loss. Tests + bot unaffected. Touch + keys.
