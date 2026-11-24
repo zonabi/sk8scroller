@@ -16,6 +16,7 @@ A playable browser build of the whole core loop: run, jump, grind with balance, 
 - Rail difficulty after P-15, P-15a and P-16 (2026-11-21, on the phone): "The new rail system feels real good!" Leave the balance numbers alone unless he raises them.
 - Dropping off a rail with ↓ (P-17, 2026-11-21): "jumping 'down' on a rail also feels good."
 - Turn round mid-jump (P-12) and push at 22% (P-05a), 2026-11-21: "feels good"; "stronger push feels right now".
+- Shopfronts and awnings on STACKS after T-16e/f (2026-11-23): wall-height shop at the wall's depth, awning rail at 54 — "this feels really good now."
 - Fakie mechanic and all fakie sprites (P-06, P-06a…h): "approved here on that fakie addition".
 
 ## On trial (shipped, no verdict yet)
