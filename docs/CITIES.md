@@ -108,8 +108,8 @@ SK8 SCROLLER
    city is picked, behind the loading screen, never mid-run (performance rule).
 4. **Stage structure** (if option B): finish line, stars, results screen, saved progress per stage.
 5. **Selector screen.**
-6. **Per-city mechanics**: slopes for Sydney exist already; stairs and drops for Barcelona are the unbuilt
-   half of T-16 and are the biggest single piece.
+6. **Per-city mechanics**: sloped rails exist already; slopes, stairs, plazas and gaps are planned in
+   `TERRAIN.md` and are the biggest single piece. Barcelona and Sydney depend on them.
 
 **Art per city**
 - Backdrop: sky, far skyline with one or two landmark shapes, near buildings, wall, street.

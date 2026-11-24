@@ -25,7 +25,7 @@ const FONT: Record<string, string> = {
   Q: '01110100011000110001101011001001101', R: '11110100011000111110101001001010001', S: '01111100001000001110000010000111110', T: '11111001000010000100001000010000100',
   U: '10001100011000110001100011000101110', V: '10001100011000110001100010101000100', W: '10001100011000110101101011101110001', X: '10001100010101000100010101000110001',
   Y: '10001100010101000100001000010000100', Z: '11111000010001000100010001000011111', '1': '00100011000010000100001000010001110', '2': '01110100010000100010001000100011111',
-  '3': '11110000010000101110000010000111110', '-': '00000000000000011111000000000000000', '·': '00000000000000000100000000000000000',
+  '3': '11110000010000101110000010000111110', '4': '10010100101001011111000100001000010', '-': '00000000000000011111000000000000000', '·': '00000000000000000100000000000000000',
 };
 function text(p: Pix, x: number, y: number, s: string, scale: number, c: number, shadow = INK): number {
   for (const ch of s.toUpperCase()) {
@@ -309,3 +309,74 @@ const sheet = new Pix(W, H * CITIES.length + (CITIES.length - 1) * 4);
 CITIES.forEach((city, i) => { const [stage, time] = STAGE_TIME[HERO[city.id]]; sheet.blit(render(city, time, stage), 0, i * (H + 4)); });
 writePng('docs/concept/cities.png', sheet, 1, INK);
 console.log(`docs/concept/city-{${CITIES.map(c => c.id).join(',')}}.png, docs/concept/city-stages.png, docs/concept/cities.png`);
+
+// ---- terrain concepts (docs/TERRAIN.md) ---------------------------------------------------------------------------
+/** A street whose surface follows `gy(x)` (art px above the normal street line; negative = lower). */
+function terrain(title: string, sub: string, gy: (x: number) => number, props: (c: Ctx, feet: (x: number) => number) => void, pit?: [number, number]): Pix {
+  const p = new Pix(W, H), c: Ctx = { p, r: new Rng(title.length * 13 + 3), time: 'sunset', lights: [] };
+  gradient(p, 0, WALL_TOP + 60, [[0, 0x3a2a7a], [0.5, 0xd8556a], [1, 0xffb060]]);
+  row(c, 96, 150, [0x5a4a86, 0x6a4f7c, 0x4a3f78], 0.25, 28, 58);
+  const wallC = amb(c, 0x7a4a52), pave = amb(c, 0x9a9aac), road = amb(c, 0x3a3a48);
+  for (let x = 0; x < W; x++) {
+    const inPit = pit && x >= pit[0] && x < pit[1], top = STREET_TOP - Math.round(gy(x));
+    for (let y = WALL_TOP; y < (inPit ? H : top); y++) p.set(x, y, (y % 6 === 0 || (x + (Math.floor(y / 6) % 2) * 6) % 12 === 0) ? mix(wallC, INK, 0.3) : wallC);
+    if (inPit) { for (let y = top + 2; y < H; y++) p.set(x, y, mix(INK, 0x000000, 0.3)); continue; }
+    for (let y = top; y < top + 13; y++) p.set(x, y, y === top ? mix(pave, 0xffffff, 0.35) : x % 44 === 0 ? mix(pave, INK, 0.25) : pave);
+    p.set(x, top + 13, mix(pave, INK, 0.5)); p.set(x, top + 14, mix(pave, INK, 0.5));
+    for (let y = top + 15; y < H; y++) p.set(x, y, (x * 7 + y * 13) % 37 === 0 ? mix(road, 0xffffff, 0.12) : road);
+    if (x % 64 < 30) for (let y = top + 41; y < top + 44; y++) p.set(x, y, amb(c, 0xe8c840));
+  }
+  p.rect(0, WALL_TOP, W, 3, mix(wallC, INK, 0.4));
+  flush(c);
+  props(c, x => GROUND - Math.round(gy(x)));
+  p.rect(0, 0, W, 30, mix(INK, 0x000000, 0.2));
+  const x = text(p, 10, 6, title, 3, 0xffd23f); text(p, x + 10, 13, sub, 1, 0xf5f5f5); text(p, W - textW('CONCEPT ART', 1) - 10, 13, 'CONCEPT ART', 1, 0xff3d6e);
+  return p;
+}
+/** A handrail between two points (for stairs and slopes). */
+function slopeRail(c: Ctx, x1: number, y1: number, x2: number, y2: number, footAt: (x: number) => number): void {
+  const s = ramp(amb(c, 0xc8d0dc));
+  for (let x = x1 + 6; x < x2; x += 34) { const y = y1 + ((y2 - y1) * (x - x1)) / (x2 - x1); c.p.rect(x, y + 2, 2, footAt(x) - y - 2, s[0]); }
+  for (let i = -1; i <= 3; i++) c.p.line(x1, y1 + i, x2, y2 + i, i < 0 || i > 2 ? INK : s[2 - i]);
+}
+const arrow = (c: Ctx, x1: number, y1: number, x2: number, y2: number, col: number) => { for (let i = 0; i < 1; i += 0.06) c.p.rect(x1 + (x2 - x1) * i, y1 + (y2 - y1) * i, 3, 2, col); c.p.poly([[x2 + 8, y2], [x2 - 2, y2 - 6], [x2 - 2, y2 + 6]], col); };
+
+const clampT = (t: number) => Math.max(0, Math.min(1, t));
+const TERRAIN: [string, Pix][] = [
+  ['slopes', terrain('1 SLOPES', 'DOWNHILL BUILDS SPEED · UPHILL SPENDS IT', x => 34 - 60 * clampT((x - 110) / 250) + 44 * clampT((x - 430) / 170), (c, feet) => {
+    skater(c, 200, feet(200), 'roll1', 1);
+    for (let i = 0; i < 4; i++) c.p.rect(150 - i * 14, feet(200) - 26 - i * 3, 9, 1, 0xf5f5f5);                                  // speed lines
+    arrow(c, 250, feet(250) - 44, 330, feet(330) - 44, 0x3dff8f); text(c.p, 262, feet(250) - 62, 'FASTER', 1, 0x3dff8f);
+    arrow(c, 450, feet(450) - 40, 540, feet(540) - 40, 0xff7b00); text(c.p, 462, feet(450) - 58, 'SLOWER', 1, 0xff7b00);
+    ledge(c, 372, 50, 12, 0xb8b0c0);
+  })],
+  ['stairs', terrain('2 STAIRS', 'GRIND THE HANDRAIL OR JUMP THE SET · ROLLING DOWN THEM SLAMS', x => (x < 250 ? 36 : x < 370 ? 36 - 12 * Math.ceil((x - 249) / 30) : -12), (c, feet) => {
+    slopeRail(c, 246, feet(240) - 26, 376, feet(380) - 26, feet);
+    skater(c, 300, feet(240) - 26 + ((feet(380) - feet(240)) * (300 - 246)) / 130, 'soul', 0);
+    for (let i = 0; i < 12; i++) c.p.rect(170 + i * 20, feet(240) - 60 - Math.round(Math.sin((i / 11) * Math.PI) * 30) + i * 3, 4, 2, 0x00d9ff);   // the jump line
+    text(c.p, 196, feet(240) - 110, 'OR JUMP IT', 1, 0x00d9ff);
+    text(c.p, 388, feet(300) - 6, 'ROLL DOWN THE STEPS AND YOU SLAM', 1, 0xff3d6e);
+  })],
+  ['plaza', terrain('3 PLAZA', 'A RAISED DECK FURTHER BACK · HIGH ROAD OR LOW ROAD', () => 0, (c, feet) => {
+    const s = ramp(amb(c, 0xb0a8c0)), top = feet(0) - 40;                                                                          // the deck sits at the wall, behind the street
+    c.p.rect(199, top - 1, 322, 36, INK); c.p.rect(200, top, 320, 34, mix(s[1], 0x1e1238, 0.2)); c.p.rect(200, top, 320, 3, s[2]);
+    for (let x = 200; x < 520; x += 40) c.p.rect(x, top + 3, 1, 31, mix(s[0], INK, 0.3));
+    for (let i = 0; i < 3; i++) { c.p.rect(170 + i * 10, top + 34 - (i + 1) * 11, 30 - i * 10 + 1, 11, mix(s[1], 0x1e1238, 0.2)); c.p.rect(170 + i * 10, top + 34 - (i + 1) * 11, 30 - i * 10 + 1, 1, s[2]); }
+    c.p.rect(300, top - 12, 150, 12, INK); c.p.rect(301, top - 11, 148, 10, amb(c, 0xdcd8e8)); c.p.rect(301, top - 11, 148, 2, 0xf5f5f5);   // a ledge on the deck
+    skater(c, 380, top - 12, 'makio', 2);
+    text(c.p, 250, top - 44, 'HIGH ROAD', 1, 0xffd23f);
+    for (const x of [300, 370, 440]) { const hy = ramp(amb(c, 0xff7b00)); c.p.poly([[x, feet(x)], [x + 5, feet(x) - 12], [x + 10, feet(x)]], hy[1]); c.p.rect(x - 1, feet(x) - 2, 12, 2, hy[0]); }
+    skater(c, 250, feet(250), 'roll2', 3); text(c.p, 540, feet(0) + 26, 'LOW ROAD', 1, 0xf5f5f5);
+  })],
+  ['gap', terrain('4 GAP', 'CLEAR IT OR TAKE THE RAIL ACROSS · FALLING IN COSTS A LIFE', () => 0, (c, feet) => {
+    for (const x of [262, 380]) { c.p.rect(x - 6, feet(x) - 20, 4, 20, amb(c, 0xff7b00)); c.p.rect(x - 12, feet(x) - 20, 16, 5, amb(c, 0xf5f5f5)); c.p.rect(x - 12, feet(x) - 18, 16, 1, amb(c, 0xff7b00)); }
+    for (let i = 0; i < 13; i++) c.p.rect(200 + i * 20, feet(0) - 34 - Math.round(Math.sin((i / 12) * Math.PI) * 44), 4, 2, 0x00d9ff);
+    skater(c, 320, feet(0) - 78, 'mute', 1);
+    text(c.p, 286, 338, 'TRENCH', 1, 0xff3d6e);
+  }, [270, 372])],
+];
+for (const [id, pix] of TERRAIN) writePng(`docs/concept/terrain-${id}.png`, pix, 2);
+const tsheet = new Pix(W * 2 + 4, H * 2 + 4);
+TERRAIN.forEach(([, pix], i) => tsheet.blit(pix, (i % 2) * (W + 4), Math.floor(i / 2) * (H + 4)));
+writePng('docs/concept/terrain.png', tsheet, 1, INK);
+console.log(`docs/concept/terrain-{${TERRAIN.map(t => t[0]).join(',')}}.png, docs/concept/terrain.png`);
