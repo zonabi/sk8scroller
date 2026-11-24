@@ -13,6 +13,7 @@ Mobile-first side-scrolling inline skating game. TypeScript + Phaser 4 + Vite. W
 - `npm run shots` — builds and writes screenshots to `shots/`. Look at them after any visual change. Fails on browser console errors.
 - `npm run perf` — builds, bot-plays in headless Chrome, prints load time, CPU ms per frame and how many text textures were drawn mid-run. Fails if the budget is blown. **Run it after any change under `src/game/`.**
 - `npm run sprites` — dumps every skater pose to `shots/sprites.png`. Look at it after touching `src/game/art/`.
+- `npm run cities` — repaints the concept art for the planned cities into `docs/concept/` (see `docs/CITIES.md`). Concept only: the game does not use it.
 - `npm run fakie` — fakie roll / jump / fall / landing at 6× to `shots/fakie.png`, as drawn in game.
 - `npm run dev` — dev server. `?seed=N` fixes the level, `?bot` autoplays, `?pads` shows the touch button pads without a touch screen.
 

@@ -72,7 +72,7 @@ Every card's last step is `npm run check` (and `npm run shots` if anything visua
 - [x] **T-16a Stacks course.** Done 2026-11-21: a second course, STACKS, with rails over rails and ledges (double-decker, steps up, steps down, triple-decker, high rail over cones). Chosen on the menu (sticker beside SKATE, or C). Climb by jumping rail to rail, come down with ↓. Bot clears it 200/200 for every skater; `npm run sim` now reports both courses. No bonus for riding high yet.
 - [ ] **T-16 Terrain.** *(stacked rails are done as T-16a; what is left is the ground itself changing height)* Variable ground height: stairs, drops, gaps (fall = bail), upper/lower routes. Needs level + sim + bot changes; do as 2–3 cards.
 - [ ] **T-17 Tagging + letter collectibles.**
-- [ ] **T-18 Districts.** Pattern pools + palettes per district; transition every N metres.
+- [ ] **T-18 Cities and stages — PLAN ONLY, see `docs/CITIES.md`** (drafted 2026-11-24 at his request: 5 cities × 3 stages, a city selector, concept art in `docs/concept/`). Do not build any of it until he answers the open questions there, starting with what a stage is. Supersedes the old card:  Pattern pools + palettes per district; transition every N metres.
 
 ## M5 — Retention
 

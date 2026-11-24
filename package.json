@@ -12,6 +12,7 @@
     "sim": "tsx tools/sim.ts",
     "sprites": "tsx tools/sprites.ts",
     "fakie": "tsx tools/fakie-sheet.ts",
+    "cities": "tsx tools/cities.ts",
     "replay": "tsx tools/replay.ts",
     "check": "npm run typecheck && npm run test && npm run sim && npm run replay -- --verify",
     "shots": "npm run build && node tools/shot.mjs",
