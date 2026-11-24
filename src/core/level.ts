@@ -99,7 +99,7 @@ const STACK_PATTERNS: typeof PATTERNS = [
   { name: 'ledge-under-rail', weight: 4, minD: 0, make: (lv, x) => {
       const w = lv.rng.int(260, 340);
       lv.add('ledge', x, w, 16);
-      lv.add('rail', x + 80, w + 40, 46, undefined, 'awning');   // always a shop: the ledge is its front step
+      lv.add('rail', x + 80, w + 40, 54, undefined, 'awning');   // always a shop: the ledge is its front step
       return w + 120 + 60;
     } },
   // two rails, the upper starting later and ending later

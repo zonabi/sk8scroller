@@ -1,6 +1,6 @@
 # Handoff — where the project stands
 
-Updated 2026-11-21, version 0.9.5. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
+Updated 2026-11-21, version 0.9.6. Read after `CLAUDE.md`. Keep this file current: rewrite it at the end of any session that changes the state below.
 
 ## State in one paragraph
 
