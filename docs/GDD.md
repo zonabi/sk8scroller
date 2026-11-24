@@ -91,3 +91,4 @@ long line of grinds, switch-ups and air tricks. Short runs, big combos, loud col
 ## Monetisation (decide before M5)
 
 Leaning premium or free with cosmetic-only purchases. No stamina timers, no pay-to-continue; they'd wreck the one-more-run loop.
+Parked ideas and research: `docs/MONETIZATION.md`.
